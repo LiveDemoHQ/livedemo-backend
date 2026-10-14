@@ -31,3 +31,6 @@ src/injectScript/injectScript.bundle.js
 ./src/injectScript/injectScript.bundle.js
 
 *.env
+
+tools/uploadVideos/credentials.json
+tools/uploadVideos/token.json

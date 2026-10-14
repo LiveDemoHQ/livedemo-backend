@@ -256,9 +256,7 @@ const handler = function (req, res) {
             // Required for CORS support to work
             'Access-Control-Allow-Credentials': true, // Required for cookies, authorization headers with HTTPS
           },
-          body: JSON.stringify({
-            errors: checkForDuplicateError
-          })
+          body: JSON.stringify({ error: checkForDuplicateError.error })
         }
       } else if (error.resultResponse) {
         resultResponse = error.resultResponse

@@ -1,4 +1,5 @@
 import validator from 'validator'
+import Errors from '../../constants/Errors.js'
 
 /**
  * Validate the sign up form
@@ -59,10 +60,9 @@ function validateLoginForm(payload) {
 }
 
 function handleMongoDuplicateError(err) {
-  if (err.name === 'MongoError' && err.code === 11000) {
-    // the 11000 Mongo code is for a duplication email error
+  if (err?.code === 11000 && err.keyPattern?.email) {
     return {
-      error: 'DUPLICATE_EMAIL'
+      error: Errors.Authentication.DUPLICATE_EMAIL
     }
   } else {
     return {
