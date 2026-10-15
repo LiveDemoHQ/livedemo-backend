@@ -59,7 +59,7 @@ export function findStockAvatar(avatarId) {
 const OBJECT_ID = /^[a-f0-9]{24}$/
 
 function customAvatar(doc) {
-  return { id: String(doc._id), displayName: doc.name || 'Custom avatar', imageUrl: doc.imageUrl, custom: true, reframed: !!doc.reframed }
+  return { id: String(doc._id), displayName: doc.name || 'Custom avatar', imageUrl: doc.imageUrl, videoUrl: doc.videoUrl || '', custom: true, reframed: !!doc.reframed }
 }
 
 // Workspace customs first, then stock
@@ -190,12 +190,70 @@ export async function reframeWithSession(imageUrl) {
   const room = `ld-avatar-prep-${crypto.randomBytes(8).toString('hex')}`
   const avatarToken = livekitToken({ identity: AVATAR_IDENTITY, room, kind: 'agent', attributes: { 'lk.publish_on_behalf': 'nobody' } })
   const session = await postSession(buildSessionBody({ imageUrl, custom: true, reframed: false }, avatarToken), { prep: room })
-  if (session.control_url) {
-    fetch(session.control_url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-API-Key': ENV.LEMONSLICE_API_KEY },
-      body: JSON.stringify({ event: 'terminate' }),
-    }).catch(err => console.log('[lemonslice] prep terminate failed', err.message))
-  }
+  terminateSession(session)
   return session.edited_image_url || null
+}
+
+function terminateSession(session) {
+  if (!session.control_url) return
+  fetch(session.control_url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': ENV.LEMONSLICE_API_KEY },
+    body: JSON.stringify({ event: 'terminate' }),
+  }).catch(err => console.log('[lemonslice] terminate failed', err.message))
+}
+
+const CLIP_SECONDS = 6
+const RECORDER_IDENTITY = 'ld-clip-recorder'
+const EGRESS_FAILED = ['EGRESS_FAILED', 'EGRESS_ABORTED', 'EGRESS_LIMIT_REACHED']
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+
+// LiveKit Egress over Twirp (https://docs.livekit.io/reference/other/egress/api)
+async function egressRpc(method, room, body) {
+  const token = livekitToken({ identity: RECORDER_IDENTITY, room, grants: { roomRecord: true } })
+  const host = ENV.LIVEKIT_URL.replace(/^ws/, 'http').replace(/\/+$/, '')
+  const res = await fetch(`${host}/twirp/livekit.Egress/${method}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  })
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(`egress ${method} ${res.status} ${JSON.stringify(json).slice(0, 300)}`)
+  return json
+}
+
+async function waitForEgress(room, egressId, status) {
+  for (let i = 0; i < 90; i++) {
+    const { items = [] } = await egressRpc('ListEgress', room, { egress_id: egressId })
+    const info = items[0] || {}
+    if (info.status === status) return info
+    if (EGRESS_FAILED.includes(info.status)) throw new Error(`egress ${info.status} ${info.error || ''}`)
+    await sleep(1000)
+  }
+  throw new Error(`egress never reached ${status}`)
+}
+
+// LemonSlice only has clips for its own stock avatars, so custom ones get recorded:
+// a throwaway session idles in its own room while LiveKit egress writes the face
+// (video only, 2:3 like the avatar) straight to our bucket at `key`.
+export async function recordAvatarClip(avatar, key) {
+  assertConfigured()
+  const room = `ld-avatar-clip-${crypto.randomBytes(8).toString('hex')}`
+  const avatarToken = livekitToken({ identity: AVATAR_IDENTITY, room, kind: 'agent', attributes: { 'lk.publish_on_behalf': RECORDER_IDENTITY } })
+  const session = await postSession(buildSessionBody(avatar, avatarToken), { clip: room })
+  try {
+    const egress = await egressRpc('StartEgress', room, {
+      room_name: room,
+      media: { participant_video: { identity: AVATAR_IDENTITY } },
+      advanced: { width: 480, height: 720, framerate: 25, video_codec: 'H264_MAIN', video_bitrate: 1200 },
+      outputs: [{ file: { file_type: 'MP4', filepath: key, disable_manifest: true } }],
+      storage: { s3: { access_key: ENV.AWS_ACCESS_KEY_ID, secret: ENV.AWS_SECRET_ACCESS_KEY, region: 'us-east-1', bucket: 'livedemo-cdn' } },
+    })
+    await waitForEgress(room, egress.egress_id, 'EGRESS_ACTIVE')
+    await sleep(CLIP_SECONDS * 1000)
+    await egressRpc('StopEgress', room, { egress_id: egress.egress_id })
+    await waitForEgress(room, egress.egress_id, 'EGRESS_COMPLETE')
+  } finally {
+    terminateSession(session)
+  }
 }

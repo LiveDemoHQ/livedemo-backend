@@ -1,6 +1,6 @@
 import fsp from 'fs/promises'
 import axios from 'axios'
-import { S3Client } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectAclCommand } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import ENV from '../envServer.js'
 import {getUserByAccessToken} from './authHelpers.js'
@@ -613,6 +613,18 @@ function uploadScreenVideo(videoBuff, mimeType, videoName) {
 }
 
 
+// For files written to livedemo-cdn by something else (e.g. LiveKit egress), which can't set an ACL
+function makeCdnObjectPublic(key) {
+    const s3Client = new S3Client({
+        region: 'us-east-1',
+        credentials: {
+            accessKeyId: ENV.AWS_ACCESS_KEY_ID,
+            secretAccessKey: ENV.AWS_SECRET_ACCESS_KEY
+        }
+    })
+    return s3Client.send(new PutObjectAclCommand({ Bucket: 'livedemo-cdn', Key: key, ACL: 'public-read' }))
+}
+
 function uploadStepAudio(audioBuff, mimeType, audioName) {
     const s3Client = new S3Client({
         region: 'us-east-1',
@@ -945,6 +957,7 @@ export default {
     uploadBufferBackgroundAudio,
     uploadScreenImage,
     uploadScreenVideo,
+    makeCdnObjectPublic,
     uploadStepAudio,
     getClientIpData,
     validateStoryId,

@@ -3,6 +3,9 @@ import helpers from '../helpers/livedemoHelpers.js'
 import { assertConfigured, createAvatarVariant, reframeWithSession } from '../helpers/agent/lemonslice.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
+import enqueueJob from '../helpers/enqueueJob.js'
+
+const CLIP_RETRY = { attempts: { count: 3, delay: 60000, strategy: 'exponential' } }
 
 // ponytail: flat per-workspace cap. Upgrade: tie it to the plan like cloned voices.
 export const MAX_CUSTOM_AVATARS = 20
@@ -49,6 +52,9 @@ const handler = async function (req, res) {
       reframed: !!variantUrl,
       createdBy: authUser._id,
     }).save()
+
+    enqueueJob('agent-session', 'recordLemonSliceClip', { lemonsliceAvatarId: String(doc._id) }, CLIP_RETRY)
+      .catch(err => console.log('[lemonslice] enqueue clip failed', err.message))
 
     sendJson(res, {
       id: String(doc._id), displayName: doc.name, imageUrl: doc.imageUrl, custom: true, reframed: doc.reframed,

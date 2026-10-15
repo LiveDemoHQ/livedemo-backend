@@ -93,6 +93,12 @@ const AiDemoAgent = new mongoose.Schema({
       size: { type: String, enum: ['small', 'medium', 'large'], default: 'medium' },
       // video needs agent.avatarVideoUrl; orb/aurora/plasma/pulse/glow are animated CSS spheres
       icon: { type: String, enum: ['avatar', 'video', 'orb', 'aurora', 'plasma', 'pulse', 'glow'], default: 'avatar' },
+      // Avatar pill position: % shift of the face inside the circle (editor arrows)
+      faceX: { type: Number, min: -30, max: 30, default: 0 },
+      faceY: { type: Number, min: -30, max: 30, default: 0 },
+      faceZoom: { type: Number, min: 50, max: 200, default: 100 },
+      // #rrggbb tint over the blurred picture behind a moved/zoomed-out face; '' = no tint
+      faceBg: { type: String, default: '' },
       placeholder: { type: String, default: 'Enter your work email' },
       requireWorkEmail: { type: Boolean, default: false },
       emailOptional: { type: Boolean, default: false },
@@ -109,6 +115,7 @@ const AiDemoAgent = new mongoose.Schema({
       teaserText: { type: String, default: '' },
       starterQuestions: [String],
       autoOpenAfterMs: { type: Number, default: 0 }, // 0 = never
+      hidden: { type: Boolean, default: false }, // no launcher or auto-open on matching pages
     }],
     preview: {
       source: { type: String, enum: ['demo', 'custom', 'none'], default: 'demo' },

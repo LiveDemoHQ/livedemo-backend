@@ -66,6 +66,7 @@ assert.ok(!text.includes('<!channel>'), 'visitor text cannot ping the channel')
 // --- page rules
 assert.deepStrictEqual(normalizeEmbedRules([{ urlPattern: '/pricing', starterQuestions: [' How much? ', ''] }])[0].starterQuestions, ['How much?'])
 assert.throws(() => normalizeEmbedRules([{ urlPattern: 'javascript:x' }]))
+assert.deepStrictEqual(normalizeEmbedRules([{ urlPattern: '/checkout', hidden: true }, { urlPattern: '*', hidden: 'yes' }]).map(r => r.hidden), [true, false])
 
 // --- crawler extraction
 const { window } = new JSDOM(`<body>

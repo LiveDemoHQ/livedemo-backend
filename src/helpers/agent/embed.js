@@ -130,6 +130,12 @@ const STRINGS = {
     'pill.placeholder': 60,
     'smartbar.placeholder': 80
 }
+// [min, max] whole numbers. faceX/faceY: % shift of the avatar inside the pill circle, faceZoom: % scale
+const INTS = {
+    'pill.faceX': [-30, 30],
+    'pill.faceY': [-30, 30],
+    'pill.faceZoom': [50, 200]
+}
 
 const MAX_RULES = 20
 
@@ -153,7 +159,8 @@ export function normalizeEmbedRules(list) {
             urlPattern,
             teaserText,
             starterQuestions,
-            autoOpenAfterMs
+            autoOpenAfterMs,
+            hidden: rule.hidden === true
         }
     })
 }
@@ -192,6 +199,13 @@ export async function embedPatchUpdates(Models, agent, authUser, input) {
         updates[`embed.${path}`] = value.trim()
     })
 
+    Object.entries(INTS).forEach(([path, [min, max]]) => {
+        const value = read(input, path)
+        if (value === undefined) return
+        if (!Number.isInteger(value) || value < min || value > max) bad(`embed.${path} must be a whole number from ${min} to ${max}`)
+        updates[`embed.${path}`] = value
+    })
+
     if (input.teaserDelayMs !== undefined) {
         const delay = Number(input.teaserDelayMs)
         if (!Number.isInteger(delay) || delay < 0 || delay > 60000) bad('embed.teaserDelayMs must be 0-60000')
@@ -202,6 +216,11 @@ export async function embedPatchUpdates(Models, agent, authUser, input) {
     if (input.accentColor !== undefined) {
         if (input.accentColor !== '' && !/^#[0-9a-f]{6}$/i.test(input.accentColor)) bad('embed.accentColor must be #rrggbb')
         updates['embed.accentColor'] = input.accentColor
+    }
+    const faceBg = read(input, 'pill.faceBg')
+    if (faceBg !== undefined) {
+        if (faceBg !== '' && !/^#[0-9a-f]{6}$/i.test(faceBg)) bad('embed.pill.faceBg must be #rrggbb')
+        updates['embed.pill.faceBg'] = faceBg
     }
 
     if (input.allowedDomains !== undefined) {
