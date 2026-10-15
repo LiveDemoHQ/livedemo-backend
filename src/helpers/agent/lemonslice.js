@@ -267,7 +267,7 @@ export const hasVideoTrack = (participants, identity) => (participants || []).so
 async function waitForAvatarVideo(room) {
   const deadline = Date.now() + AVATAR_JOIN_TIMEOUT_MS
   while (Date.now() < deadline) {
-    // LiveKit creates the room when LemonSlice joins; until then it's a 404
+    // 404 until the room exists (the recorder joins first, so only if it dropped)
     const { participants } = await livekitRpc('RoomService', 'ListParticipants', room, { room }, { roomAdmin: true })
       .catch((err) => {
         if (err.status === 404) return {}
@@ -303,7 +303,14 @@ export async function recordAvatarClip(avatar, key, apiKey) {
   const startedAt = Date.now()
   const log = (...args) => console.log('[lemonslice] clip', room, `${Date.now() - startedAt}ms`, ...args)
   log('start', { avatarId: avatar && avatar.id, reframed: avatar && avatar.reframed, key })
+  // LemonSlice only renders while the participant it speaks for is in the room;
+  // egress alone doesn't count, so the clip came out black
+  const { Room } = await import('@livekit/rtc-node')
+  const recorder = new Room()
+  await recorder.connect(ENV.LIVEKIT_URL, livekitToken({ identity: RECORDER_IDENTITY, room, grants: { canPublish: false, canSubscribe: false } }), { autoSubscribe: false })
+  log('recorder joined')
   const session = await postSession(buildSessionBody(avatar, avatarToken), { clip: room }, apiKey)
+    .catch(err => recorder.disconnect().then(() => Promise.reject(err)))
   log('session created', { control: !!session.control_url })
   try {
     await waitForAvatarVideo(room)
@@ -328,5 +335,6 @@ export async function recordAvatarClip(avatar, key, apiKey) {
     throw err
   } finally {
     terminateSession(session, apiKey)
+    await recorder.disconnect().catch(() => {})
   }
 }
