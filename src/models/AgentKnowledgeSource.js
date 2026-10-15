@@ -11,10 +11,11 @@ const AgentKnowledgeSource = new mongoose.Schema({
   agentId: { type: mongoose.Schema.Types.ObjectId, ref: 'AiDemoAgent', required: true, index: true },
   workspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace', required: true },
 
-  type: { type: String, enum: ['text', 'file', 'url', 'faq', 'demo'] },
+  // site = crawled website (many pages), call = sales-call transcript (text)
+  type: { type: String, enum: ['text', 'file', 'url', 'faq', 'demo', 'site', 'call'] },
   title: { type: String, default: '' },
 
-  // text / faq (and extracted file/url text — see postAgentKnowledge)
+  // text / faq / call (and extracted file/url text — see postAgentKnowledge)
   rawText: { type: String, default: '' },
 
   // file
@@ -24,8 +25,20 @@ const AgentKnowledgeSource = new mongoose.Schema({
   fileBase64: { type: String, default: '' }, // PDF kept for native gemini-embedding-2 reindex
   pageCount: { type: Number, default: 0 },
 
-  // url
+  // url / site (site: the root URL the crawl starts from)
   url: { type: String, default: '' },
+
+  // site: crawl limits + what the last crawl extracted (hash = skip unchanged pages)
+  maxPages: { type: Number, default: 25 },
+  refreshHours: { type: Number, default: 24 }, // url + site re-crawl interval, 0 = never
+  lastCrawledAt: { type: Date, default: null },
+  pages: [{
+    _id: false,
+    url: String,
+    title: String,
+    chars: Number,
+    hash: String,
+  }],
 
   // demo (auto-generated from a Story — not user-uploaded)
   demoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Story' },

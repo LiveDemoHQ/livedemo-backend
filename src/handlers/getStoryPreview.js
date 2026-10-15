@@ -3,6 +3,8 @@ import ScreenTypes from '../constants/ScreenTypes.js'
 import ENV from '../envServer.js'
 import livedemoHelpers from "../helpers/livedemoHelpers.js";
 import * as sanitezeLib from '@braintree/sanitize-url'
+import he from 'he'
+import { decodeVars } from '../helpers/agent/personalization.js'
 
 const sanitize = sanitezeLib.sanitizeUrl
 
@@ -18,6 +20,8 @@ const handler = function (req, res) {
     let isEmbed = req.query.embed || req.query.embed === '' || req.query['auto_play']
     let isSessionRecordingDisabled = req.query.sessionDisabled || req.query.sessionDisabled === ''
     let link = req.query.link ? sanitize(req.query.link) : ""
+    // Agent personalization ({{company}} etc.). Public input → HTML-escaped; listed first so it beats defaults.
+    let extraVars = decodeVars(req.query.vars).map(v => ({ name: v.name, value: he.encode(v.value) }))
 
     let stepIndex = 0
 
@@ -79,13 +83,13 @@ const handler = function (req, res) {
                             throw new Error('Cannot find link')
                         }
 
-                        storyDoc = livedemoHelpers.processLiveDemoLinkUpdates(storyDoc, linkDoc)
+                        storyDoc = livedemoHelpers.processLiveDemoLinkUpdates(storyDoc, { ...linkDoc, variables: [...extraVars, ...linkDoc.variables] })
 
                         return storyDoc
                     })
             } else {
 
-                storyDoc = livedemoHelpers.processLiveDemoLinkUpdates(storyDoc, {variables: storyDoc.custom.variables || []})
+                storyDoc = livedemoHelpers.processLiveDemoLinkUpdates(storyDoc, {variables: [...extraVars, ...(storyDoc.custom.variables || [])]})
 
                 return storyDoc
 

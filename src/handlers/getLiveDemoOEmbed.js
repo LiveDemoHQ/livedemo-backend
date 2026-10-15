@@ -16,22 +16,13 @@ import * as sanitezeLib from '@braintree/sanitize-url'
 const sanitize = sanitezeLib.sanitizeUrl
 
 import ResponseCodes from '../constants/ResponseCodes.js'
-import ScreenTypes from '../constants/ScreenTypes.js'
 import ENV from '../envServer.js'
 import { parseOEmbedUrl } from '../helpers/agent/parseOEmbedUrl.js'
 import { CORS_HEADERS, httpError } from '../helpers/agent/http.js'
+import thumbnailForScreen from '../helpers/agent/thumbnailForScreen.js'
 
 const DEFAULT_AGENT_WIDTH = 1024
 const DEFAULT_AGENT_HEIGHT = 640
-
-function thumbnailForScreen(screen) {
-  if (!screen) return ''
-  if (screen.type === ScreenTypes.SCREEN_VIDEO) {
-    const playbackId = screen.asset && screen.asset.playback_ids && screen.asset.playback_ids[0] && screen.asset.playback_ids[0].id
-    return playbackId ? `https://image.mux.com/${playbackId}/thumbnail.png` : ''
-  }
-  return screen.imageUrl || ''
-}
 
 // Names go into `html` that consumers paste into their own pages
 function escapeAttr(value) {

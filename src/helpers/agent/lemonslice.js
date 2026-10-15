@@ -17,32 +17,40 @@ const IDLE_TIMEOUT_S = 300
 
 // LemonSlice has no list API. These are the stock 2x3, non-green-screen avatars
 // from lemonslice.com/avatars; sessions use agent_image_url so any API key works.
+// Clips are each avatar's first_video_url from LemonSlice's agent_configs (prod).
 // ponytail: hardcoded list. Upgrade: sync from LemonSlice if they ship a list endpoint.
-const IMAGE_BASE = 'https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/inf2-image-uploads/'
+const BLOB = 'https://6ammc3n5zzf5ljnz.public.blob.vercel-storage.com/'
+const IMAGE_BASE = `${BLOB}inf2-image-uploads/`
+const CLIP_BASE = `${BLOB}live-clips/liveChatClip-`
 const STOCK = [
-  ['agent_844edc579d3e8f2e', '1950s Advice Columnist', 'image-uFBMfKKsU31EcH4afYhMbhqlpifexx.jpg'],
-  ['agent_c9b4a627ac7e57c7', 'AI Therapist', 'resized-image-kwjq42DgmDnVqes43fsrKf5GMWZXni.jpg'],
-  ['agent_9120bb1de93652c3', 'Amelia Lemons', 'resized-image-Ds496q9MREcQy4ee0lmRFdeKUKSyk6.jpg'],
-  ['agent_0e7b2576445eea53', 'Arts & Crafts Teacher', 'image-rJ9KuLAVT6oCkIYmBhA4TMNC0LDO0Q.jpg'],
-  ['agent_24f0cceda8ce8e17', 'Business Coach', 'resized-image-cZE3BaAKDLjSmYL1imWXIY5JXszfNa.jpg'],
-  ['agent_49a436c8d65c041b', 'Cat Girl', 'image_1257f-w1QMVZLIkkZPpOsrJNlWeT2jqqIEUf.png'],
-  ['agent_25790de244bb3fc5', 'Customer Support', 'image-jU5YjJYHEzEOgeP0GbQpwduKjk0gqV.jpg'],
-  ['agent_ec9045b850b7547f', 'Fortnite Guide', 'resized-image-17UG786lUwcsK1GW9qeFSKgbOXabmH.jpg'],
-  ['agent_420193ff7fe067dd', 'Interviewer - Consulting', 'resized-image-uNfUa8uNouOoNcQJxRGmIm51QyH2lg.jpg'],
-  ['agent_d0dcb7fe64c6d460', 'Lead Qualification', 'resized-image-uD3MLQD7MDw2dYfhoLPSbPQhMKkiVj.jpg'],
-  ['agent_f529fb6892615c5f', 'Leila', 'resized-image-LIDU5Tv6NHi8hBXXnKc6m5GXvdyXTv.jpg'],
-  ['agent_d1812167e99b576f', 'Live Seller', 'resized-image-gjxvtJR6JFL15YVPUPO2NiVYEMu0rd.jpg'],
-  ['agent_037be4ec44f07a9a', 'Michelin Restaurant Guide', 'resized-image-HFd2kKeQqXPW1MZU5CcdpCIExkxJ3V.jpg'],
-  ['agent_23e795b59ce14a71', 'Mock Patient', 'resized-image-hCubh1XS6qieTVEDP5CQmappyHeEHR.jpg'],
-  ['agent_4cfba36bea70a4fa', 'Museum Guide', 'resized-image-g0rLSqnhnfsISvt2pBRbU7HhDvFtr9.jpg'],
-  ['agent_0adb5182edf7e1e3', 'Podcast Host', 'resized-image-nYuCYbXBJKzPgxgfwENB6ljMlrm6y8.jpg'],
-  ['agent_a3cbabdea998c7de', 'San Francisco City Guide', 'resized-image-8S7zjJAMErEJrisyUrtXS3IiRI3LQM.jpg'],
-  ['agent_baef12ca2d3ab7a8', 'Santa Claus', 'resized-image-JvLOJBYdDONm8MyjXBinkFPBRVh41V.jpg'],
-  ['agent_75d5cf48766b4554', 'Social Worker', 'resized-image-q5KWjWRzGXkKSDlOS2qoU1z7AC9l6J.jpg'],
-  ['agent_45aea815fad8a9c1', 'Spanish Practice', 'resized-image-mRFgEr5lqAtGYsplJ0bpbg43Gwjx4D.jpg'],
-  ['agent_6f66b11cfa77ec44', 'Streaming Companion', 'resized-image-G41lgLivlP7pU9CBCZPG69XNQqPNoc.jpg'],
+  ['agent_844edc579d3e8f2e', '1950s Advice Columnist', 'image-uFBMfKKsU31EcH4afYhMbhqlpifexx.jpg', 'V8e1SzKtcHbeY19nCODvMD8rXM7SNc'],
+  ['agent_c9b4a627ac7e57c7', 'AI Therapist', 'resized-image-kwjq42DgmDnVqes43fsrKf5GMWZXni.jpg', 'HBc051eicXHXASVInpiv2VyJGiMOtL'],
+  ['agent_9120bb1de93652c3', 'Amelia Lemons', 'resized-image-Ds496q9MREcQy4ee0lmRFdeKUKSyk6.jpg', '3OenGdqtBO2mN95OVo1FptIOPk1yy7'],
+  ['agent_0e7b2576445eea53', 'Arts & Crafts Teacher', 'image-rJ9KuLAVT6oCkIYmBhA4TMNC0LDO0Q.jpg', 'zw9ASmasOc8xZUchQpPYz8zuoijrBi'],
+  ['agent_24f0cceda8ce8e17', 'Business Coach', 'resized-image-cZE3BaAKDLjSmYL1imWXIY5JXszfNa.jpg', '1tpXEX3KiDIqi1XpdG7Im9qUWlbNSC'],
+  ['agent_49a436c8d65c041b', 'Cat Girl', 'image_1257f-w1QMVZLIkkZPpOsrJNlWeT2jqqIEUf.png', 'Oprbgv7GiFFxJSkpCt0MBmQXmNeeyK'],
+  ['agent_25790de244bb3fc5', 'Customer Support', 'image-jU5YjJYHEzEOgeP0GbQpwduKjk0gqV.jpg', 'hHKd7LRgFi6Io0JBJ4kRdexub7QEpV'],
+  ['agent_ec9045b850b7547f', 'Fortnite Guide', 'resized-image-17UG786lUwcsK1GW9qeFSKgbOXabmH.jpg', 'aYacSuFWHo7RkVmPBTwVduBVfPH6f4'],
+  ['agent_420193ff7fe067dd', 'Interviewer - Consulting', 'resized-image-uNfUa8uNouOoNcQJxRGmIm51QyH2lg.jpg', 'N0W5pZQlZ4R0A7n7sYHeN3OWBgc3ED'],
+  ['agent_d0dcb7fe64c6d460', 'Lead Qualification', 'resized-image-uD3MLQD7MDw2dYfhoLPSbPQhMKkiVj.jpg', 'Yj330RaftzyAMen8PM2PuGt5N9cqOn'],
+  ['agent_f529fb6892615c5f', 'Leila', 'resized-image-LIDU5Tv6NHi8hBXXnKc6m5GXvdyXTv.jpg', 'YpMZ26YrnwBifSvh4PoCWOphRpjFkI'],
+  ['agent_d1812167e99b576f', 'Live Seller', 'resized-image-gjxvtJR6JFL15YVPUPO2NiVYEMu0rd.jpg', 'woY6qapHOdwZgMtfPjyKlTxNxruim4'],
+  ['agent_037be4ec44f07a9a', 'Michelin Restaurant Guide', 'resized-image-HFd2kKeQqXPW1MZU5CcdpCIExkxJ3V.jpg', '48z75BOprl4J1hT1b3nDFvZrGdmT8z'],
+  ['agent_23e795b59ce14a71', 'Mock Patient', 'resized-image-hCubh1XS6qieTVEDP5CQmappyHeEHR.jpg', '30zbIzaeeL8c3MJqdvdODJ3hUzURB7'],
+  ['agent_4cfba36bea70a4fa', 'Museum Guide', 'resized-image-g0rLSqnhnfsISvt2pBRbU7HhDvFtr9.jpg', 'iDxfs0DLbNjvnDUOO1DhcDKMyTWuaB'],
+  ['agent_0adb5182edf7e1e3', 'Podcast Host', 'resized-image-nYuCYbXBJKzPgxgfwENB6ljMlrm6y8.jpg', `${IMAGE_BASE}video-wHQULFOgZA11ocxq9lth8aHMtNL1On.mp4`],
+  ['agent_a3cbabdea998c7de', 'San Francisco City Guide', 'resized-image-8S7zjJAMErEJrisyUrtXS3IiRI3LQM.jpg', 'FymuViSLFeZYeVGxvgXFzXzhZ0mOw4'],
+  ['agent_baef12ca2d3ab7a8', 'Santa Claus', 'resized-image-JvLOJBYdDONm8MyjXBinkFPBRVh41V.jpg', 'BtFHFsxtQ7h9BiEh6ZAjf8pZ9SQ83M'],
+  ['agent_75d5cf48766b4554', 'Social Worker', 'resized-image-q5KWjWRzGXkKSDlOS2qoU1z7AC9l6J.jpg', 'c6M1KLr6CqG24jzOieI77uNe1hIK9d'],
+  ['agent_45aea815fad8a9c1', 'Spanish Practice', 'resized-image-mRFgEr5lqAtGYsplJ0bpbg43Gwjx4D.jpg', 't0APvaCQVuQfdOH0TCo1bBzOBEhlHw'],
+  ['agent_6f66b11cfa77ec44', 'Streaming Companion', 'resized-image-G41lgLivlP7pU9CBCZPG69XNQqPNoc.jpg', 'iIgnEc3hbNeqasrSJUlyabdHf8HUfZ'],
 ]
-export const STOCK_AVATARS = STOCK.map(([id, displayName, image]) => ({ id, displayName, imageUrl: IMAGE_BASE + image }))
+export const STOCK_AVATARS = STOCK.map(([id, displayName, image, clip]) => ({
+  id,
+  displayName,
+  imageUrl: IMAGE_BASE + image,
+  videoUrl: clip.startsWith('https://') ? clip : `${CLIP_BASE}${clip}.mp4`,
+}))
 
 export function findStockAvatar(avatarId) {
   return STOCK_AVATARS.find(a => a.id === avatarId) || null

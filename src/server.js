@@ -179,6 +179,7 @@ import postAgentHandler from './handlers/postAgent.js'
 import getAgentsHandler from './handlers/getAgents.js'
 import getAgentByIdHandler from './handlers/getAgentById.js'
 import patchAgentHandler from './handlers/patchAgent.js'
+import postAgentEmbedPreviewImageHandler from './handlers/postAgentEmbedPreviewImage.js'
 import deleteAgentHandler from './handlers/deleteAgent.js'
 import postAgentPublishHandler from './handlers/postAgentPublish.js'
 import postAgentKnowledgeHandler from './handlers/postAgentKnowledge.js'
@@ -209,6 +210,9 @@ import getAgentSessionsHandler from './handlers/getAgentSessions.js'
 import getAgentSessionByIdHandler from './handlers/getAgentSessionById.js'
 import getAgentSessionRecordingHandler from './handlers/getAgentSessionRecording.js'
 import postAgentRecordingEventsHandler from './handlers/postAgentRecordingEvents.js'
+import agentKnowledgeInsights from './handlers/agentKnowledgeInsights.js'
+import workspaceWebhooks from './handlers/workspaceWebhooks.js'
+import agentRecap from './handlers/agentRecap.js'
 import captureAgentRevision from './middlewares/captureAgentRevision.js'
 import agentEditorMode, { agentEditorModeOptional } from './middlewares/agentEditorMode.js'
 
@@ -733,6 +737,7 @@ const uploadAvatarImage = multer({
     fileFilter: (req, file, callback) => callback(null, !!AVATAR_IMAGE_TYPES[file.mimetype]),
 })
 app.post('/workspaces/:workspaceId/lemonslice-avatars', [setupMongo, uploadAvatarImage.single('image')], postLemonSliceAvatarHandler)
+app.post('/workspaces/:workspaceId/agents/:agentId/embed/preview-image', [setupMongo, uploadAvatarImage.single('image'), arev('agent:update')], postAgentEmbedPreviewImageHandler)
 app.delete('/workspaces/:workspaceId/lemonslice-avatars/:avatarId([a-f0-9]{24})', [setupMongo], deleteLemonSliceAvatarHandler)
 
 const uploadKnowledgeFile = multer({
@@ -755,6 +760,16 @@ app.patch('/workspaces/:workspaceId/agents/:agentId/knowledge/:sourceId', [setup
 app.delete('/workspaces/:workspaceId/agents/:agentId/knowledge/:sourceId', [setupMongo, arev('knowledge:delete')], deleteAgentKnowledgeHandler)
 app.post('/workspaces/:workspaceId/agents/:agentId/knowledge/reindex', [setupMongo], postAgentKnowledgeReindexHandler)
 app.post('/workspaces/:workspaceId/agents/:agentId/knowledge/:sourceId/reindex', [setupMongo], postAgentKnowledgeReindexHandler)
+app.get('/workspaces/:workspaceId/agents/:agentId/knowledge/:sourceId/preview', [setupMongo], agentKnowledgeInsights.preview)
+app.get('/workspaces/:workspaceId/agents/:agentId/knowledge-gaps', [setupMongo], agentKnowledgeInsights.gaps)
+app.post('/workspaces/:workspaceId/agents/:agentId/knowledge-gaps/draft', [setupMongo], agentKnowledgeInsights.draftFaq)
+
+// Outbound webhooks + Slack (Settings > Integrations)
+app.get('/workspaces/:workspaceId/webhooks', [setupMongo], workspaceWebhooks.list)
+app.post('/workspaces/:workspaceId/webhooks', [setupMongo], workspaceWebhooks.create)
+app.patch('/workspaces/:workspaceId/webhooks/:webhookId', [setupMongo], workspaceWebhooks.update)
+app.delete('/workspaces/:workspaceId/webhooks/:webhookId', [setupMongo], workspaceWebhooks.remove)
+app.post('/workspaces/:workspaceId/webhooks/:webhookId/test', [setupMongo], workspaceWebhooks.test)
 
 app.post('/workspaces/:workspaceId/agents/:agentId/undo', [setupMongo], postAgentUndoHandler)
 app.post('/workspaces/:workspaceId/agents/:agentId/redo', [setupMongo], postAgentRedoHandler)
@@ -787,6 +802,9 @@ app.post('/agents/:agentId/ack', [setupMongo, corsMiddleware], postAgentAckHandl
 app.post('/agents/:agentId/sessions/:agentSessionId/recording-events', [setupMongo, corsMiddleware], postAgentRecordingEventsHandler)
 app.post('/agents/:agentId/anam-session', [setupMongo, corsMiddleware], postAnamSessionHandler)
 app.post('/agents/:agentId/lemonslice-session', [setupMongo, corsMiddleware], postLemonSliceSessionHandler)
+// Shareable conversation recap (token = AgentSession.recapToken)
+app.get('/recaps/:token', [setupMongo], agentRecap.view)
+app.post('/recaps/:token/viewers', [setupMongo], agentRecap.addViewer)
 // ---------------------------------------------------------------------------
 
 // Public tutorial search — no auth required, IP rate-limited (5 req/s/IP)

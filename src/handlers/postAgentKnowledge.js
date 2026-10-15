@@ -4,9 +4,13 @@ import enqueueIndexAgentKnowledge from '../helpers/agent/enqueueIndexJob.js'
 import { faqToText, stripHtml } from '../helpers/agent/agentKnowledge.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
+import { assertPublicUrl } from '../helpers/agent/publicUrl.js'
+import { MAX_PAGES_CAP } from '../helpers/agent/siteCrawler.js'
 
 // POST /workspaces/:workspaceId/agents/:agentId/knowledge
-// JSON:      { type: 'text'|'faq'|'url', title, rawText | faq: [{q,a}] | url }
+// JSON:      { type: 'text'|'faq'|'url'|'site'|'call', title, rawText | faq: [{q,a}] | url }
+//            site: { url, maxPages?, refreshHours? } crawls the whole site (siteCrawler.js)
+//            call: { rawText } sales-call transcript, used for phrasing only
 // multipart: { type: 'file', file } (pdf, md, txt, html)
 //
 // PDFs ≤4MB: base64 stored for native gemini-embedding-2 embed (≤6 pages).
@@ -65,10 +69,25 @@ const handler = async function (req, res) {
       const faqPairs = typeof body.faq === 'string' ? JSON.parse(body.faq) : body.faq
       sourceObj.rawText = body.rawText || faqToText(faqPairs)
       if (!sourceObj.rawText) httpError(ResponseCodes['400_BAD_REQUEST'], 'faq pairs are required')
-    } else if (type === 'url') {
+    } else if (type === 'call') {
+      if (!body.rawText) httpError(ResponseCodes['400_BAD_REQUEST'], 'rawText is required')
+      sourceObj.rawText = String(body.rawText).slice(0, 500000)
+      if (!sourceObj.title) sourceObj.title = 'Sales call transcript'
+    } else if (type === 'url' || type === 'site') {
       if (!body.url) httpError(ResponseCodes['400_BAD_REQUEST'], 'url is required')
-      sourceObj.url = body.url
-      if (!sourceObj.title) sourceObj.title = body.url
+      const url = await assertPublicUrl(body.url).catch(err => httpError(ResponseCodes['400_BAD_REQUEST'], err.message))
+      sourceObj.url = url.toString()
+      if (!sourceObj.title) sourceObj.title = sourceObj.url
+      if (body.refreshHours !== undefined) {
+        const hours = Number(body.refreshHours)
+        if (!Number.isInteger(hours) || hours < 0 || hours > 24 * 30) httpError(ResponseCodes['400_BAD_REQUEST'], 'refreshHours must be 0-720')
+        sourceObj.refreshHours = hours
+      }
+      if (type === 'site' && body.maxPages !== undefined) {
+        const maxPages = Number(body.maxPages)
+        if (!Number.isInteger(maxPages) || maxPages < 1 || maxPages > MAX_PAGES_CAP) httpError(ResponseCodes['400_BAD_REQUEST'], `maxPages must be 1-${MAX_PAGES_CAP}`)
+        sourceObj.maxPages = maxPages
+      }
     } else if (type === 'file') {
       if (!req.file) httpError(ResponseCodes['400_BAD_REQUEST'], 'file is required')
       const extracted = await extractFileText(req.file)

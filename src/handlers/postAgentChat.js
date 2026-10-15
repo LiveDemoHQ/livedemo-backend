@@ -5,6 +5,11 @@ import runAgentTurn from '../helpers/agent/runAgentTurn.js'
 import { parsePlayerState } from '../helpers/agent/validateActions.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendError, httpError, CORS_HEADERS } from '../helpers/agent/http.js'
+import rateLimit, { clientIp } from '../helpers/agent/rateLimit.js'
+import ENV from '../envServer.js'
+
+// user + assistant messages, so ~50 visitor turns
+const MAX_MESSAGES_PER_SESSION = 100
 
 // POST /agents/:agentId/chat                     (public, isPublished gate)
 // POST /workspaces/:wid/agents/:agentId/chat     (editor twin, auth + workspace)
@@ -35,6 +40,15 @@ const handler = async function (req, res) {
     }).lean()
     if (!session) {
       httpError(ResponseCodes['404_NOT_FOUND'], 'Session not found')
+    }
+
+    if (mode === 'published') {
+      if ((session.messageCount || 0) >= MAX_MESSAGES_PER_SESSION) {
+        httpError(ResponseCodes['429_TOO_MANY_REQUESTS'], 'This conversation reached its message limit')
+      }
+      if (ENV.ENV !== 'dev') {
+        await rateLimit(`chat:${clientIp(req)}:${session._id}`, 60, 10 * 60 * 1000)
+      }
     }
 
     // Visitor may have clicked through the player since the last content_card

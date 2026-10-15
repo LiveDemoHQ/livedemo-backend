@@ -4,7 +4,7 @@
 import assert from 'assert'
 import ENV from '../../envServer.js'
 import aiHelpers from '../aiHelpers.js'
-import { avatarIsLive, createAnamSessionToken, listStockAvatars, listStockVoices, pickAvatarModel, usesAnamVoice } from './anam.js'
+import { avatarIsLive, createAnamSessionToken, listStockAvatars, listStockVoices, pickAvatarModel, stockAvatarVideoUrl, usesAnamVoice } from './anam.js'
 import speakAgentText, { streamAgentPcm } from './speakAgentText.js'
 
 assert.strictEqual(pickAvatarModel({ activeVersion: 'cara-3', availableVersions: ['cara-3'] }), 'cara-3')
@@ -33,6 +33,8 @@ assert.deepStrictEqual(list.map(a => a.id), ['stock1'], 'custom avatars must be 
 assert.strictEqual(list[0].videoUrl, undefined, 'signed video URLs must not be returned')
 await listStockAvatars()
 assert.strictEqual(calls.length, 2, 'avatar list should be cached')
+assert.strictEqual(await stockAvatarVideoUrl('stock1'), 'signed', 'signed clip stays available server-side')
+assert.strictEqual(calls.length, 2, 'clip lookup reuses the cached list')
 
 const voices = await listStockVoices()
 assert.deepStrictEqual(voices.map(v => v.id), ['stock1'], 'custom voices must be filtered out')

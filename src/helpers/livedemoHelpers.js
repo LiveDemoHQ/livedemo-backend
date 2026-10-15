@@ -833,6 +833,7 @@ async function executePromisesInBatches(promiseCreators, batchSize) {
 }
 
 function replaceLinkVarsInText(text, link) {
+    if (typeof text !== 'string') return text
     let result = text;
 
     link.variables.forEach(variable => {
@@ -854,8 +855,10 @@ function processLiveDemoLinkUpdates(liveDemo, link) {
         screen.steps = screen.steps.map(step => {
             if (step && step.view) {
                 step.view.content = replaceLinkVarsInText(step.view.content, link)
-                step.view.popup.title = replaceLinkVarsInText(step.view.popup.title, link)
-                step.view.popup.description = replaceLinkVarsInText(step.view.popup.description, link)
+                if (step.view.popup) {
+                    step.view.popup.title = replaceLinkVarsInText(step.view.popup.title, link)
+                    step.view.popup.description = replaceLinkVarsInText(step.view.popup.description, link)
+                }
 
             }
 
@@ -941,6 +944,7 @@ export default {
     uploadBufferImage,
     uploadBufferBackgroundAudio,
     uploadScreenImage,
+    uploadScreenVideo,
     uploadStepAudio,
     getClientIpData,
     validateStoryId,

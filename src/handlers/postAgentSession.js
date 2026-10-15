@@ -3,11 +3,52 @@ import loadPublicAgent from '../helpers/agent/loadPublicAgent.js'
 import ENV from '../envServer.js'
 import moment from 'moment'
 import short from 'short-uuid'
-import { sendJson, sendError } from '../helpers/agent/http.js'
+import ResponseCodes from '../constants/ResponseCodes.js'
+import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
+import rateLimit from '../helpers/agent/rateLimit.js'
+import { buildPersonalization, companyFromDomain, encodeVars } from '../helpers/agent/personalization.js'
+import { writeField } from '../helpers/agent/qualification.js'
+import { emitSafe, recapUrl, sessionPayload } from '../helpers/workspaceEvents.js'
 
-// POST /agents/:agentId/session  { visitor: { name, email }, mode? }
+const CHANNELS = ['link', 'oembed', 'embed']
+const TRIGGERS = ['bubble', 'pill', 'pill_mic', 'preview', 'chip', 'button', 'api', 'smartbar', 'auto']
+const EMBED_CAPTURED_VIA = ['embed_pill', 'embed_identify']
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const clip = (value, max = 2048) => String(value || '').slice(0, max)
+
+// Client-reported, so shape-check and truncate everything
+function parseSource(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {}
+  const utm = {}
+  Object.entries(source.utm && typeof source.utm === 'object' ? source.utm : {})
+    .filter(([key]) => /^utm_[a-z_]{1,30}$/.test(key))
+    .slice(0, 10)
+    .forEach(([key, value]) => { utm[key] = clip(value, 256) })
+  return {
+    channel: CHANNELS.includes(source.channel) ? source.channel : 'link',
+    trigger: TRIGGERS.includes(source.trigger) ? source.trigger : undefined,
+    pageUrl: clip(source.pageUrl),
+    referrer: clip(source.referrer),
+    utm,
+  }
+}
+
+// ?acct=acme.com / ?acct=acme-corp links and identify({ company }) -> {{company}} etc.
+function parsePersonalization(raw, visitorName, visitorEmail) {
+  const input = raw && typeof raw === 'object' ? raw : {}
+  const acct = clip(input.acct, 100).trim().toLowerCase()
+  const acctDomain = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(acct) ? acct : ''
+  return buildPersonalization(
+    { name: visitorName, email: visitorEmail },
+    acctDomain ? { domain: acctDomain } : (/^[a-z0-9-]{1,60}$/.test(acct) ? { company: companyFromDomain(acct) } : {}),
+    { company: clip(input.company, 80), firstName: clip(input.firstName, 60) }
+  )
+}
+
+// POST /agents/:agentId/session  { visitor: { name, email }, source?, capturedVia? }
 // Public when published (loadPublicAgent gate), geo like postStorySession.
-// Also writes a Lead when the connect modal captured name/email.
+// Also writes a Lead when the connect modal (or embed pill / identify) captured name/email.
 const handler = async function (req, res) {
   const { Models } = req.mongo
   const agentId = req.params.agentId
@@ -21,6 +62,19 @@ const handler = async function (req, res) {
 
     // 'editor' mode only via the authenticated twin route (req.agentMode)
     const mode = req.agentMode === 'editor' ? 'editor' : 'published'
+
+    // Embeds put the agent in front of every landing-page visitor; sessions cost Gemini/voice money
+    if (mode === 'published' && ENV.ENV !== 'dev') {
+      await rateLimit(`session:${clientIp}:${agentId}`, 10, 60 * 60 * 1000)
+    }
+
+    const visitor = body.visitor || {}
+    const visitorName = clip(visitor.name, 200).trim()
+    const visitorEmail = clip(visitor.email, 254).trim()
+    if (visitorEmail && !EMAIL_RE.test(visitorEmail)) {
+      httpError(ResponseCodes['400_BAD_REQUEST'], 'visitor.email is not a valid email')
+    }
+    const source = parseSource(body.source)
 
     let clientIpData = {}
     if (clientIp) {
@@ -47,17 +101,28 @@ const handler = async function (req, res) {
       }
     }
 
-    const visitor = body.visitor || {}
+    const hostAsserted = source.channel === 'embed' && body.capturedVia === 'embed_identify'
+    let fields = {}
+    if (visitorName) fields = writeField(fields, 'name', visitorName, hostAsserted ? 'host' : 'self_reported') || fields
+    if (visitorEmail) fields = writeField(fields, 'email', visitorEmail, hostAsserted ? 'host' : 'self_reported') || fields
+    const personalization = parsePersonalization(body.personalization, visitorName, visitorEmail)
+    if (personalization.company && body.personalization && body.personalization.company && hostAsserted) {
+      fields = writeField(fields, 'company', personalization.company, 'host') || fields
+    }
 
     const session = await new Models.AgentSession({
       workspaceId: agent.workspaceId,
       agentId: agent._id,
       mode,
-      visitorName: visitor.name || '',
-      visitorEmail: visitor.email || '',
+      visitorName,
+      visitorEmail,
       visitorSessionId: short.uuid(),
       clientIpData,
       startTimestamp: moment().valueOf(),
+      source,
+      fields,
+      personalization,
+      ...(agent.recapEnabled !== false ? { recapToken: short.uuid() } : {}),
     }).save()
 
     await Models.AgentSessionEvent.create({
@@ -69,17 +134,28 @@ const handler = async function (req, res) {
       data: {},
     })
 
-    if (mode === 'published' && (visitor.name || visitor.email)) {
+    if (mode === 'published' && (visitorName || visitorEmail)) {
+      const capturedVia = source.channel === 'embed' && EMBED_CAPTURED_VIA.includes(body.capturedVia) ? body.capturedVia : 'form'
       const lead = await new Models.Lead({
         workspaceId: agent.workspaceId,
         agentId: agent._id,
         agentSessionId: session._id,
-        data: { name: visitor.name || '', email: visitor.email || '' },
+        data: { name: visitorName, email: visitorEmail },
+        capturedVia,
       }).save()
       await Models.AgentSession.updateOne({ _id: session._id }, { $set: { leadId: lead._id } })
+      session.leadId = lead._id
+      if (visitorEmail) emitSafe(Models, agent.workspaceId, 'lead.created', sessionPayload({ session: session.toObject(), agent, lead: lead.toObject() }))
     }
 
-    sendJson(res, { _id: session._id, visitorSessionId: session.visitorSessionId })
+    sendJson(res, {
+      _id: session._id,
+      visitorSessionId: session.visitorSessionId,
+      leadId: session.leadId || null,
+      personalization,
+      personalizationVars: encodeVars(personalization),
+      recapUrl: session.recapToken ? recapUrl(session) : null,
+    })
   } catch (error) {
     sendError(res, error)
   }

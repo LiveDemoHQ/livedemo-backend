@@ -15,6 +15,11 @@ const Lead = new mongoose.Schema({
     // Set when the lead came from an AI Demo Agent connect modal (no storyId then)
     agentId: { type: mongoose.Schema.Types.ObjectId, ref: 'AiDemoAgent' },
     agentSessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'AgentSession' },
+    // Agent leads: 'form' (typed in the connect modal), 'embed_pill', 'embed_identify' (host page asserted it)
+    capturedVia: { type: String },
+    qualified: { type: Boolean },
+    meetingBookedAt: { type: Date },
+    hubspotContactId: { type: String },
     // Mixed: shortText/selector strings, checkbox booleans, any future field types
     data: { type: mongoose.Schema.Types.Mixed, default: {} }
   }, options

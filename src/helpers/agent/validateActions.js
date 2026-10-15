@@ -124,6 +124,32 @@ export function appendDemoNarration(answer, narration) {
   return text ? `${text}\n\n${line}` : line
 }
 
+const CALENDAR_RE = /^https:\/\/((www\.)?calendly\.com|(app\.)?cal\.com)\//i
+
+export function isInlineCalendarUrl(url) {
+  return CALENDAR_RE.test(String(url || ''))
+}
+
+// The model may only *ask* for a CTA; the URL and the qualification gate are
+// decided here. Gated + not qualified = trial link (or nothing).
+export function resolveCta(agent, session, requested) {
+  if (requested !== 'book_meeting' && requested !== 'start_trial') return null
+  const cta = agent.cta || {}
+  const q = agent.qualification || {}
+  const hasCriteria = (q.fields || []).some(f => f.required || (f.rule && f.rule.op))
+  const gated = q.enabled && q.gateBooking !== false && hasCriteria && !(session && session.qualified)
+
+  if (requested === 'book_meeting' && cta.bookMeetingUrl && !gated) {
+    return {
+      type: 'book_meeting',
+      url: cta.bookMeetingUrl,
+      inline: cta.inlineCalendar !== false && isInlineCalendarUrl(cta.bookMeetingUrl),
+    }
+  }
+  if (cta.startTrialUrl) return { type: 'start_trial', url: cta.startTrialUrl, inline: false }
+  return null
+}
+
 // Validates a proposed { demoId, stepNumber } action. Returns the story doc
 // (with steps counted) or null when the action must be dropped.
 // allowedDemos: pass getAllowedDemos() output when already loaded to skip the query.

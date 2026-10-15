@@ -4,6 +4,7 @@ import loadPublicAgent from '../helpers/agent/loadPublicAgent.js'
 import { validateDemoAction } from '../helpers/agent/validateActions.js'
 import { sendError } from '../helpers/agent/http.js'
 import { usesAnamVoice } from '../helpers/agent/anam.js'
+import { allowedOrigin, frameAncestors, resolveShowBranding } from '../helpers/agent/embed.js'
 
 // Third-party hosts the agent bundle talks to directly (WebRTC media is not CSP-governed):
 // - Anam SDK: REST + signaling; the signaling host comes from the session, so wildcard.
@@ -38,6 +39,31 @@ const handler = async function (req, res) {
       defaultDemoId = validated ? String(validated.demoId) : null
     }
 
+    // ?embed=1 = framed by livedemo-embed.js on a customer site. frame-ancestors is the real gate.
+    // Visitor context (email, question, pageUrl…) rides in the URL fragment and never reaches us.
+    let embed = null
+    let frameAncestorsDirective = ''
+    if (req.query.embed === '1') {
+      if (!agent.isPublished || !agent.embed || !agent.embed.enabled) {
+        res.set({ 'Content-Type': 'text/html; charset=utf-8' })
+        res.status(ResponseCodes['403_FORBIDDEN'])
+        res.send('<html><body style="margin:0;display:flex;align-items:center;justify-content:center;height:100%;font-family:sans-serif;color:#888;background:#111318">' +
+          'Embedding is turned off for this agent.</body></html>')
+        return
+      }
+      const domains = agent.embed.allowedDomains || []
+      frameAncestorsDirective = ` frame-ancestors ${frameAncestors(domains, ENV.SERVER_URL)};`
+      embed = {
+        host: allowedOrigin(req.query.host, domains),
+        showBranding: await resolveShowBranding(Models, agent),
+      }
+      // data-livedemo-demo: opens instead of the default demo, only if this agent may show it
+      if (/^[a-f0-9]{24}$/i.test(String(req.query.demo || ''))) {
+        const requested = await validateDemoAction(Models, agent, 'published', req.query.demo, 1)
+        if (requested) defaultDemoId = String(requested.demoId)
+      }
+    }
+
     const config = {
       agent: {
         _id: agent._id,
@@ -55,12 +81,16 @@ const handler = async function (req, res) {
         avatarVoice: usesAnamVoice(agent) ? 'anam' : 'elevenlabs',
         visitorCapture: agent.visitorCapture,
         cta: agent.cta,
+        recapEnabled: agent.recapEnabled !== false,
         isPublished: agent.isPublished,
         defaultDemoId,
+        // Page rules: the player applies the matching rule's starter questions (embed only)
+        ...(embed ? { embedRules: (agent.embed && agent.embed.rules) || [] } : {}),
       },
       mode,
       sessionId: req.query.sessionId || null,
       STORIES_API: ENV.STORIES_API,
+      embed,
     }
 
     const bundleSrc = ENV.ENV === 'dev'
@@ -111,8 +141,9 @@ const handler = async function (req, res) {
       `script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: ${ENV.INJECT_BUNDLE_HOST} ${ENV.STORIES_API}${ENV.ENV === 'dev' ? ' http://localhost.mine:8081' : ''}; ` +
       `img-src 'self' data: *; ` +
       `font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com ${ENV.LIVEDEMO_CDN_URL} ${ENV.INJECT_BUNDLE_HOST}${ENV.ENV === 'dev' ? ' http://localhost.mine:8081 http://localhost:*' : ''}; ` +
-      `frame-src 'self' blob: ${ENV.STORIES_API}; ` +
-      `media-src 'self' blob: ${ENV.STORIES_API} https://livedemo-cdn.s3.amazonaws.com https://livedemo-cdn.s3.us-east-1.amazonaws.com;`
+      `frame-src 'self' blob: ${ENV.STORIES_API} https://calendly.com https://*.calendly.com https://cal.com https://*.cal.com; ` +
+      `media-src 'self' blob: ${ENV.STORIES_API} https://livedemo-cdn.s3.amazonaws.com https://livedemo-cdn.s3.us-east-1.amazonaws.com;` +
+      frameAncestorsDirective
 
     res.set({
       'Origin-Agent-Cluster': '?0',

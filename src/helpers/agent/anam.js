@@ -89,16 +89,31 @@ async function listStock(path, mapRow, dedupeKey) {
   return list
 }
 
-// Signed video URLs are dropped — they expire after 1h.
+// Signed video URLs never leave the server (they expire after 1h). They're kept
+// here so patchAgent can copy the clip to our CDN; STOCK_CACHE_MS stays well under 1h.
+const signedVideoUrls = {}
+
 export function listStockAvatars() {
-  return listStock('/avatars', a => ({
+  return listStock('/avatars', (a) => {
+    signedVideoUrls[a.id] = a.videoUrl || ''
+    return mapAvatar(a)
+  })
+}
+
+export async function stockAvatarVideoUrl(avatarId) {
+  await listStockAvatars()
+  return signedVideoUrls[avatarId] || ''
+}
+
+function mapAvatar(a) {
+  return {
     id: a.id,
     displayName: a.displayName || '',
     variantName: a.variantName || '',
     imageUrl: a.imageUrl || '',
     activeVersion: a.activeVersion || '',
     availableVersions: a.availableVersions || [],
-  }))
+  }
 }
 
 // Anam lists one voice once per TTS model (same name, displayTags fast /

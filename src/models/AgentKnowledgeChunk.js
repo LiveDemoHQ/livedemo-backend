@@ -16,7 +16,7 @@ const AgentKnowledgeChunk = new mongoose.Schema({
   workspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace', required: true },
   sourceId: { type: mongoose.Schema.Types.ObjectId, ref: 'AgentKnowledgeSource', required: true },
 
-  sourceType: { type: String, enum: ['text', 'file', 'url', 'faq', 'demo'] },
+  sourceType: { type: String, enum: ['text', 'file', 'url', 'faq', 'demo', 'site', 'call'] },
   text: { type: String }, // the chunk the LLM actually sees
 
   embedding: { type: [Number], default: [] }, // gemini-embedding-2, 768 floats

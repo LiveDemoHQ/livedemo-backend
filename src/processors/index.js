@@ -4,6 +4,7 @@ import processStoryDemoVideo from './processStoryDemoVideo.js'
 import processAutoRecording from './processAutoRecording.js'
 import processDemoActivityEvents from './processDemoActivityEvents.js'
 import processAgentKnowledge from './processAgentKnowledge.js'
+import processAgentSession from './processAgentSession.js'
 
 const configsArr = [
   // publishLiveDemo
@@ -11,7 +12,8 @@ const configsArr = [
   processStoryDemoDom,
   processAutoRecording,
   processDemoActivityEvents,
-  processAgentKnowledge
+  processAgentKnowledge,
+  processAgentSession
 ]
 
 

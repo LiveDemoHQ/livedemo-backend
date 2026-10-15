@@ -31,6 +31,7 @@ const AiDemoAgent = new mongoose.Schema({
   // Who renders the face. LemonSlice always lip-syncs the ElevenLabs voice (no avatarVoice 'anam').
   avatarProvider: { type: String, enum: ['anam', 'lemonslice'], default: 'anam' },
   lemonsliceAvatarId: { type: String, default: '' }, // id from helpers/agent/lemonslice.js STOCK_AVATARS
+  avatarVideoUrl: { type: String, default: '' }, // our CDN copy of the face's short preview clip, '' if none
 
   // Imported Stories (same workspace). Not copies. Empty = all published stories in the workspace.
   allowedDemoIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Story' }],
@@ -49,6 +50,72 @@ const AiDemoAgent = new mongoose.Schema({
   cta: {
     bookMeetingUrl: { type: String, default: '' },
     startTrialUrl: { type: String, default: '' },
+    // Calendly / Cal.com links open inside the demo pane instead of a new tab
+    inlineCalendar: { type: Boolean, default: true },
+  },
+
+  // Questions the agent asks during the chat. Normalized by helpers/agent/qualification.js
+  qualification: {
+    enabled: { type: Boolean, default: false },
+    // Only qualified visitors get the calendar; everyone else gets startTrialUrl
+    gateBooking: { type: Boolean, default: true },
+    fields: [{
+      _id: false,
+      key: { type: String },
+      label: { type: String },
+      question: { type: String },
+      type: { type: String, enum: ['text', 'number', 'select', 'boolean'], default: 'text' },
+      options: [String],
+      required: { type: Boolean, default: false },
+      // Rule this answer must pass to qualify: gte/lte (number), in (select), eq (boolean), any (answered)
+      rule: {
+        op: { type: String, enum: ['', 'any', 'gte', 'lte', 'eq', 'in'], default: '' },
+        value: { type: mongoose.Schema.Types.Mixed },
+      },
+    }],
+  },
+
+  // Public /recaps/:token page offered when a session ends
+  recapEnabled: { type: Boolean, default: true },
+
+  // Website embed SDK (livedemo-embed.js). Embedding needs isPublished && embed.enabled.
+  embed: {
+    enabled: { type: Boolean, default: false },
+    launcher: { type: String, enum: ['bubble', 'pill', 'smartbar', 'none'], default: 'pill' },
+    position: { type: String, enum: ['right', 'left', 'center'] }, // unset = per launcher: pill center, bubble right
+    teaserText: { type: String, default: '' }, // '' = welcomeMessage
+    teaserDelayMs: { type: Number, default: 3000 },
+    accentColor: { type: String, default: '' }, // #rrggbb, '' = theme default
+    allowedDomains: { type: [String], default: [] }, // [] = any site; feeds frame-ancestors
+    showBranding: { type: Boolean, default: true }, // false needs featureFlags.allowRemoveWatermark
+    pill: {
+      expand: { type: String, enum: ['hover', 'click', 'always'], default: 'hover' },
+      size: { type: String, enum: ['small', 'medium', 'large'], default: 'medium' },
+      // video needs agent.avatarVideoUrl; orb/aurora/plasma/pulse/glow are animated CSS spheres
+      icon: { type: String, enum: ['avatar', 'video', 'orb', 'aurora', 'plasma', 'pulse', 'glow'], default: 'avatar' },
+      placeholder: { type: String, default: 'Enter your work email' },
+      requireWorkEmail: { type: Boolean, default: false },
+      emailOptional: { type: Boolean, default: false },
+      showMic: { type: Boolean, default: true },
+    },
+    smartbar: {
+      placeholder: { type: String, default: '' }, // '' = "Ask anything about <agent name>"
+      icon: { type: String, enum: ['orb', 'aurora', 'plasma', 'pulse', 'glow', 'avatar'], default: 'orb' },
+    },
+    // Per-page overrides, first match wins. Pattern is a path glob: /pricing, /docs/*, *
+    rules: [{
+      _id: false,
+      urlPattern: { type: String },
+      teaserText: { type: String, default: '' },
+      starterQuestions: [String],
+      autoOpenAfterMs: { type: Number, default: 0 }, // 0 = never
+    }],
+    preview: {
+      source: { type: String, enum: ['demo', 'custom', 'none'], default: 'demo' },
+      demoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Story', default: null },
+      imageUrl: { type: String, default: '' }, // source = custom, set by the upload endpoint only
+      animateCursor: { type: Boolean, default: true },
+    },
   },
 
   links: [{ type: String, ref: 'Link' }],

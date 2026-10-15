@@ -48,5 +48,38 @@ assert.strictEqual(cfg.agent._id, 'agent1')
 assert.strictEqual(cfg.mode, 'published')
 assert.strictEqual(cfg.sessionId, null)
 assert.strictEqual(cfg.agent.theme, 'light', 'theme should default to light')
+assert.strictEqual(cfg.embed, null, 'non-embed player must not carry embed config')
+
+// ?embed=1 — framing policy for livedemo-embed.js
+async function renderEmbed(embed, host) {
+  const out = { headers: {} }
+  await handler({
+    ...req,
+    mongo: { Models: { AiDemoAgent: { findOne: async () => ({ ...agentDoc, embed }) } } },
+    query: { embed: '1', host },
+  }, {
+    set(headers) { Object.assign(out.headers, headers) },
+    status(code) { out.status = code; return this },
+    send(body) { out.body = body },
+  })
+  out.cfg = out.status === 200 ? JSON.parse(out.body.match(/window\.config = (.*?)<\/script>/)[1]) : null
+  return out
+}
+
+const disabled = await renderEmbed({ enabled: false, allowedDomains: [] }, 'https://acme.com')
+assert.strictEqual(disabled.status, 403, 'embed disabled must 403')
+
+const locked = await renderEmbed({ enabled: true, allowedDomains: ['acme.com', '*.acme.io'], showBranding: true }, 'https://acme.com')
+assert.ok(locked.headers['Content-Security-Policy'].includes('frame-ancestors'), 'frame-ancestors missing')
+assert.ok(locked.headers['Content-Security-Policy'].includes('https://acme.com https://*.acme.io;'), 'allowedDomains not in frame-ancestors')
+assert.strictEqual(locked.cfg.embed.host, 'https://acme.com')
+assert.strictEqual(locked.cfg.embed.showBranding, true)
+
+const spoofed = await renderEmbed({ enabled: true, allowedDomains: ['acme.com'] }, 'https://evil.com')
+assert.strictEqual(spoofed.cfg.embed.host, null, 'host outside allowedDomains must be dropped')
+
+const open = await renderEmbed({ enabled: true, allowedDomains: [] }, 'https://anyone.dev')
+assert.ok(open.headers['Content-Security-Policy'].includes('frame-ancestors *;'), 'empty allowedDomains = frame-ancestors *')
+assert.strictEqual(open.cfg.embed.host, 'https://anyone.dev')
 
 console.log('getAgentPlayer.check OK')

@@ -148,6 +148,24 @@ async function generateAgentStep(contents, { tools, allowedFunctionNames }) {
     })
 }
 
+// One structured-output call (summaries, gap clustering, FAQ drafts). Returns the parsed object.
+async function generateJson(prompt, schema) {
+    if (!genai) {
+        throw new Error('GEMINI_API_KEY is not configured')
+    }
+
+    const res = await genai.models.generateContent({
+        model: GEMINI_MODEL,
+        config: {
+            thinkingConfig: { thinkingLevel: 'MINIMAL' },
+            responseMimeType: 'application/json',
+            responseJsonSchema: schema,
+        },
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    })
+    return JSON.parse(res.text || '{}')
+}
+
 // gemini-embedding-2: prompt task prefixes; batch via Content[] per docs.
 async function embedPdfDocument(pdfBase64, options = {}) {
     if (!genai) {
@@ -394,6 +412,7 @@ export default {
     elStreamTextToSpeech: elStreamTextToSpeech,
     elGetVoices: elGetVoices,
     generateAgentStep: generateAgentStep,
+    generateJson: generateJson,
     embedText: embedText,
     embedTexts: embedTexts,
     embedPdfDocument: embedPdfDocument,

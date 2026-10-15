@@ -4,8 +4,11 @@ import enqueueIndexAgentKnowledge from '../helpers/agent/enqueueIndexJob.js'
 import { getAllowedDemos } from '../helpers/agent/validateActions.js'
 import { findStockAvatar, findStockVoice, pickAvatarModel } from '../helpers/agent/anam.js'
 import { findAvatar as findLemonSliceAvatar } from '../helpers/agent/lemonslice.js'
+import avatarVideoUrl from '../helpers/agent/avatarVideo.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
+import { embedPatchUpdates } from '../helpers/agent/embed.js'
+import { normalizeQualification } from '../helpers/agent/qualification.js'
 
 // PATCH /workspaces/:workspaceId/agents/:agentId
 // Persona fields + allowedDemoIds. Wrapped by captureAgentRevision in server.js.
@@ -75,6 +78,12 @@ const handler = async function (req, res) {
       updates.avatarUrl = (await findLemonSliceAvatar(Models, workspaceId, updates.lemonsliceAvatarId ?? agent.lemonsliceAvatarId))?.imageUrl || ''
     } else if (provider === 'anam' && providerChanged && updates.anamAvatarId === undefined) {
       updates.avatarUrl = agent.anamAvatarId ? (await findStockAvatar(agent.anamAvatarId))?.imageUrl || '' : ''
+    }
+    if (providerChanged || updates.anamAvatarId !== undefined || updates.lemonsliceAvatarId !== undefined) {
+      const faceId = provider === 'lemonslice'
+        ? updates.lemonsliceAvatarId ?? agent.lemonsliceAvatarId
+        : updates.anamAvatarId ?? agent.anamAvatarId
+      updates.avatarVideoUrl = await avatarVideoUrl(Models, workspaceId, provider, faceId)
     }
 
     if (updates.avatarVoice !== undefined && !['elevenlabs', 'anam'].includes(updates.avatarVoice)) {
@@ -158,6 +167,20 @@ const handler = async function (req, res) {
         }
       }
       updates.defaultDemoId = nextDefault
+    }
+
+    if (body.qualification !== undefined) {
+      try {
+        updates.qualification = normalizeQualification(body.qualification)
+      } catch (err) {
+        if (!err.isValidation) throw err
+        httpError(ResponseCodes['400_BAD_REQUEST'], err.message)
+      }
+    }
+    if (body.recapEnabled !== undefined) updates.recapEnabled = !!body.recapEnabled
+
+    if (body.embed !== undefined) {
+      Object.assign(updates, await embedPatchUpdates(Models, agent, authUser, body.embed))
     }
 
     const updated = await Models.AiDemoAgent.findOneAndUpdate(

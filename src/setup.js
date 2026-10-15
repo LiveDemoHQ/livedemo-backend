@@ -3,6 +3,7 @@ const DB_URI = ENV_VARS.DB_URI
 import { setupDB, getModels } from './models/index.js'
 import axios from 'axios'
 import monq from 'monq'
+import startAgentSchedulers from './helpers/agent/schedulers.js'
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 
@@ -35,6 +36,7 @@ async function setupWorkers() {
 
   const worker = client.worker(processorsConfig.allQueueNames, processorsConfig.workerConfig)
   worker.start()
+  startAgentSchedulers(Models)
   console.log("Story consumer started")
 }
 

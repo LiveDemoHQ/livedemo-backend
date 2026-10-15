@@ -12,8 +12,19 @@ const handler = async function (req, res) {
     helpers.validateUserHasAccessToWorkspace(authUser, workspaceId)
 
     const agent = await loadAgentInWorkspace(Models, workspaceId, agentId)
+    const payload = agent?.toJSON ? agent.toJSON() : agent
 
-    sendJson(res, agent?.toJSON ? agent.toJSON() : agent)
+    // Share dropdown "Installed on" — latest embedded visit
+    const lastEmbed = await Models.AgentSession.findOne({ agentId: agent._id, 'source.channel': 'embed' })
+      .sort({ startTimestamp: -1 })
+      .select('source.pageUrl startTimestamp')
+      .lean()
+    payload.embed = {
+      ...(payload.embed || {}),
+      lastSeen: lastEmbed ? { pageUrl: lastEmbed.source.pageUrl, at: lastEmbed.startTimestamp } : null,
+    }
+
+    sendJson(res, payload)
   } catch (error) {
     sendError(res, error)
   }
