@@ -14,8 +14,9 @@ const LemonSliceAvatar = new mongoose.Schema({
   sourceImageUrl: { type: String, default: '' }, // the original upload on our S3
   // false: LemonSlice avatar-variants was unavailable, so sessions reframe it (edit_image)
   reframed: { type: Boolean, default: false },
-  // Idle clip for the embed pill, recorded once after upload (recordLemonSliceClip job). '' until then.
+  // Idle clip for the embed pill, recorded on demand from the editor (recordLemonSliceClip job). '' until then.
   videoUrl: { type: String, default: '' },
+  clipStatus: { type: String, enum: ['', 'pending', 'failed'], default: '' },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, options)
 

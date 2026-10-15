@@ -2,7 +2,7 @@
 import assert from 'assert'
 import crypto from 'crypto'
 import ENV from '../../envServer.js'
-import { livekitToken, buildSessionBody, findStockAvatar, STOCK_AVATARS, AVATAR_IDENTITY, hasVideoTrack, clipBytes, MIN_CLIP_BYTES } from './lemonslice.js'
+import { livekitToken, buildSessionBody, findStockAvatar, STOCK_AVATARS, AVATAR_IDENTITY, hasVideoTrack, clipBytes, MIN_CLIP_BYTES, clipStatus, CLIP_STALE_MS } from './lemonslice.js'
 
 ENV.LIVEKIT_API_KEY = 'APIkey'
 ENV.LIVEKIT_API_SECRET = 'secret'
@@ -58,5 +58,12 @@ assert.strictEqual(clipBytes({ file_results: [{ size: '11466' }] }), 11466, 'int
 assert.ok(clipBytes({ file_results: [{ size: '11466' }] }) < MIN_CLIP_BYTES, 'the black clip we shipped is rejected')
 assert.ok(clipBytes({ file: { size: 900000 } }) >= MIN_CLIP_BYTES)
 assert.strictEqual(clipBytes({}), 0)
+
+const now = Date.parse('2026-10-15T07:00:00Z')
+assert.strictEqual(clipStatus({ videoUrl: 'https://x/clip.mp4', clipStatus: 'failed' }, now), 'ready')
+assert.strictEqual(clipStatus({ videoUrl: '' }, now), '')
+assert.strictEqual(clipStatus({ videoUrl: '', clipStatus: 'pending', updatedAt: new Date(now - 60000) }, now), 'pending')
+assert.strictEqual(clipStatus({ videoUrl: '', clipStatus: 'pending', updatedAt: new Date(now - CLIP_STALE_MS - 1) }, now), 'failed', 'a dead worker never spins forever')
+assert.strictEqual(clipStatus({ videoUrl: '', clipStatus: 'failed' }, now), 'failed')
 
 console.log('lemonslice.check ok')

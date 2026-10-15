@@ -6,7 +6,8 @@ import {
     renderSummaryEmail,
     buildMime,
     normalizeSummarySettings,
-    isValidEmail
+    isValidEmail,
+    summaryVars
 } from './summaryEmail.js'
 
 assert.strictEqual(fillTemplate('Hi {{firstName}}\nDemos: {{demos}}\nBye', { firstName: 'Ana', demos: '' }), 'Hi Ana\nBye', 'line with only empty placeholders is dropped')
@@ -40,4 +41,5 @@ assert.throws(() => normalizeSummarySettings({ summaryIdleMinutes: 65 }))
 assert.throws(() => normalizeSummarySettings({ summaryEmail: { subject: 'a\nb' } }))
 assert.deepStrictEqual(normalizeSummarySettings({ summaryEmail: { enabled: 'yes', subject: ' S ', body: 'B\r\n' } }).summaryEmail, { enabled: false, subject: 'S', body: 'B' })
 
+assert.ok(/\/agents\/a1$/.test(summaryVars({ agent: { _id: 'a1' }, session: {}, demos: [] }).agentLink), 'agentLink points at the shared agent page')
 console.log('summaryEmail.check OK')

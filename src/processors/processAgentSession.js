@@ -22,7 +22,7 @@ function processAgentSession(sharedConfig, params, callback) {
         })
         .then(() => callback(null, {}))
         .catch((err) => {
-            console.log('processAgentSession failed', err.message)
+            console.log('processAgentSession failed', JSON.stringify(params), err.message)
             callback(err)
         })
 }

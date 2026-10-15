@@ -129,7 +129,7 @@ const AiDemoAgent = new mongoose.Schema({
     preview: {
       source: { type: String, enum: ['demo', 'custom', 'none'], default: 'demo' },
       demoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Story', default: null },
-      imageUrl: { type: String, default: '' }, // source = custom, set by the upload endpoint only
+      imageUrl: { type: String, default: '' }, // source = custom: image or .mp4/.webm video, set by the upload endpoint only
       animateCursor: { type: Boolean, default: true },
     },
   },

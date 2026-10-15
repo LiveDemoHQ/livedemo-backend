@@ -179,7 +179,7 @@ import postAgentHandler from './handlers/postAgent.js'
 import getAgentsHandler from './handlers/getAgents.js'
 import getAgentByIdHandler from './handlers/getAgentById.js'
 import patchAgentHandler from './handlers/patchAgent.js'
-import postAgentEmbedPreviewImageHandler from './handlers/postAgentEmbedPreviewImage.js'
+import postAgentEmbedPreviewImageHandler, { PREVIEW_TYPES } from './handlers/postAgentEmbedPreviewImage.js'
 import deleteAgentHandler from './handlers/deleteAgent.js'
 import postAgentPublishHandler from './handlers/postAgentPublish.js'
 import postAgentKnowledgeHandler from './handlers/postAgentKnowledge.js'
@@ -200,6 +200,7 @@ import postAnamSessionHandler from './handlers/postAnamSession.js'
 import getLemonSliceAvatarsHandler from './handlers/getLemonSliceAvatars.js'
 import postLemonSliceAvatarHandler, { IMAGE_TYPES as AVATAR_IMAGE_TYPES } from './handlers/postLemonSliceAvatar.js'
 import deleteLemonSliceAvatarHandler from './handlers/deleteLemonSliceAvatar.js'
+import postLemonSliceAvatarClipHandler from './handlers/postLemonSliceAvatarClip.js'
 import postLemonSliceSessionHandler from './handlers/postLemonSliceSession.js'
 import postAgentTranscribeHandler from './handlers/postAgentTranscribe.js'
 import postAgentAckHandler from './handlers/postAgentAck.js'
@@ -243,8 +244,6 @@ const options = {
 }
 
 async function setupWorkers() {
-    console.log(process.env)
-
     const client = monq(process.env.DB_URI || 'mongodb://localhost:27017/livedemo_app')
 
     const conn = await setupDB()
@@ -260,6 +259,9 @@ async function setupWorkers() {
 
     const worker = client.worker(processorsConfig.allQueueNames, processorsConfig.workerConfig)
     const videoWorker = client.worker(processorsConfig.videoQueueNames, processorsConfig.videoWorkerConfig)
+    // An 'error' event without a listener crashes the process; monq reconnects on its own
+    worker.on('error', err => console.log('[monq] worker error', err.message))
+    videoWorker.on('error', err => console.log('[monq] video worker error', err.message))
     worker.start()
     videoWorker.start()
 
@@ -739,8 +741,13 @@ const uploadAvatarImage = multer({
     fileFilter: (req, file, callback) => callback(null, !!AVATAR_IMAGE_TYPES[file.mimetype]),
 })
 app.post('/workspaces/:workspaceId/lemonslice-avatars', [setupMongo, uploadAvatarImage.single('image')], postLemonSliceAvatarHandler)
-app.post('/workspaces/:workspaceId/agents/:agentId/embed/preview-image', [setupMongo, uploadAvatarImage.single('image'), arev('agent:update')], postAgentEmbedPreviewImageHandler)
+const uploadPreviewContent = multer({
+    limits: { fileSize: 25 * 1024 * 1024, files: 1 },
+    fileFilter: (req, file, callback) => callback(null, !!PREVIEW_TYPES[file.mimetype]),
+})
+app.post('/workspaces/:workspaceId/agents/:agentId/embed/preview-image', [setupMongo, uploadPreviewContent.single('image'), arev('agent:update')], postAgentEmbedPreviewImageHandler)
 app.delete('/workspaces/:workspaceId/lemonslice-avatars/:avatarId([a-f0-9]{24})', [setupMongo], deleteLemonSliceAvatarHandler)
+app.post('/workspaces/:workspaceId/lemonslice-avatars/:avatarId([a-f0-9]{24})/clip', [setupMongo], postLemonSliceAvatarClipHandler)
 
 const uploadKnowledgeFile = multer({
     limits: {

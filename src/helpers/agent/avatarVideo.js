@@ -35,21 +35,30 @@ export default async function avatarVideoUrl(Models, workspaceId, provider, avat
   }
 }
 
-// recordLemonSliceClip job: once per custom avatar, right after upload. Throws so monq retries.
+// recordLemonSliceClip job: queued from the editor (postLemonSliceAvatarClip). No retries,
+// a failure sets clipStatus 'failed' and the editor offers Retry.
 export async function recordLemonSliceClip(Models, avatarId) {
   const doc = await Models.LemonSliceAvatar.findById(avatarId).lean()
-  if (!doc || doc.videoUrl) return
+  if (!doc) return console.log('[avatarVideo] recordLemonSliceClip skipped, avatar not found', avatarId)
+  if (doc.videoUrl) return console.log('[avatarVideo] recordLemonSliceClip skipped, clip exists', avatarId)
 
+  console.log('[avatarVideo] recordLemonSliceClip start', avatarId, 'workspace', String(doc.workspaceId))
   const key = `screen-videos/avatar-lemonslice-${avatarId}.mp4`
-  const apiKey = await workspaceApiKey(Models, doc.workspaceId, 'lemonslice')
-  await recordAvatarClip(await findLemonSliceAvatar(Models, doc.workspaceId, avatarId), key, apiKey)
-  await helpers.makeCdnObjectPublic(key)
+  try {
+    const apiKey = await workspaceApiKey(Models, doc.workspaceId, 'lemonslice')
+    await recordAvatarClip(await findLemonSliceAvatar(Models, doc.workspaceId, avatarId), key, apiKey)
+    await helpers.makeCdnObjectPublic(key)
+  } catch (err) {
+    await Models.LemonSliceAvatar.updateOne({ _id: doc._id }, { $set: { clipStatus: 'failed' } })
+    throw err
+  }
 
   const videoUrl = `${CDN_BASE}/${key}`
-  await Models.LemonSliceAvatar.updateOne({ _id: doc._id }, { $set: { videoUrl } })
+  await Models.LemonSliceAvatar.updateOne({ _id: doc._id }, { $set: { videoUrl, clipStatus: '' } })
   // Agents that picked this face before the clip existed
-  await Models.AiDemoAgent.updateMany(
+  const agents = await Models.AiDemoAgent.updateMany(
     { workspaceId: doc.workspaceId, avatarProvider: 'lemonslice', lemonsliceAvatarId: String(doc._id) },
     { $set: { avatarVideoUrl: videoUrl } }
   )
+  console.log('[avatarVideo] recordLemonSliceClip done', avatarId, videoUrl, 'agents updated', agents.modifiedCount)
 }

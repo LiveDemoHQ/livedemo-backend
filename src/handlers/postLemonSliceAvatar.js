@@ -3,10 +3,7 @@ import helpers from '../helpers/livedemoHelpers.js'
 import { assertConfigured, createAvatarVariant, reframeWithSession } from '../helpers/agent/lemonslice.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
-import enqueueJob from '../helpers/enqueueJob.js'
 import { workspaceApiKey } from '../helpers/agent/providerKeys.js'
-
-const CLIP_RETRY = { attempts: { count: 3, delay: 60000, strategy: 'exponential' } }
 
 // ponytail: flat per-workspace cap. Upgrade: tie it to the plan like cloned voices.
 export const MAX_CUSTOM_AVATARS = 20
@@ -16,6 +13,7 @@ export const IMAGE_TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/w
 // Photo -> our S3 -> LemonSlice head-and-shoulders crop: avatar-variants if the
 // account has it, else a one-off reframing session. If both fail the raw upload
 // is kept and LemonSlice reframes it when a visitor's session starts.
+// The idle clip is recorded on demand (postLemonSliceAvatarClip).
 const handler = async function (req, res) {
   const { Models } = req.mongo
   const { workspaceId } = req.params
@@ -55,11 +53,10 @@ const handler = async function (req, res) {
       createdBy: authUser._id,
     }).save()
 
-    enqueueJob('agent-session', 'recordLemonSliceClip', { lemonsliceAvatarId: String(doc._id) }, CLIP_RETRY)
-      .catch(err => console.log('[lemonslice] enqueue clip failed', err.message))
+    console.log('[lemonslice] custom avatar saved', String(doc._id), 'workspace', workspaceId, variantUrl ? 'reframed' : 'raw upload, reframed at session start')
 
     sendJson(res, {
-      id: String(doc._id), displayName: doc.name, imageUrl: doc.imageUrl, custom: true, reframed: doc.reframed,
+      id: String(doc._id), displayName: doc.name, imageUrl: doc.imageUrl, videoUrl: '', clipStatus: '', custom: true, reframed: doc.reframed,
     })
   } catch (error) {
     sendError(res, error)

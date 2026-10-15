@@ -7,7 +7,7 @@ import { recapUrl } from '../workspaceEvents.js'
 // a line whose placeholders are all empty is dropped, so "Demos: {{demos}}" vanishes when none were watched.
 
 export const IDLE_MINUTES = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]
-export const PLACEHOLDERS = ['firstName', 'name', 'agentName', 'summary', 'topics', 'demos', 'recapUrl', 'bookingUrl']
+export const PLACEHOLDERS = ['firstName', 'name', 'agentName', 'summary', 'topics', 'demos', 'recapUrl', 'bookingUrl', 'agentLink']
 export const DEFAULT_SUBJECT = 'Your {{agentName}} conversation recap'
 export const DEFAULT_BODY = [
     'Hi {{firstName}},',
@@ -128,7 +128,8 @@ export function summaryVars({ agent, session, lead, demos }) {
         topics: (session.topics || []).join(', '),
         demos: demos.map(d => d.name || 'Untitled demo').join(', '),
         recapUrl: agent.recapEnabled === false ? '' : recapUrl(session),
-        bookingUrl: (agent.cta && agent.cta.bookMeetingUrl) || ''
+        bookingUrl: (agent.cta && agent.cta.bookMeetingUrl) || '',
+        agentLink: agent._id ? `${ENV.SERVER_URL}/agents/${agent._id}` : ''
     }
 }
 

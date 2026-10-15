@@ -58,9 +58,25 @@ export function findStockAvatar(avatarId) {
 }
 
 const OBJECT_ID = /^[a-f0-9]{24}$/
+// A clip job takes ~30s; pending longer than this means the worker died mid-job
+export const CLIP_STALE_MS = 5 * 60 * 1000
+
+export function clipStatus(doc, now = Date.now()) {
+  if (doc.videoUrl) return 'ready'
+  if (doc.clipStatus === 'pending' && now - new Date(doc.updatedAt).getTime() > CLIP_STALE_MS) return 'failed'
+  return doc.clipStatus || ''
+}
 
 function customAvatar(doc) {
-  return { id: String(doc._id), displayName: doc.name || 'Custom avatar', imageUrl: doc.imageUrl, videoUrl: doc.videoUrl || '', custom: true, reframed: !!doc.reframed }
+  return {
+    id: String(doc._id),
+    displayName: doc.name || 'Custom avatar',
+    imageUrl: doc.imageUrl,
+    videoUrl: doc.videoUrl || '',
+    clipStatus: clipStatus(doc),
+    custom: true,
+    reframed: !!doc.reframed
+  }
 }
 
 // Workspace customs first, then stock
@@ -135,8 +151,14 @@ export function buildSessionBody(avatar, avatarToken) {
 // One LiveKit room per visitor session. The browser only subscribes and sends
 // data (audio byte stream + lk.clear_buffer RPC); LemonSlice publishes the face.
 export function assertConfigured(apiKey) {
-  if (!apiKey || !ENV.LIVEKIT_URL || !ENV.LIVEKIT_API_KEY || !ENV.LIVEKIT_API_SECRET) {
-    console.log('[lemonslice] LEMONSLICE_API_KEY / LIVEKIT_* are not configured')
+  const missing = [
+    !apiKey && 'LEMONSLICE_API_KEY',
+    !ENV.LIVEKIT_URL && 'LIVEKIT_URL',
+    !ENV.LIVEKIT_API_KEY && 'LIVEKIT_API_KEY',
+    !ENV.LIVEKIT_API_SECRET && 'LIVEKIT_API_SECRET'
+  ].filter(Boolean)
+  if (missing.length) {
+    console.log('[lemonslice] not configured, missing:', missing.join(', '))
     httpError(ResponseCodes['503_SERVICE_UNAVAILABLE'], 'Avatar service is not configured')
   }
 }
@@ -192,8 +214,10 @@ async function postSession(body, context, apiKey) {
 export async function reframeWithSession(imageUrl, apiKey) {
   const room = `ld-avatar-prep-${crypto.randomBytes(8).toString('hex')}`
   const avatarToken = livekitToken({ identity: AVATAR_IDENTITY, room, kind: 'agent', attributes: { 'lk.publish_on_behalf': 'nobody' } })
+  console.log('[lemonslice] reframe session start', room)
   const session = await postSession(buildSessionBody({ imageUrl, custom: true, reframed: false }, avatarToken), { prep: room }, apiKey)
   terminateSession(session, apiKey)
+  console.log('[lemonslice] reframe session done', room, session.edited_image_url ? 'edited image returned' : 'no edited image')
   return session.edited_image_url || null
 }
 
@@ -226,7 +250,11 @@ async function livekitRpc(service, method, room, body, grants) {
     body: JSON.stringify(body),
   })
   const json = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(`${service} ${method} ${res.status} ${JSON.stringify(json).slice(0, 300)}`)
+  if (!res.ok) {
+    const err = new Error(`${service} ${method} ${res.status} ${JSON.stringify(json).slice(0, 300)}`)
+    err.status = res.status
+    throw err
+  }
   return json
 }
 
@@ -239,7 +267,12 @@ export const hasVideoTrack = (participants, identity) => (participants || []).so
 async function waitForAvatarVideo(room) {
   const deadline = Date.now() + AVATAR_JOIN_TIMEOUT_MS
   while (Date.now() < deadline) {
+    // LiveKit creates the room when LemonSlice joins; until then it's a 404
     const { participants } = await livekitRpc('RoomService', 'ListParticipants', room, { room }, { roomAdmin: true })
+      .catch((err) => {
+        if (err.status === 404) return {}
+        throw err
+      })
     if (hasVideoTrack(participants, AVATAR_IDENTITY)) return sleep(AVATAR_WARMUP_MS)
     await sleep(1000)
   }
@@ -267,9 +300,14 @@ export async function recordAvatarClip(avatar, key, apiKey) {
   assertConfigured(apiKey)
   const room = `ld-avatar-clip-${crypto.randomBytes(8).toString('hex')}`
   const avatarToken = livekitToken({ identity: AVATAR_IDENTITY, room, kind: 'agent', attributes: { 'lk.publish_on_behalf': RECORDER_IDENTITY } })
+  const startedAt = Date.now()
+  const log = (...args) => console.log('[lemonslice] clip', room, `${Date.now() - startedAt}ms`, ...args)
+  log('start', { avatarId: avatar && avatar.id, reframed: avatar && avatar.reframed, key })
   const session = await postSession(buildSessionBody(avatar, avatarToken), { clip: room }, apiKey)
+  log('session created', { control: !!session.control_url })
   try {
     await waitForAvatarVideo(room)
+    log('avatar video published')
     const egress = await egressRpc('StartEgress', room, {
       room_name: room,
       media: { participant_video: { identity: AVATAR_IDENTITY } },
@@ -277,11 +315,17 @@ export async function recordAvatarClip(avatar, key, apiKey) {
       outputs: [{ file: { file_type: 'MP4', filepath: key, disable_manifest: true } }],
       storage: { s3: { access_key: ENV.AWS_ACCESS_KEY_ID, secret: ENV.AWS_SECRET_ACCESS_KEY, region: 'us-east-1', bucket: 'livedemo-cdn' } },
     })
+    log('egress started', egress.egress_id)
     await waitForEgress(room, egress.egress_id, 'EGRESS_ACTIVE')
+    log('egress active, recording', `${CLIP_SECONDS}s`)
     await sleep(CLIP_SECONDS * 1000)
     await egressRpc('StopEgress', room, { egress_id: egress.egress_id })
     const done = await waitForEgress(room, egress.egress_id, 'EGRESS_COMPLETE')
+    log('egress complete', `${clipBytes(done)} bytes`)
     if (clipBytes(done) < MIN_CLIP_BYTES) throw new Error(`clip looks blank (${clipBytes(done)} bytes)`)
+  } catch (err) {
+    log('failed', err.message)
+    throw err
   } finally {
     terminateSession(session, apiKey)
   }

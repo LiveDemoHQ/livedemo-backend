@@ -35,6 +35,8 @@ async function setupWorkers() {
 
 
   const worker = client.worker(processorsConfig.allQueueNames, processorsConfig.workerConfig)
+  // An 'error' event without a listener crashes the process; monq reconnects on its own
+  worker.on('error', err => console.log('[monq] worker error', err.message))
   worker.start()
   startAgentSchedulers(Models)
   console.log("Story consumer started")

@@ -5,8 +5,13 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import { IMAGE_TYPES } from './postLemonSliceAvatar.js'
 
+// The embed launcher picks <video> vs <img> from this extension (livedemo-web-app embedSdk/launcher.js)
+export const VIDEO_TYPES = { 'video/mp4': '.mp4', 'video/webm': '.webm' }
+export const PREVIEW_TYPES = { ...IMAGE_TYPES, ...VIDEO_TYPES }
+
 // POST /workspaces/:workspaceId/agents/:agentId/embed/preview-image (multipart: image)
-// The only way to set embed.preview.imageUrl, so the launcher never loads an arbitrary URL.
+// Preview content: an image or a short video. The only way to set embed.preview.imageUrl,
+// so the launcher never loads an arbitrary URL.
 const handler = async function (req, res) {
     const { Models } = req.mongo
     const { workspaceId, agentId } = req.params
@@ -17,11 +22,14 @@ const handler = async function (req, res) {
         const agent = await loadAgentInWorkspace(Models, workspaceId, agentId)
 
         const file = req.file
-        if (!file || !IMAGE_TYPES[file.mimetype]) {
-            httpError(ResponseCodes['400_BAD_REQUEST'], 'Upload a JPG, PNG or WebP image')
+        if (!file || !PREVIEW_TYPES[file.mimetype]) {
+            httpError(ResponseCodes['400_BAD_REQUEST'], 'Upload a JPG, PNG, WebP, MP4 or WebM file')
         }
 
-        const upload = await helpers.uploadBufferImage(file.buffer, file.mimetype, `agent-embed-preview-${short.uuid()}${IMAGE_TYPES[file.mimetype]}`)
+        const name = `agent-embed-preview-${short.uuid()}${PREVIEW_TYPES[file.mimetype]}`
+        const upload = VIDEO_TYPES[file.mimetype]
+            ? await helpers.uploadScreenVideo(file.buffer, file.mimetype, name)
+            : await helpers.uploadBufferImage(file.buffer, file.mimetype, name)
         const updated = await Models.AiDemoAgent.findOneAndUpdate(
             { _id: agent._id },
             { $set: { 'embed.preview.imageUrl': upload.Location, 'embed.preview.source': 'custom' } },
