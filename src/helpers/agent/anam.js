@@ -10,12 +10,13 @@ const MAX_PAGES = 20
 
 const stockCache = {}
 
-function apiKey() {
-  if (!ENV.ANAM_API_KEY) {
+function apiKey(override) {
+  const key = override || ENV.ANAM_API_KEY
+  if (!key) {
     console.log('[anam] ANAM_API_KEY is not configured')
     httpError(ResponseCodes['503_SERVICE_UNAVAILABLE'], 'ANAM_API_KEY is not configured')
   }
-  return ENV.ANAM_API_KEY
+  return key
 }
 
 function rateLimitHeaders(res) {
@@ -26,8 +27,8 @@ function rateLimitHeaders(res) {
   return out
 }
 
-// `context` (e.g. { agentId }) is only for the log line.
-async function anamFetch(path, options = {}, context = {}) {
+// `context` (e.g. { agentId }) is only for the log line. options.apiKey = a workspace's own key.
+async function anamFetch(path, { apiKey: keyOverride, ...options } = {}, context = {}) {
   const method = options.method || 'GET'
   const startedAt = Date.now()
 
@@ -37,7 +38,7 @@ async function anamFetch(path, options = {}, context = {}) {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey()}`,
+        Authorization: `Bearer ${apiKey(keyOverride)}`,
         ...(options.headers || {}),
       },
     })
@@ -161,7 +162,8 @@ export function buildPersonaConfig(agent) {
   return { ...base, enableAudioPassthrough: true }
 }
 
-export async function createAnamSessionToken(agent) {
+// apiKey: the workspace's own Anam key (Growth), else ours
+export async function createAnamSessionToken(agent, apiKey) {
   const personaConfig = buildPersonaConfig(agent)
   const context = {
     agentId: agent._id ? String(agent._id) : undefined,
@@ -172,6 +174,7 @@ export async function createAnamSessionToken(agent) {
   const body = await anamFetch('/auth/session-token', {
     method: 'POST',
     body: JSON.stringify({ personaConfig }),
+    apiKey,
   }, context)
   if (!body.sessionToken) {
     console.log('[anam] session-token response had no sessionToken', context)

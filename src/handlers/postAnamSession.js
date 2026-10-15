@@ -3,6 +3,7 @@ import { avatarIsLive, isLemonSlice, createAnamSessionToken } from '../helpers/a
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import ipRateLimit from '../helpers/agent/ipRateLimit.js'
+import { workspaceApiKey } from '../helpers/agent/providerKeys.js'
 
 // Each token opens a billed Anam session
 const checkIpLimit = ipRateLimit({ limit: 10, interval: 60 * 60 * 1000, message: 'Too many avatar sessions, try again later' })
@@ -19,7 +20,7 @@ const handler = async function (req, res) {
     }
     await checkIpLimit(req)
 
-    const sessionToken = await createAnamSessionToken(agent)
+    const sessionToken = await createAnamSessionToken(agent, await workspaceApiKey(Models, agent.workspaceId, 'anam'))
     sendJson(res, { sessionToken })
   } catch (error) {
     sendError(res, error)

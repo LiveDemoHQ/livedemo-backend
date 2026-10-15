@@ -7,6 +7,7 @@ import { findAvatar as findLemonSliceAvatar } from '../helpers/agent/lemonslice.
 import avatarVideoUrl from '../helpers/agent/avatarVideo.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
+import { normalizeSummarySettings } from '../helpers/agent/summaryEmail.js'
 import { embedPatchUpdates } from '../helpers/agent/embed.js'
 import { normalizeQualification } from '../helpers/agent/qualification.js'
 
@@ -178,6 +179,12 @@ const handler = async function (req, res) {
       }
     }
     if (body.recapEnabled !== undefined) updates.recapEnabled = !!body.recapEnabled
+    try {
+      Object.assign(updates, normalizeSummarySettings(body))
+    } catch (err) {
+      if (!err.isValidation) throw err
+      httpError(ResponseCodes['400_BAD_REQUEST'], err.message)
+    }
 
     if (body.embed !== undefined) {
       Object.assign(updates, await embedPatchUpdates(Models, agent, authUser, body.embed))

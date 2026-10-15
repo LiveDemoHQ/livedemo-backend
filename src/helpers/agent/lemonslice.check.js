@@ -2,7 +2,7 @@
 import assert from 'assert'
 import crypto from 'crypto'
 import ENV from '../../envServer.js'
-import { livekitToken, buildSessionBody, findStockAvatar, STOCK_AVATARS, AVATAR_IDENTITY } from './lemonslice.js'
+import { livekitToken, buildSessionBody, findStockAvatar, STOCK_AVATARS, AVATAR_IDENTITY, hasVideoTrack, clipBytes, MIN_CLIP_BYTES } from './lemonslice.js'
 
 ENV.LIVEKIT_API_KEY = 'APIkey'
 ENV.LIVEKIT_API_SECRET = 'secret'
@@ -44,5 +44,19 @@ const raw = buildSessionBody({ imageUrl: 'https://x/raw.jpg', custom: true, refr
 assert.strictEqual(raw.edit_image, true, 'raw upload gets reframed by LemonSlice')
 assert.strictEqual(raw.edit_image_variant, 'bust')
 assert.strictEqual(buildSessionBody({ imageUrl: 'https://x/v.jpg', custom: true, reframed: true }, 'tok').edit_image, false)
+
+// Recording only starts once the face is actually on screen
+assert.ok(!hasVideoTrack([{ identity: AVATAR_IDENTITY, tracks: [] }], AVATAR_IDENTITY), 'joined but no video yet')
+assert.ok(!hasVideoTrack([{ identity: AVATAR_IDENTITY, tracks: [{ type: 'AUDIO' }] }], AVATAR_IDENTITY))
+assert.ok(!hasVideoTrack([{ identity: 'someone', tracks: [{ type: 'VIDEO' }] }], AVATAR_IDENTITY))
+assert.ok(!hasVideoTrack([{ identity: AVATAR_IDENTITY, tracks: [{ type: 'VIDEO', muted: true }] }], AVATAR_IDENTITY))
+assert.ok(hasVideoTrack([{ identity: AVATAR_IDENTITY, tracks: [{ type: 'VIDEO' }] }], AVATAR_IDENTITY))
+assert.ok(hasVideoTrack([{ identity: AVATAR_IDENTITY, tracks: [{ type: 1 }] }], AVATAR_IDENTITY))
+assert.ok(!hasVideoTrack(undefined, AVATAR_IDENTITY))
+
+assert.strictEqual(clipBytes({ file_results: [{ size: '11466' }] }), 11466, 'int64 as string')
+assert.ok(clipBytes({ file_results: [{ size: '11466' }] }) < MIN_CLIP_BYTES, 'the black clip we shipped is rejected')
+assert.ok(clipBytes({ file: { size: 900000 } }) >= MIN_CLIP_BYTES)
+assert.strictEqual(clipBytes({}), 0)
 
 console.log('lemonslice.check ok')

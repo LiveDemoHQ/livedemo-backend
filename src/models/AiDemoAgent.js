@@ -78,6 +78,15 @@ const AiDemoAgent = new mongoose.Schema({
   // Public /recaps/:token page offered when a session ends
   recapEnabled: { type: Boolean, default: true },
 
+  // Final summary is written this long after the visitor's last activity (5-60, step 5)
+  summaryIdleMinutes: { type: Number, default: 5 },
+  // Email the summary to the visitor when the session captured an email. '' subject/body = default template
+  summaryEmail: {
+    enabled: { type: Boolean, default: false },
+    subject: { type: String, default: '' },
+    body: { type: String, default: '' },
+  },
+
   // Website embed SDK (livedemo-embed.js). Embedding needs isPublished && embed.enabled.
   embed: {
     enabled: { type: Boolean, default: false },

@@ -27,6 +27,8 @@ const AgentSession = new mongoose.Schema({
   stage: { type: String, default: 'welcome' }, // welcome | demo | booked | ended
   // Written by the summarizeAgentSession job (processAgentSession.js)
   summary: { type: String },
+  // Same conversation written to the visitor ("you asked about…"), only when the agent emails summaries
+  visitorSummary: { type: String },
   topics: [String],
   intent: { type: String, enum: ['low', 'medium', 'high'] },
   unanswered: [String],

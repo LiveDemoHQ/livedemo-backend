@@ -1,6 +1,7 @@
 import helpers from '../livedemoHelpers.js'
 import { stockAvatarVideoUrl } from './anam.js'
 import { findAvatar as findLemonSliceAvatar, recordAvatarClip } from './lemonslice.js'
+import { workspaceApiKey } from './providerKeys.js'
 
 const MAX_BYTES = 20 * 1024 * 1024
 const CDN_BASE = 'https://livedemo-cdn.s3.us-east-1.amazonaws.com'
@@ -40,7 +41,8 @@ export async function recordLemonSliceClip(Models, avatarId) {
   if (!doc || doc.videoUrl) return
 
   const key = `screen-videos/avatar-lemonslice-${avatarId}.mp4`
-  await recordAvatarClip(await findLemonSliceAvatar(Models, doc.workspaceId, avatarId), key)
+  const apiKey = await workspaceApiKey(Models, doc.workspaceId, 'lemonslice')
+  await recordAvatarClip(await findLemonSliceAvatar(Models, doc.workspaceId, avatarId), key, apiKey)
   await helpers.makeCdnObjectPublic(key)
 
   const videoUrl = `${CDN_BASE}/${key}`

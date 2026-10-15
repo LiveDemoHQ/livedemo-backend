@@ -15,6 +15,10 @@ const WorkspaceSchema = new mongoose.Schema({
     integrations: {
       hubspot: { $type: Boolean, default: false },
     },
+    // Sender for visitor emails, see helpers/agent/emailSending.js. Holds the encrypted SMTP password
+    summaryEmailSending: { $type: mongoose.Schema.Types.Mixed, select: false },
+    // Growth plan: own Anam / LemonSlice keys, encrypted { enc, updatedAt, updatedBy }. See helpers/agent/providerKeys.js
+    providerKeys: { $type: mongoose.Schema.Types.Mixed, select: false },
     adminUser: { $type: mongoose.Schema.ObjectId, ref: 'User'},
     users: [
       { $type: mongoose.Schema.ObjectId, ref: 'User' }

@@ -3,12 +3,15 @@ import applySessionFields from './sessionFields.js'
 import { missingFields } from './qualification.js'
 import { emitSafe, sessionPayload } from '../workspaceEvents.js'
 import { agentSessionNoteHtml, createHubspotNote, getHubspotAccessToken, upsertHubspotContact } from '../hubspot.js'
+import { sendSummaryEmail } from './summaryEmail.js'
 
 // summarizeAgentSession job body. Mid-session runs (final: false) only refresh
 // summary/topics so long chats keep context past HISTORY_LIMIT. The final run
 // also fires session.ended + the HubSpot contact/note, exactly once per session.
 
 const TRANSCRIPT_CHARS = 24000
+
+const emailsVisitor = agent => !!(agent.summaryEmail && agent.summaryEmail.enabled)
 
 function buildPrompt(agent, messages, missing) {
     const transcript = messages
@@ -23,6 +26,9 @@ function buildPrompt(agent, messages, missing) {
         '- intent: buying intent. high = asked about pricing/rollout/timeline/trial or wants to talk to sales; medium = evaluating features; low = browsing or off-topic.',
         '- unanswered: visitor questions the agent did not actually answer (said it does not know, deflected, or stayed vague). Rewrite each as a standalone question. Empty if none.'
     ]
+    if (emailsVisitor(agent)) {
+        lines.push('- visitorSummary: 2-4 sentences written TO the visitor (second person, friendly, no sales jargon): what they asked about, the key answers, the demos they saw. Never mention intent, qualification or internal notes.')
+    }
     if (missing.length) {
         lines.push('- fields: values the visitor clearly stated in the transcript, keyed by field. Omit a key when not stated. Fields:')
         missing.forEach(f => lines.push(`  ${f.key} (${f.type}${f.options && f.options.length ? `: ${f.options.join(' | ')}` : ''}): ${f.label}`))
@@ -31,7 +37,7 @@ function buildPrompt(agent, messages, missing) {
     return lines.join('\n')
 }
 
-function schemaFor(missing) {
+function schemaFor(agent, missing) {
     const schema = {
         type: 'object',
         properties: {
@@ -41,6 +47,10 @@ function schemaFor(missing) {
             unanswered: { type: 'array', items: { type: 'string' } }
         },
         required: ['summary', 'topics', 'intent', 'unanswered']
+    }
+    if (emailsVisitor(agent)) {
+        schema.properties.visitorSummary = { type: 'string' }
+        schema.required.push('visitorSummary')
     }
     if (missing.length) {
         schema.properties.fields = {
@@ -78,13 +88,14 @@ export default async function summarizeAgentSession(Models, { sessionId, final }
 
     if (messages.length && fresh) {
         const missing = missingFields(agent, session.fields)
-        const out = await aiHelpers.generateJson(buildPrompt(agent, messages, missing), schemaFor(missing))
+        const out = await aiHelpers.generateJson(buildPrompt(agent, messages, missing), schemaFor(agent, missing))
         session = await Models.AgentSession.findOneAndUpdate({ _id: sessionId }, {
             $set: {
                 summary: String(out.summary || '').slice(0, 1200),
                 topics: (out.topics || []).map(t => String(t).slice(0, 60)).slice(0, 6),
                 intent: ['low', 'medium', 'high'].includes(out.intent) ? out.intent : 'low',
                 unanswered: (out.unanswered || []).map(q => String(q).slice(0, 300)).slice(0, 10),
+                ...(out.visitorSummary ? { visitorSummary: String(out.visitorSummary).slice(0, 1200) } : {}),
                 summarizedAt: new Date(),
                 summarizedMessageCount: messages.length
             }
@@ -110,4 +121,8 @@ export default async function summarizeAgentSession(Models, { sessionId, final }
     if (messages.length) emitSafe(Models, agent.workspaceId, 'session.ended', data)
     await syncHubspot(Models, { agent, session: claimed, data })
         .catch(err => console.log('HubSpot agent sync failed', err.response?.data || err.message))
+    if (messages.length) {
+        await sendSummaryEmail(Models, { agent, session: claimed, lead })
+            .catch(err => console.log('Summary email failed', err.message))
+    }
 }

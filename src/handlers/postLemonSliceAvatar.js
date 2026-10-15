@@ -4,6 +4,7 @@ import { assertConfigured, createAvatarVariant, reframeWithSession } from '../he
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import enqueueJob from '../helpers/enqueueJob.js'
+import { workspaceApiKey } from '../helpers/agent/providerKeys.js'
 
 const CLIP_RETRY = { attempts: { count: 3, delay: 60000, strategy: 'exponential' } }
 
@@ -33,13 +34,14 @@ const handler = async function (req, res) {
       httpError(ResponseCodes['409_CONFLICT'], `A workspace can have up to ${MAX_CUSTOM_AVATARS} custom avatars`)
     }
 
-    assertConfigured()
+    const apiKey = await workspaceApiKey(Models, workspaceId, 'lemonslice')
+    assertConfigured(apiKey)
     const upload = await helpers.uploadBufferImage(file.buffer, file.mimetype, `lemonslice-${short.uuid()}${IMAGE_TYPES[file.mimetype]}`)
     const sourceImageUrl = upload.Location
     // A content-policy rejection (400) fails the upload; an outage keeps the raw
     // image and lets the visitor's session reframe it.
-    const variantUrl = await createAvatarVariant(sourceImageUrl) ||
-      await reframeWithSession(sourceImageUrl).catch((err) => {
+    const variantUrl = await createAvatarVariant(sourceImageUrl, apiKey) ||
+      await reframeWithSession(sourceImageUrl, apiKey).catch((err) => {
         if (err.resultResponse?.statusCode === ResponseCodes['400_BAD_REQUEST']) throw err
         return null
       })

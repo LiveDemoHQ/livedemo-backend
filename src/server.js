@@ -212,6 +212,8 @@ import getAgentSessionRecordingHandler from './handlers/getAgentSessionRecording
 import postAgentRecordingEventsHandler from './handlers/postAgentRecordingEvents.js'
 import agentKnowledgeInsights from './handlers/agentKnowledgeInsights.js'
 import workspaceWebhooks from './handlers/workspaceWebhooks.js'
+import agentEmails from './handlers/agentEmails.js'
+import providerKeys from './handlers/providerKeys.js'
 import agentRecap from './handlers/agentRecap.js'
 import captureAgentRevision from './middlewares/captureAgentRevision.js'
 import agentEditorMode, { agentEditorModeOptional } from './middlewares/agentEditorMode.js'
@@ -770,6 +772,16 @@ app.post('/workspaces/:workspaceId/webhooks', [setupMongo], workspaceWebhooks.cr
 app.patch('/workspaces/:workspaceId/webhooks/:webhookId', [setupMongo], workspaceWebhooks.update)
 app.delete('/workspaces/:workspaceId/webhooks/:webhookId', [setupMongo], workspaceWebhooks.remove)
 app.post('/workspaces/:workspaceId/webhooks/:webhookId/test', [setupMongo], workspaceWebhooks.test)
+app.get('/workspaces/:workspaceId/agent-emails', [setupMongo], agentEmails.list)
+app.post('/workspaces/:workspaceId/agents/:agentId/summary-email/preview', [setupMongo], agentEmails.preview)
+app.get('/workspaces/:workspaceId/email-settings', [setupMongo], agentEmails.getSettings)
+app.put('/workspaces/:workspaceId/email-settings', [setupMongo], agentEmails.putSettings)
+app.post('/workspaces/:workspaceId/email-settings/test', [setupMongo], agentEmails.testSettings)
+app.get('/workspaces/:workspaceId/provider-keys', [setupMongo], providerKeys.get)
+app.put('/workspaces/:workspaceId/provider-keys/:provider', [setupMongo], providerKeys.put)
+app.delete('/workspaces/:workspaceId/provider-keys/:provider', [setupMongo], providerKeys.remove)
+app.get('/agent-emails/unsubscribe/:token', [setupMongo], agentEmails.unsubscribePage)
+app.post('/agent-emails/unsubscribe/:token', [setupMongo], agentEmails.unsubscribe)
 
 app.post('/workspaces/:workspaceId/agents/:agentId/undo', [setupMongo], postAgentUndoHandler)
 app.post('/workspaces/:workspaceId/agents/:agentId/redo', [setupMongo], postAgentRedoHandler)

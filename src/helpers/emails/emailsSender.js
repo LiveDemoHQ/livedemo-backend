@@ -1,4 +1,4 @@
-import { SESClient, SendTemplatedEmailCommand } from '@aws-sdk/client-ses'
+import { SESClient, SendTemplatedEmailCommand, SendRawEmailCommand } from '@aws-sdk/client-ses'
 import ENV from '../../envServer.js'
 
 const sesClient = new SESClient({
@@ -8,6 +8,12 @@ const sesClient = new SESClient({
     secretAccessKey: ENV.SES_SECRET_ACCESS_KEY
   }
 })
+
+// Full MIME message (custom headers such as List-Unsubscribe). Resolves to the SES MessageId.
+export async function sendRawEmail(mime) {
+  const data = await sesClient.send(new SendRawEmailCommand({ RawMessage: { Data: Buffer.from(mime, 'utf8') } }))
+  return data.MessageId
+}
 
 export function sendEmail(emailTemplate, templateProps, toAddresses, Models) {
   let transformedProps = emailTemplate.transformFunction(templateProps)

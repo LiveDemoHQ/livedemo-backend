@@ -79,6 +79,7 @@
     "mongoose-paginate-v2": "^1.9.3",
     "monq": "git+https://git@github.com/exploitx3/monq.git#release-1.0.1",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.10.1",
     "object-fit-videos": "^1.0.4",
     "openai": "^6.10.0",
     "parse5": "^7.3.0",
