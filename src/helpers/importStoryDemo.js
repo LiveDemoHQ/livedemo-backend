@@ -4,10 +4,12 @@ import ENV from '../envServer.js'
 import ScreenTypes from '../constants/ScreenTypes.js'
 import { stringifyRrwebEvents } from './rrwebEventNames.js'
 import helpers from './livedemoHelpers.js'
+import flixHelpers from './flixHelpers.js'
 
-// Imports an exported story ({ story, screens: [{ screenDoc, events, imageData? }] }, e.g. a livedemo-cursor output)
+// Imports an exported story ({ story, screens: [{ screenDoc, events, imageData?, videoData? }] }, e.g. a livedemo-cursor output)
 // as a new story in workspaceId. Recordings are written to this server's STORIES_FOLDER; imageData (base64 png)
-// is uploaded when the screen has no imageUrl.
+// is uploaded when the screen has no imageUrl, videoData (base64 mp4) becomes a Mux asset when a Screen_Video has none,
+// and payload.assets ([{ url, mimeType, data }]) are uploaded and their urls rewritten in every screen.
 const { ObjectId } = mongoose.Types
 const SCREENDOC_ENCODING = 'utf-8'
 const RRWEB_FULL_SNAPSHOT = 2
@@ -69,13 +71,20 @@ export async function importStoryDemo(Models, payload, { workspaceId, userId }) 
         throw new Error('STORIES_FOLDER env is required to import Screen_Page files')
     }
 
-    const screenFiles = Object.fromEntries(payload.screens.map((screen) => [String(screen.screenDoc._id), screen]))
     const screens = [...payload.story.screens].sort((a, b) => (a.index || 0) - (b.index || 0))
     const newStoryId = new ObjectId()
     const storyDir = `${ENV.STORIES_FOLDER}/${newStoryId}`
 
     try {
         await fsp.mkdir(storyDir, { recursive: true })
+
+        // assets ([{ url, mimeType, data }], e.g. a scraped page's images/fonts) are re-hosted, then every url in the screens is swapped
+        let screensJson = JSON.stringify(payload.screens)
+        for (const [i, asset] of (payload.assets || []).entries()) {
+            const uploaded = await helpers.uploadBufferImage(Buffer.from(asset.data, 'base64'), asset.mimeType, `${newStoryId}-asset-${i}`)
+            screensJson = screensJson.split(asset.url).join(uploaded.Location)
+        }
+        const screenFiles = Object.fromEntries(JSON.parse(screensJson).map((screen) => [String(screen.screenDoc._id), screen]))
 
         // Assign new screen ids first so delta baseScreenId / gotoScreen can remap in one pass
         const oldScreenIdToNewId = {}
@@ -111,6 +120,9 @@ export async function importStoryDemo(Models, payload, { workspaceId, userId }) 
             if (!screen.imageUrl && file.imageData) {
                 const uploaded = await helpers.uploadImage(file.imageData, `${newScreenId}.png`)
                 screen.imageUrl = uploaded.Location
+            }
+            if (screen.type === ScreenTypes.SCREEN_VIDEO && !screen.asset && file.videoData) {
+                screen.asset = await flixHelpers.uploadMuxVideo(file.videoData)
             }
             for (const step of screen.steps || []) {
                 const popup = step.view && step.view.popup

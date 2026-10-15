@@ -25,6 +25,7 @@ function validateBody(body) {
       }).unknown(true).required(),
       events: Joi.array().required(),
       imageData: Joi.string().allow(''),
+      videoData: Joi.string().allow(''),
     })).min(1).required(),
   })
 

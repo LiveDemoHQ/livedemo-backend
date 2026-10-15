@@ -31,6 +31,12 @@ const ScreenStepSchema = new mongoose.Schema({
       placement: {type: String, default: 'auto'},
       // rrweb node the hotspot follows in the player; frameX/Y is the fallback
       rrwebNodeId: { type: Number, default: null },
+      // tooltip only: no rings, arrow points at the node's edge on the placement side
+      hideBeacon: { type: Boolean, default: false },
+      // with hideBeacon: rrweb node outlined in the player; clicking it goes to the next step
+      clickNodeId: { type: Number, default: null },
+      // CSS box-shadow drawn around the rrwebNodeId node, e.g. to dim the rest of the page
+      spotlightShadow: { type: String, default: '' },
     },
     popup: {
       type: {type: String, default: 'popup'}, //popup, form, embed, start, iframe

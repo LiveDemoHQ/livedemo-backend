@@ -63,6 +63,7 @@ const Story = new mongoose.Schema({
                 isOmniBarDisabled: {type: Boolean, default: false},
                 isLiveDemoWatermarkEnabled: {type: Boolean, default: true},
                 isTabsEnabled: {type: Boolean, default: true},
+                customCursor: {type: Boolean, default: false}, // oversized arrow, hand over clickables
             },
             background: {
                 isActive: {type: Boolean, default: false},

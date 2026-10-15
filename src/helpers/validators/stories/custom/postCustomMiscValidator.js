@@ -10,6 +10,7 @@ function validateBody(body) {
     isOmniBarDisabled: Joi.boolean().required(),
     isLiveDemoWatermarkEnabled: Joi.boolean().required(),
     isTabsEnabled: Joi.boolean().required(),
+    customCursor: Joi.boolean().optional(),
   })
 
   const result = schema.validate(body)

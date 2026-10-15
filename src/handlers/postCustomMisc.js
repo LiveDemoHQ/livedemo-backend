@@ -36,7 +36,8 @@ const handler = function (req, res) {
             'custom.misc.confettiOnLastStep': confettiOnLastStep,
             'custom.misc.isOmniBarDisabled': isOmniBarDisabled,
             'custom.misc.isTabsEnabled': isTabsEnabled,
-            'custom.misc.isLiveDemoWatermarkEnabled': isLiveDemoWatermarkEnabled
+            'custom.misc.isLiveDemoWatermarkEnabled': isLiveDemoWatermarkEnabled,
+            ...(requestBody.customCursor !== undefined ? { 'custom.misc.customCursor': requestBody.customCursor } : {})
           }
         }, { new: true })
       })
