@@ -120,8 +120,8 @@ const ENUMS = {
     position: ['right', 'left', 'center'],
     'pill.expand': ['hover', 'click', 'always'],
     'pill.size': ['small', 'medium', 'large'],
-    'pill.icon': ['avatar', 'video', 'orb', 'aurora', 'plasma', 'pulse', 'glow'],
-    'smartbar.icon': ['orb', 'aurora', 'plasma', 'pulse', 'glow', 'avatar'],
+    'pill.icon': ['avatar', 'video', 'orb', 'aurora', 'plasma', 'pulse', 'glow', 'blue'],
+    'smartbar.icon': ['orb', 'aurora', 'plasma', 'pulse', 'glow', 'blue', 'avatar'],
     'preview.source': ['demo', 'custom', 'none']
 }
 const BOOLS = ['enabled', 'showBranding', 'pill.requireWorkEmail', 'pill.emailOptional', 'pill.showMic', 'preview.animateCursor']

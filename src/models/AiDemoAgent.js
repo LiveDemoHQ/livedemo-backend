@@ -100,8 +100,8 @@ const AiDemoAgent = new mongoose.Schema({
     pill: {
       expand: { type: String, enum: ['hover', 'click', 'always'], default: 'hover' },
       size: { type: String, enum: ['small', 'medium', 'large'], default: 'medium' },
-      // video needs agent.avatarVideoUrl; orb/aurora/plasma/pulse/glow are animated CSS spheres
-      icon: { type: String, enum: ['avatar', 'video', 'orb', 'aurora', 'plasma', 'pulse', 'glow'], default: 'avatar' },
+      // video needs agent.avatarVideoUrl; orb/aurora/plasma/pulse/glow/blue are animated CSS spheres
+      icon: { type: String, enum: ['avatar', 'video', 'orb', 'aurora', 'plasma', 'pulse', 'glow', 'blue'], default: 'avatar' },
       // Avatar pill position: % shift of the face inside the circle (editor arrows)
       faceX: { type: Number, min: -30, max: 30, default: 0 },
       faceY: { type: Number, min: -30, max: 30, default: 0 },
@@ -115,7 +115,7 @@ const AiDemoAgent = new mongoose.Schema({
     },
     smartbar: {
       placeholder: { type: String, default: '' }, // '' = "Ask anything about <agent name>"
-      icon: { type: String, enum: ['orb', 'aurora', 'plasma', 'pulse', 'glow', 'avatar'], default: 'orb' },
+      icon: { type: String, enum: ['orb', 'aurora', 'plasma', 'pulse', 'glow', 'blue', 'avatar'], default: 'orb' },
     },
     // Per-page overrides, first match wins. Pattern is a path glob: /pricing, /docs/*, *
     rules: [{
