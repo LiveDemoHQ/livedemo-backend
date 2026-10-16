@@ -102,6 +102,7 @@ const Story = new mongoose.Schema({
             },
         },
 
+        tags: { type: [String], default: [] },
         links: [
             {type: String, ref: 'Link'}
         ],

@@ -21,6 +21,7 @@ const AutoRecording = new mongoose.Schema({
     windowMeasures: {},
     demoSuggestions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'DemoSuggestion' }],
     thumbnailImageData: { type: String, default: '' },
+    tags: { type: [String], default: [] },
     sessionData: {
         clientIpData: {},
         startTimestamp: { type: Number},

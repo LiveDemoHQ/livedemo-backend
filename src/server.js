@@ -18,6 +18,7 @@ import postTransitionsHandler from './handlers/postTransitions.js'
 import deleteTransitionHandler from './handlers/deleteTransition.js'
 import patchTransitionHandler from './handlers/patchTransition.js'
 import getStoriesHandler from './handlers/getStories.js'
+import { getWorkspaceTags, postWorkspaceTag, deleteWorkspaceTag, postWorkspaceTagAssign } from './handlers/workspaceTags.js'
 import getStoryByIdHandler from './handlers/getStoryById.js'
 import postCustomThemeUploadWatermarkImageHandler from './handlers/postCustomThemeUploadWatermarkImage.js'
 import postCustomThemeHandler from './handlers/postCustomTheme.js'
@@ -387,6 +388,10 @@ app.post('/workspaces/:workspaceId/addUser', [setupMongo], postWorkspaceAddUserH
 app.post('/workspaces/:workspaceId/removeUser', [setupMongo], postWorkspaceRemoveUserHandler)
 
 app.get('/workspaces/:workspaceId/stories', [setupMongo], getStoriesHandler)
+app.get('/workspaces/:workspaceId/tags', [setupMongo], getWorkspaceTags)
+app.post('/workspaces/:workspaceId/tags', [setupMongo], postWorkspaceTag)
+app.delete('/workspaces/:workspaceId/tags/:tagId', [setupMongo], deleteWorkspaceTag)
+app.post('/workspaces/:workspaceId/tags/assign', [setupMongo], postWorkspaceTagAssign)
 
 app.get('/workspaces/:workspaceId/library', [setupMongo], getWorkspaceLibraryHandler)
 

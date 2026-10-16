@@ -32,6 +32,9 @@ const WorkspaceSchema = new mongoose.Schema({
     invitedEmails: [
       {$type: String, default: []}
     ],
+    tags: [{
+      name: { $type: String, default: '' }
+    }],
     library: {
       pages: [
         { $type: mongoose.Schema.Types.ObjectId, ref: 'Screen' },
