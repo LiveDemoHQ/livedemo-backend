@@ -20,16 +20,16 @@ const handler = function (req, res) {
     clientIp = clientIp.split(',')[0]
 
     return Promise.resolve()
-        // .then(async () => {
+        .then(async () => {
 
-        // return helpers.authReq(req, Models)
-        // })
-        .then(() => {
-            // authUserDoc = authUser
+            return helpers.authReq(req, Models)
+        })
+        .then(({authUser}) => {
+            authUserDoc = authUser
             let validatedBody = helpers.validateBody(req.body, postAutoRecordingsValidator)
             requestBody = validatedBody.value
 
-            // helpers.validateUserHasAccessToWorkspace(authUserDoc, workspaceId)
+            helpers.validateUserHasAccessToWorkspace(authUserDoc, workspaceId)
         })
         .then(() => {
             if (clientIp) {
