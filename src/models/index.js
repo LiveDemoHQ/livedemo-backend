@@ -80,6 +80,7 @@ import AgentMessageSchema from './AgentMessage.js'
 import AgentSessionEventSchema from './AgentSessionEvent.js'
 import WorkspaceWebhookSchema from './WorkspaceWebhook.js'
 import AgentEmailSchema from './AgentEmail.js'
+import FeedbackSchema from './Feedback.js'
 
 
 // const ChannelSchema = require('./Channel')
@@ -258,6 +259,7 @@ export const initModels = (conn) => {
   conn.model('AgentSessionEvent', AgentSessionEventSchema)
   conn.model('WorkspaceWebhook', WorkspaceWebhookSchema)
   conn.model('AgentEmail', AgentEmailSchema)
+  conn.model('Feedback', FeedbackSchema)
 
   // conn.model('Subscriber', SubscriberSchema)
 
@@ -351,6 +353,7 @@ export const getModels = (conn) => {
     AgentSessionEvent: conn.model('AgentSessionEvent'),
     WorkspaceWebhook: conn.model('WorkspaceWebhook'),
     AgentEmail: conn.model('AgentEmail'),
+    Feedback: conn.model('Feedback'),
 
     // Channel: conn.model('Channel'),
     // InstantMessagesChannel: conn.model('InstantMessagesChannel'),

@@ -38,7 +38,7 @@ function notFound(res) {
     res.send('<!doctype html><html><body style="font-family:sans-serif;color:#666;padding:40px">This recap is not available.</body></html>')
 }
 
-function renderPage({ session, agent, demos, qa, booking, token, nonce }) {
+function renderPage({ session, agent, demos, qa, booking }) {
     const player = `${ENV.STORIES_API}/agents/${agent._id}/player`
     const date = session.startTimestamp ? moment(session.startTimestamp).format('MMM D, YYYY') : ''
     const topics = (session.topics || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')
@@ -63,7 +63,6 @@ h1{font-size:22px;margin:0}h2{font-size:15px;text-transform:uppercase;letter-spa
 .msg{padding:10px 0;border-bottom:1px solid #f0f1f3}.msg:last-child{border:0}.msg p{margin:4px 0 0;white-space:pre-wrap;line-height:1.5}.msg.q b{color:#4f46e5}
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
 .btn{display:inline-block;padding:11px 18px;border-radius:8px;text-decoration:none;font-weight:600;background:#4f46e5;color:#fff}.btn.alt{background:#fff;color:#1d2433;border:1px solid #d1d5db}
-form{display:flex;gap:8px;margin-top:10px}input{flex:1;padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:15px}button{padding:10px 16px;border:0;border-radius:8px;background:#1d2433;color:#fff;font-weight:600;cursor:pointer}
 .muted{color:#6b7280;font-size:14px}
 </style>
 </head>
@@ -83,21 +82,7 @@ ${qaList ? `<h2>Questions &amp; answers</h2><div class="card">${qaList}</div>` :
 ${booking ? `<a class="btn" href="${safeHref(booking.url)}" target="_blank" rel="noopener">${booking.type === 'book_meeting' ? 'Book a meeting' : 'Start a free trial'}</a>` : ''}
 <a class="btn alt" href="${esc(player)}" target="_blank" rel="noopener">Ask the agent yourself</a>
 </div>
-<h2>Were you sent this recap?</h2>
-<div class="card">
-<div class="muted">Leave your work email and we will send you the demos and keep you in the loop.</div>
-<form id="viewer"><input type="email" name="email" placeholder="you@company.com" required maxlength="254"><button type="submit">Send</button></form>
-<div id="viewer-done" class="muted" style="display:none;margin-top:10px">Thanks — we will be in touch.</div>
-</div>
 </main>
-<script nonce="${nonce}">
-document.getElementById('viewer').addEventListener('submit', function (e) {
-    e.preventDefault()
-    var email = e.target.email.value
-    fetch(${JSON.stringify(`/recaps/${token}/viewers`)}, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email }) })
-        .then(function () { e.target.style.display = 'none'; document.getElementById('viewer-done').style.display = 'block' })
-})
-</script>
 </body>
 </html>`
 }
@@ -148,21 +133,18 @@ const view = async function (req, res) {
 
         await recordView(Models, { session, agent, ip: clientIp(req) }).catch(err => console.log('recap view count failed', err.message))
 
-        const nonce = crypto.randomBytes(16).toString('base64')
         res.set({
             'Content-Type': 'text/html; charset=utf-8',
             'Cache-Control': 'no-store',
             'Referrer-Policy': 'no-referrer',
-            'Content-Security-Policy': `default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`
+            'Content-Security-Policy': `default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'`
         })
         res.send(renderPage({
             session,
             agent,
             demos,
             qa: messages,
-            booking: resolveCta(agent, session, 'book_meeting'),
-            token: req.params.token,
-            nonce
+            booking: resolveCta(agent, session, 'book_meeting')
         }))
     } catch (error) {
         console.log('recap failed', error.message)

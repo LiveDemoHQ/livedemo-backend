@@ -13,11 +13,13 @@ const handler = function (req, res) {
   const { Models } = req.mongo
   const workspaceId = req.params.workspaceId
   const storyId = req.params.storyId
+  const targetWorkspaceId = String(req.body?.workspaceId || workspaceId)
 
   return Promise.resolve()
     .then(() => helpers.authReq(req, Models))
     .then(({ authUser }) => {
       helpers.validateUserHasAccessToWorkspace(authUser, workspaceId)
+      helpers.validateUserHasAccessToWorkspace(authUser, targetWorkspaceId)
       return authUser
     })
     .then(async (authUser) => {
@@ -40,9 +42,9 @@ const handler = function (req, res) {
       const newStoryId = await cloneStoryDemo(
         storyId,
         authUser._id,
-        workspaceId,
+        targetWorkspaceId,
         Models,
-        { nameSuffix: ' (2)' }
+        { nameSuffix: targetWorkspaceId === workspaceId ? ' (2)' : '' }
       )
 
       if (!newStoryId) {

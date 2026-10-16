@@ -120,6 +120,8 @@ import postUsersUnsubscribeHandler from './handlers/postUsersUnsubscribe.js'
 import postLaunchLinksHandler from './handlers/postLaunchLinks.js'
 import patchLaunchLinksHandler from './handlers/patchLaunchLinks.js'
 import postLaunchSubscribeHandler from './handlers/postLaunchSubscribe.js'
+import postFeedbackHandler from './handlers/postFeedback.js'
+import postUninstallFeedbackHandler from './handlers/postUninstallFeedback.js'
 import getLaunchConfigHandler from './handlers/getLaunchConfig.js'
 import getIntegrationsHubspotCallbackHandler from './handlers/getIntegrationsHubspotCallback.js'
 import postLogoutHandler from './handlers/postLogout.js'
@@ -433,6 +435,8 @@ app.post('/users/unsubscribe', [setupMongo], postUsersUnsubscribeHandler)
 app.post('/launch/links', [setupMongo], postLaunchLinksHandler)
 app.patch('/launch/links/:linkId', [setupMongo], patchLaunchLinksHandler)
 app.post('/launch/subscribe', [setupMongo], postLaunchSubscribeHandler)
+app.post('/feedback', [setupMongo], postFeedbackHandler)
+app.post('/feedback/uninstall', [setupMongo], postUninstallFeedbackHandler)
 app.get('/launch/:id', [setupMongo], getLaunchConfigHandler)
 
 app.get('/integrations/hubspot-callback', [setupMongo], getIntegrationsHubspotCallbackHandler)
