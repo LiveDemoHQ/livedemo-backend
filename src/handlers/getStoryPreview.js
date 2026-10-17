@@ -5,6 +5,7 @@ import livedemoHelpers from "../helpers/livedemoHelpers.js";
 import * as sanitezeLib from '@braintree/sanitize-url'
 import he from 'he'
 import { decodeVars } from '../helpers/agent/personalization.js'
+import getAgentPlayerHandler from './getAgentPlayer.js'
 
 const sanitize = sanitezeLib.sanitizeUrl
 
@@ -73,6 +74,25 @@ const handler = function (req, res) {
                     options: {sort: {'index': 1}}
                 })
                 .lean()
+        })
+        .then(async (storyDoc) => {
+
+            if (storyDoc) {
+
+                return storyDoc
+            }
+
+            // ponytail: Medium embeds reuse the story preview URL for agents; real fix is a dedicated agent embed URL
+            const agentExists = await Models.AiDemoAgent.exists({ _id: storyId, workspaceId, deletedAt: null })
+
+            if (!agentExists) {
+
+                return storyDoc
+            }
+
+            req.params.agentId = storyId
+            await getAgentPlayerHandler(req, res)
+            throw { agentPlayerSent: true }
         })
         .then(storyDoc => {
 
@@ -491,6 +511,12 @@ media-src 'self'
             res.send(htmlString)
         })
         .catch((error) => {
+
+            if (error.agentPlayerSent) {
+
+                return
+            }
+
             console.log(error)
 
             let resultResponse

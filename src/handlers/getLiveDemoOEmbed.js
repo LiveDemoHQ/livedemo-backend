@@ -80,6 +80,10 @@ const handler = function (req, res) {
       return parsed
     })
     .then(async (parsed) => {
+      if (parsed.kind === 'story' && parsed.workspaceId && !await Models.Story.exists({ _id: parsed.id, deletedAt: null })) {
+        parsed.kind = 'agent'
+      }
+
       if (parsed.kind === 'agent') {
         // Drafts: 404, so an agent id alone doesn't reveal name/thumbnail
         const agentQuery = { _id: parsed.id, deletedAt: null, isPublished: true }
