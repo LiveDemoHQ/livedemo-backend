@@ -6,6 +6,7 @@ import { sendEmail } from '../helpers/emails/emailsSender.js'
 import { syncSignupSubscriber } from '../helpers/sequenzy/sequenzyClient.js'
 import Templates from '../helpers/emails/templates/index.js'
 import { cloneUrlDemoStoriesForUser } from '../helpers/cloneUrlDemoStoriesForUser.js'
+import { assertNotSsoEnforced } from '../helpers/sso.js'
 import axios from 'axios'
 import mongoose from 'mongoose'
 const { ObjectId } = mongoose.Types
@@ -52,6 +53,7 @@ const handler = function (req, res) {
 
         // Find or create user
         let userObj = await Models.User.findOne({ 'googleProfile.email': userRes.email }).lean()
+        await assertNotSsoEnforced(Models, userRes.email, userObj && userObj._id)
 
         if (userObj) {
             console.log('user found')
@@ -250,6 +252,7 @@ const handler = function (req, res) {
     })
         .catch((error) => {
             console.log(error)
+            if (error.ssoRedirectUrl) return res.redirect(error.ssoRedirectUrl)
 
             let resultResponse
             if (error.resultResponse) {

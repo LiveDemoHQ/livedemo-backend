@@ -218,6 +218,12 @@ import agentKnowledgeInsights from './handlers/agentKnowledgeInsights.js'
 import workspaceWebhooks from './handlers/workspaceWebhooks.js'
 import agentEmails from './handlers/agentEmails.js'
 import providerKeys from './handlers/providerKeys.js'
+import apiKeys from './handlers/apiKeys.js'
+import oauth from './handlers/oauth.js'
+import sessionOnly from './middlewares/sessionOnly.js'
+import sso from './handlers/sso.js'
+import customDomainHandlers from './handlers/customDomain.js'
+import customDomain from './middlewares/customDomain.js'
 import agentRecap from './handlers/agentRecap.js'
 import captureAgentRevision from './middlewares/captureAgentRevision.js'
 import agentEditorMode, { agentEditorModeOptional } from './middlewares/agentEditorMode.js'
@@ -294,6 +300,8 @@ app.post('/webhooks/sequenzy', [setupMongo, express.raw({ type: 'application/jso
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json({limit: '5000mb', extended: true}))
+// Customer domains only reach their own public demo / agent pages (rewritten here); everything else 404s
+app.use(setupMongo, customDomain)
 app.options('*', (req, res) => {
     const resultResponse = {
         statusCode: ResponseCodes['200_OK'],
@@ -381,7 +389,7 @@ app.patch('/workspaces/:workspaceId/integrations', [setupMongo], patchWorkspaceI
 
 app.get('/workspaces/:workspaceId/hubspot/forms', [setupMongo], getWorkspaceHubspotFormsHandler)
 
-app.delete('/workspaces/:workspaceId', [setupMongo], deleteWorkspaceHandler)
+app.delete('/workspaces/:workspaceId', [setupMongo, sessionOnly], deleteWorkspaceHandler)
 
 app.post('/workspaces/:workspaceId/addUser', [setupMongo], postWorkspaceAddUserHandler)
 
@@ -407,13 +415,13 @@ app.get('/users', [setupMongo], getUsersHandler)
 
 app.post('/users', [setupMongo], postUsersHandler)
 
-app.patch('/users', [setupMongo], patchUsersHandler)
+app.patch('/users', [setupMongo, sessionOnly], patchUsersHandler)
 
 app.post('/users/password-authenticate', [setupMongo], postPasswordAuthenticateHandler)
 
-app.post('/users/token-authenticate', [setupMongo], postTokenAuthenticateHandler)
+app.post('/users/token-authenticate', [setupMongo, sessionOnly], postTokenAuthenticateHandler)
 
-app.post('/users/refreshToken', [setupMongo], postRefreshTokenHandler)
+app.post('/users/refreshToken', [setupMongo, sessionOnly], postRefreshTokenHandler)
 
 app.get('/users/cards', [setupMongo], getUsersCardsHandler)
 
@@ -421,7 +429,7 @@ app.post('/users/forgotPassword', [setupMongo], postForgotPasswordHandler)
 
 app.post('/users/sendChangePasswordEmail', [setupMongo], postSendChangePasswordEmailHandler)
 
-app.post('/users/changePassword', [setupMongo], postChangePasswordHandler)
+app.post('/users/changePassword', [setupMongo, sessionOnly], postChangePasswordHandler)
 
 app.get('/users/auth/google-link', getUsersAuthGoogleLinkHandler)
 
@@ -448,7 +456,7 @@ app.get('/integrations/hubspot-callback', [setupMongo], getIntegrationsHubspotCa
 
 app.post('/users/logout', [setupMongo], postLogoutHandler)
 
-app.post('/users/closeAccount', [setupMongo], postCloseAccountHandler)
+app.post('/users/closeAccount', [setupMongo, sessionOnly], postCloseAccountHandler)
 
 app.get('/cards', [setupMongo], getCardsHandler)
 
@@ -783,19 +791,48 @@ app.get('/workspaces/:workspaceId/agents/:agentId/knowledge-gaps', [setupMongo],
 app.post('/workspaces/:workspaceId/agents/:agentId/knowledge-gaps/draft', [setupMongo], agentKnowledgeInsights.draftFaq)
 
 // Outbound webhooks + Slack (Settings > Integrations)
-app.get('/workspaces/:workspaceId/webhooks', [setupMongo], workspaceWebhooks.list)
-app.post('/workspaces/:workspaceId/webhooks', [setupMongo], workspaceWebhooks.create)
-app.patch('/workspaces/:workspaceId/webhooks/:webhookId', [setupMongo], workspaceWebhooks.update)
-app.delete('/workspaces/:workspaceId/webhooks/:webhookId', [setupMongo], workspaceWebhooks.remove)
-app.post('/workspaces/:workspaceId/webhooks/:webhookId/test', [setupMongo], workspaceWebhooks.test)
+app.get('/workspaces/:workspaceId/webhooks', [setupMongo, sessionOnly], workspaceWebhooks.list)
+app.post('/workspaces/:workspaceId/webhooks', [setupMongo, sessionOnly], workspaceWebhooks.create)
+app.patch('/workspaces/:workspaceId/webhooks/:webhookId', [setupMongo, sessionOnly], workspaceWebhooks.update)
+app.delete('/workspaces/:workspaceId/webhooks/:webhookId', [setupMongo, sessionOnly], workspaceWebhooks.remove)
+app.post('/workspaces/:workspaceId/webhooks/:webhookId/test', [setupMongo, sessionOnly], workspaceWebhooks.test)
 app.get('/workspaces/:workspaceId/agent-emails', [setupMongo], agentEmails.list)
 app.post('/workspaces/:workspaceId/agents/:agentId/summary-email/preview', [setupMongo], agentEmails.preview)
 app.get('/workspaces/:workspaceId/email-settings', [setupMongo], agentEmails.getSettings)
 app.put('/workspaces/:workspaceId/email-settings', [setupMongo], agentEmails.putSettings)
 app.post('/workspaces/:workspaceId/email-settings/test', [setupMongo], agentEmails.testSettings)
-app.get('/workspaces/:workspaceId/provider-keys', [setupMongo], providerKeys.get)
-app.put('/workspaces/:workspaceId/provider-keys/:provider', [setupMongo], providerKeys.put)
-app.delete('/workspaces/:workspaceId/provider-keys/:provider', [setupMongo], providerKeys.remove)
+app.get('/workspaces/:workspaceId/provider-keys', [setupMongo, sessionOnly], providerKeys.get)
+app.put('/workspaces/:workspaceId/provider-keys/:provider', [setupMongo, sessionOnly], providerKeys.put)
+app.delete('/workspaces/:workspaceId/provider-keys/:provider', [setupMongo, sessionOnly], providerKeys.remove)
+
+// Personal API keys (MCP server, scripts) — Settings > API keys
+app.get('/users/api-keys', [setupMongo, sessionOnly], apiKeys.list)
+app.post('/users/api-keys', [setupMongo, sessionOnly], apiKeys.create)
+app.delete('/users/api-keys/:keyId', [setupMongo, sessionOnly], apiKeys.remove)
+
+// OAuth 2.1 for MCP connectors (Claude.ai, ChatGPT)
+app.get('/.well-known/oauth-authorization-server', oauth.metadata)
+app.post('/oauth/register', [setupMongo], oauth.register)
+app.get('/oauth/authorize', [setupMongo], oauth.authorize)
+app.post('/oauth/authorize/decision', [setupMongo, sessionOnly], oauth.decision)
+app.post('/oauth/token', [setupMongo], oauth.token)
+
+// SAML SSO (Growth) — Settings > Single sign-on
+app.get('/workspaces/:workspaceId/sso', [setupMongo, sessionOnly], sso.get)
+app.put('/workspaces/:workspaceId/sso', [setupMongo, sessionOnly], sso.put)
+app.post('/workspaces/:workspaceId/sso/domains', [setupMongo, sessionOnly], sso.addDomain)
+app.post('/workspaces/:workspaceId/sso/domains/verify', [setupMongo, sessionOnly], sso.verifyDomain)
+app.delete('/workspaces/:workspaceId/sso/domains/:domain', [setupMongo, sessionOnly], sso.removeDomain)
+app.post('/sso/discover', [setupMongo], sso.discover)
+app.get('/sso/:workspaceId/metadata', [setupMongo], sso.metadata)
+app.get('/sso/:workspaceId/login', [setupMongo], sso.login)
+app.post('/sso/:workspaceId/acs', [setupMongo], sso.acs)
+
+// Custom domain for public links (Growth, Cloudflare for SaaS) — Settings > Custom domain
+app.get('/workspaces/:workspaceId/custom-domain', [setupMongo, sessionOnly], customDomainHandlers.get)
+app.put('/workspaces/:workspaceId/custom-domain', [setupMongo, sessionOnly], customDomainHandlers.put)
+app.post('/workspaces/:workspaceId/custom-domain/verify', [setupMongo, sessionOnly], customDomainHandlers.verify)
+app.delete('/workspaces/:workspaceId/custom-domain', [setupMongo, sessionOnly], customDomainHandlers.remove)
 app.get('/agent-emails/unsubscribe/:token', [setupMongo], agentEmails.unsubscribePage)
 app.post('/agent-emails/unsubscribe/:token', [setupMongo], agentEmails.unsubscribe)
 

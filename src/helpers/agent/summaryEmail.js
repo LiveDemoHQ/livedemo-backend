@@ -118,7 +118,7 @@ export function buildMime({ from, to, subject, html, text, unsubscribeUrl }) {
     ].join('\r\n')
 }
 
-export function summaryVars({ agent, session, lead, demos }) {
+export function summaryVars({ agent, session, lead, demos, origin = ENV.SERVER_URL }) {
     const name = String((lead && lead.data && lead.data.name) || session.visitorName || '').trim()
     return {
         firstName: name.split(/\s+/)[0] || 'there',
@@ -129,14 +129,17 @@ export function summaryVars({ agent, session, lead, demos }) {
         demos: demos.map(d => d.name || 'Untitled demo').join(', '),
         recapUrl: agent.recapEnabled === false ? '' : recapUrl(session),
         bookingUrl: (agent.cta && agent.cta.bookMeetingUrl) || '',
-        agentLink: agent._id ? `${ENV.SERVER_URL}/agents/${agent._id}` : ''
+        agentLink: agent._id ? `${origin}/agents/${agent._id}` : ''
     }
 }
 
 // Called once per session from the final summary job. Every attempt is logged, failures included.
 export async function sendSummaryEmail(Models, { agent, session, lead }) {
     if (!agent.summaryEmail || !agent.summaryEmail.enabled) return null
-    const settings = emailSettingsOf(await Models.Workspace.findById(agent.workspaceId).select('+summaryEmailSending').lean())
+    const workspace = await Models.Workspace.findById(agent.workspaceId).select('+summaryEmailSending').lean()
+    const settings = emailSettingsOf(workspace)
+    const customDomain = workspace && workspace.customDomain
+    const origin = customDomain && customDomain.status === 'active' ? `https://${customDomain.hostname}` : ENV.SERVER_URL
     const from = senderFor(settings, agent.name)
     if (!from) return null
     const to = String((lead && lead.data && lead.data.email) || session.visitorEmail || '').trim().toLowerCase()
@@ -148,7 +151,18 @@ export async function sendSummaryEmail(Models, { agent, session, lead }) {
         : []
     const unsubscribeToken = crypto.randomBytes(24).toString('base64url')
     const unsubscribeUrl = unsubscribeUrlFor(unsubscribeToken)
-    const rendered = renderSummaryEmail({ agent, vars: summaryVars({ agent, session, lead, demos }), unsubscribeUrl })
+    const vars = summaryVars({
+        agent,
+        session,
+        lead,
+        demos,
+        origin
+    })
+    const rendered = renderSummaryEmail({
+        agent,
+        vars,
+        unsubscribeUrl
+    })
 
     const doc = {
         workspaceId: agent.workspaceId,

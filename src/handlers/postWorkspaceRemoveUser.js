@@ -67,6 +67,17 @@ const handler = function (req, res) {
         .then((workspaceDoc) => {
           let foundUser = workspaceDoc.users.find(user => user.email === email)
 
+          if (foundUser && String(foundUser._id) === String(workspaceDoc.adminUser)) {
+
+            let error = new Error('Cannot remove the workspace admin')
+            error.resultResponse = {
+              statusCode: ResponseCodes['400_BAD_REQUEST'],
+              headers: { 'Access-Control-Allow-Origin': '*' },
+              body: JSON.stringify({ error: error.message })
+            }
+            throw error
+          }
+
           let updateObj = {
             $pull: {
               invitedEmails: email

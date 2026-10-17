@@ -82,4 +82,10 @@ export default {
   // 'off' = always Node cosine (no mongot needed).
   'VECTOR_SEARCH': process.env.VECTOR_SEARCH ? process.env.VECTOR_SEARCH : "on",
   'AGENT_REVISIONS_MAX': process.env.AGENT_REVISIONS_MAX ? process.env.AGENT_REVISIONS_MAX : "",
+  // Public MCP endpoint (livedemo-ai-api /mcp), the only OAuth `resource` we issue tokens for
+  'MCP_URL': process.env.MCP_URL ? process.env.MCP_URL : "",
+  // Cloudflare for SaaS custom hostnames (customers CNAME to CUSTOM_DOMAIN_TARGET)
+  'CLOUDFLARE_API_TOKEN': process.env.CLOUDFLARE_API_TOKEN ? process.env.CLOUDFLARE_API_TOKEN : "",
+  'CLOUDFLARE_ZONE_ID': process.env.CLOUDFLARE_ZONE_ID ? process.env.CLOUDFLARE_ZONE_ID : "",
+  'CUSTOM_DOMAIN_TARGET': process.env.CUSTOM_DOMAIN_TARGET ? process.env.CUSTOM_DOMAIN_TARGET : "",
 }

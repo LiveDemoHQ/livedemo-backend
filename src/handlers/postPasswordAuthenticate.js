@@ -3,6 +3,7 @@ import userValidators from '../helpers/validators/userValidators.js'
 import authUtils from '../helpers/authUtils.js'
 import { cloneUrlDemoStoriesForUser } from '../helpers/cloneUrlDemoStoriesForUser.js'
 import { getPostAuthRedirectPath } from '../helpers/emailHelpers.js'
+import { assertNotSsoEnforced } from '../helpers/sso.js'
 
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
@@ -55,6 +56,7 @@ const handler = function (req, res) {
       // Authenticate user
       return authUtils.authenticateUser(email, password, Models.User)
     })
+    .then((userDataSaved) => assertNotSsoEnforced(Models, userDataSaved.email, userDataSaved._id).then(() => userDataSaved))
     .then((userDataSaved) => {
       // Create auth token
       return authUtils.createTokenForUser(userDataSaved, Models.AuthToken)

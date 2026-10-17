@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 const { ObjectId } = mongoose.Types;
 import monq from 'monq'
 import ENV from '../envServer.js'
+import { emitDemoEvent } from '../helpers/workspaceEvents.js'
 
 function enqueueDemoCompletionEvent(storyId, sessionId, sessionEventId) {
   const client = monq(ENV.DB_URI || 'mongodb://localhost:27017/livedemo_app')
@@ -120,6 +121,11 @@ const handler = function (req, res) {
           })
           .then(() => {
             let notUpdatedSessionDoc = sessionDoc 
+
+            if (!notUpdatedSessionDoc.didComplete && didComplete) {
+
+              emitDemoEvent(Models, notUpdatedSessionDoc.storyId || storyId, 'demo.completed', { session: notUpdatedSessionDoc })
+            }
 
             if(!ENV.PROCESS_DEMO_ACTIVITY_EVENTS) {
               return notUpdatedSessionDoc

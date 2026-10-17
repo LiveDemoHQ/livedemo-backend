@@ -19,6 +19,24 @@ const WorkspaceSchema = new mongoose.Schema({
     summaryEmailSending: { $type: mongoose.Schema.Types.Mixed, select: false },
     // Growth plan: own Anam / LemonSlice keys, encrypted { enc, updatedAt, updatedBy }. See helpers/agent/providerKeys.js
     providerKeys: { $type: mongoose.Schema.Types.Mixed, select: false },
+    // SAML SSO (Growth), see handlers/sso.js. idpCert is public; nothing here is secret
+    sso: {
+      enabled: { $type: Boolean, default: false },
+      enforced: { $type: Boolean, default: false },
+      domains: { $type: [String], default: undefined }, // verified only, lowercase
+      pendingDomain: { name: String, token: String },
+      idpEntityId: { $type: String, default: '' },
+      idpSsoUrl: { $type: String, default: '' },
+      idpCert: { $type: String, default: '' },
+      lastLoginAt: Date // first successful SSO login unlocks enforcement
+    },
+    // Custom domain for public demo / agent links (Growth), see handlers/customDomain.js
+    customDomain: {
+      hostname: String, // lowercase, e.g. demos.acme.com
+      status: String, // pending | active
+      cfHostnameId: String,
+      lastError: String
+    },
     adminUser: { $type: mongoose.Schema.ObjectId, ref: 'User'},
     users: [
       { $type: mongoose.Schema.ObjectId, ref: 'User' }
@@ -52,5 +70,9 @@ const WorkspaceSchema = new mongoose.Schema({
     }
   }, options
 )
+
+// A domain / hostname belongs to one workspace only
+WorkspaceSchema.index({ 'sso.domains': 1 }, { unique: true, partialFilterExpression: { 'sso.domains': { $type: 'string' } } })
+WorkspaceSchema.index({ 'customDomain.hostname': 1 }, { unique: true, partialFilterExpression: { 'customDomain.hostname': { $type: 'string' } } })
 
 export default  WorkspaceSchema

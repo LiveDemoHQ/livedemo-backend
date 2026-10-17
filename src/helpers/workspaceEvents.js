@@ -4,12 +4,18 @@ import ENV from '../envServer.js'
 import enqueueJob from './enqueueJob.js'
 import { assertPublicUrl } from './agent/publicUrl.js'
 import { flattenFields } from './agent/qualification.js'
+import { open } from './secretBox.js'
 
 // Outbound events: one monq job per (event, subscription) so a slow or dead
 // endpoint only retries itself. Delivery runs in processAgentSession.js.
 
-export const EVENTS = ['lead.created', 'lead.qualified', 'session.ended', 'meeting.booked', 'recap.viewed']
+export const EVENTS = ['lead.created', 'lead.qualified', 'session.ended', 'meeting.booked', 'recap.viewed', 'demo.viewed', 'demo.completed', 'demo.lead']
 export const SLACK_URL_RE = /^https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/_-]+$/
+export const ANALYTICS_URLS = {
+    ga4: 'https://www.google-analytics.com/mp/collect',
+    segment: 'https://api.segment.io/v1/track'
+}
+export const analyticsPurpose = kind => `analytics:${kind}`
 
 const RETRY = { attempts: { count: 5, delay: 30000, strategy: 'exponential' } }
 
@@ -57,6 +63,62 @@ export function sessionPayload({ session, agent, lead }) {
     }
 }
 
+// Interactive demo (story) events: demo.viewed / demo.completed / demo.lead
+export function demoPayload({ story, session, lead }) {
+    return {
+        demo: { id: String(story._id), name: story.name || '' },
+        session: session ? {
+            id: String(session._id),
+            stepsCount: session.stepsCount || 0,
+            country: (session.clientIpData && session.clientIpData.country) || ''
+        } : null,
+        lead: lead ? {
+            id: String(lead._id),
+            name: (lead.data && lead.data.name) || '',
+            email: (lead.data && lead.data.email) || ''
+        } : null
+    }
+}
+
+// GA4 / Segment get ids and facts only. Google's terms forbid PII, so lead name/email never leave.
+export function analyticsEvent(event) {
+    const data = event.data || {}
+    const session = data.session || {}
+    const demo = data.demo || {}
+    const params = {
+        session_id: session.id,
+        agent_id: session.agentId,
+        agent_name: session.agentName,
+        demo_id: demo.id,
+        demo_name: demo.name,
+        intent: session.intent,
+        qualified: session.qualified,
+        demos_opened: session.demosOpened,
+        country: session.country
+    }
+    Object.keys(params).forEach(key => (params[key] === undefined || params[key] === '' || params[key] === null) && delete params[key])
+    return { name: `livedemo_${event.type.replace('.', '_')}`, clientId: session.id || event.id, params }
+}
+
+function analyticsRequest(hook, event) {
+    const secret = open(hook.secret, analyticsPurpose(hook.kind), String(hook.workspaceId))
+    const { name, clientId, params } = analyticsEvent(event)
+    if (hook.kind === 'ga4') {
+
+        const query = new URLSearchParams({ measurement_id: hook.measurementId, api_secret: secret })
+        return {
+            url: `${ANALYTICS_URLS.ga4}?${query}`,
+            body: JSON.stringify({ client_id: clientId, events: [{ name, params }] }),
+            headers: { 'Content-Type': 'application/json' }
+        }
+    }
+    return {
+        url: ANALYTICS_URLS.segment,
+        body: JSON.stringify({ anonymousId: clientId, event: name, properties: params, messageId: event.id, timestamp: event.createdAt }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Basic ${Buffer.from(`${secret}:`).toString('base64')}` }
+    }
+}
+
 // Stripe-style: signature over `${timestamp}.${body}` so a replayed body with a new timestamp fails
 export function signBody(secret, timestamp, body) {
     return `sha256=${crypto.createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex')}`
@@ -67,7 +129,10 @@ const EVENT_TITLES = {
     'lead.qualified': '🔥 Qualified lead',
     'session.ended': '💬 Agent conversation',
     'meeting.booked': '📅 Meeting booked',
-    'recap.viewed': '🔁 Recap forwarded'
+    'recap.viewed': '🔁 Recap forwarded',
+    'demo.viewed': '👀 Demo viewed',
+    'demo.completed': '🏁 Demo completed',
+    'demo.lead': '👋 Demo lead'
 }
 
 // Slack mrkdwn: escape &, <, > in anything a visitor typed
@@ -81,7 +146,7 @@ export function slackText(event, data) {
         .map(([key, value]) => `${key}: ${value}`)
         .slice(0, 6)
     const lines = [
-        `*${EVENT_TITLES[event] || event}*: ${esc(who)}${s.agentName ? ` · ${esc(s.agentName)}` : ''}`,
+        `*${EVENT_TITLES[event] || event}*: ${esc(who)}${s.agentName ? ` · ${esc(s.agentName)}` : ''}${data.demo ? ` · ${esc(data.demo.name)}` : ''}`,
         s.summary ? `>${esc(s.summary).slice(0, 600)}` : '',
         [s.intent ? `intent: ${s.intent}` : '', s.demosOpened ? `watched ${s.demosOpened} demo${s.demosOpened === 1 ? '' : 's'}` : '', ...facts].filter(Boolean).map(esc).join(' · '),
         [s.replayUrl ? `<${s.replayUrl}|Replay>` : '', s.recapUrl ? `<${s.recapUrl}|Recap>` : ''].filter(Boolean).join('  ')
@@ -105,11 +170,25 @@ export function emitSafe(Models, workspaceId, event, data) {
         .catch(err => console.log(`emit ${event} failed`, err.message))
 }
 
+// Fire-and-forget from public story routes; the workspace comes from the story, never from the URL
+export function emitDemoEvent(Models, storyId, event, { session, lead } = {}) {
+    return Models.Story.findById(storyId).select('name workspaceId').lean()
+        .then(story => story && emitWorkspaceEvent(Models, story.workspaceId, event, demoPayload({ story, session, lead })))
+        .catch(err => console.log(`emit ${event} failed`, err.message))
+}
+
 // Returns { status }. Throws on non-2xx so monq retries.
 export async function deliverWebhook(Models, hook, event) {
     let body
+    let url = hook.url
     let headers = { 'Content-Type': 'application/json', 'User-Agent': 'LiveDemo-Webhooks/1.0' }
-    if (hook.kind === 'slack') {
+    if (ANALYTICS_URLS[hook.kind]) {
+
+        const request = analyticsRequest(hook, event)
+        url = request.url
+        body = request.body
+        headers = { ...headers, ...request.headers }
+    } else if (hook.kind === 'slack') {
         if (!SLACK_URL_RE.test(hook.url)) throw new Error('Not a Slack incoming-webhook URL')
         body = JSON.stringify({ text: slackText(event.type, event.data) })
     } else {
@@ -126,7 +205,7 @@ export async function deliverWebhook(Models, hook, event) {
     }
 
     try {
-        const res = await axios.post(hook.url, body, { headers, timeout: 10000, maxRedirects: 0, validateStatus: () => true })
+        const res = await axios.post(url, body, { headers, timeout: 10000, maxRedirects: 0, validateStatus: () => true })
         const ok = res.status >= 200 && res.status < 300
         await Models.WorkspaceWebhook.updateOne({ _id: hook._id }, {
             $set: { lastStatus: res.status, lastError: ok ? '' : `HTTP ${res.status}`, lastDeliveredAt: new Date() }

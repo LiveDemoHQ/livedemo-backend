@@ -7,5 +7,6 @@ export default {
   AuthToken: 'AuthToken',
   AuthToken_User: 'AuthToken_User',
   AuthToken_UserChangePassword: 'AuthToken_UserChangePassword',
-  AuthToken_UserDirectLink: 'AuthToken_UserDirectInstall'
+  AuthToken_UserDirectLink: 'AuthToken_UserDirectInstall',
+  AuthToken_ApiKey: 'AuthToken_ApiKey'
 }

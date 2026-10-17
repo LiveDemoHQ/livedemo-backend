@@ -5,6 +5,7 @@ import ENV from '../envServer.js'
 import moment from "moment"
 import monq from 'monq'
 import isAnalyticsExcludedIp from '../helpers/isAnalyticsExcludedIp.js'
+import { emitDemoEvent } from '../helpers/workspaceEvents.js'
 
 function enqueueDemoVisitEvent(storyId, sessionId) {
   const client = monq(ENV.DB_URI || 'mongodb://localhost:27017/livedemo_app')
@@ -91,6 +92,11 @@ const handler = function (req, res) {
       return new Models.Session(sessionObj).save()
     })
     .then((sessionDoc) => {
+      if (sessionDoc) {
+
+        emitDemoEvent(Models, storyId, 'demo.viewed', { session: sessionDoc })
+      }
+
       if(!sessionDoc || !ENV.PROCESS_DEMO_ACTIVITY_EVENTS) {
         return sessionDoc
       }

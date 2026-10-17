@@ -9,6 +9,7 @@ import {
   createAndSendEmailVerificationCode,
   getPostAuthRedirectPath,
 } from '../helpers/emailHelpers.js'
+import { assertNotSsoEnforced } from '../helpers/sso.js'
 import mongoose from 'mongoose'
 const { ObjectId } = mongoose.Types
 
@@ -56,6 +57,7 @@ const handler = function (req, res) {
         throw error
       }
     })
+    .then(() => assertNotSsoEnforced(Models, requestBody.email))
     .then(() => {
       const email = requestBody.email
       const password = requestBody.password

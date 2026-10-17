@@ -6,7 +6,6 @@ import * as sanitezeLib from '@braintree/sanitize-url'
 import he from 'he'
 import { decodeVars } from '../helpers/agent/personalization.js'
 import getAgentPlayerHandler from './getAgentPlayer.js'
-
 const sanitize = sanitezeLib.sanitizeUrl
 
 const handler = function (req, res) {
@@ -46,7 +45,9 @@ const handler = function (req, res) {
 
             return Models.Story.findOne({
                 _id: storyId,
-                deletedAt: null
+                deletedAt: null,
+                // Custom domains (middlewares/customDomain.js) only serve their own workspace's demos
+                ...(req.customDomainWorkspaceId ? { workspaceId: req.customDomainWorkspaceId } : {})
             })
                 .populate({
                     path: 'screens',

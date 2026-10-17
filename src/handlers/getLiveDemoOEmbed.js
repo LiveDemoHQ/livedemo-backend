@@ -18,6 +18,7 @@ const sanitize = sanitezeLib.sanitizeUrl
 import ResponseCodes from '../constants/ResponseCodes.js'
 import ENV from '../envServer.js'
 import { parseOEmbedUrl } from '../helpers/agent/parseOEmbedUrl.js'
+import { parseCustomDomainUrl } from '../middlewares/customDomain.js'
 import { CORS_HEADERS, httpError } from '../helpers/agent/http.js'
 import thumbnailForScreen from '../helpers/agent/thumbnailForScreen.js'
 
@@ -73,7 +74,9 @@ const handler = function (req, res) {
         httpError(ResponseCodes['501_NOT_IMPLEMENTED'], responseMessage)
       }
 
-      const parsed = parseOEmbedUrl(targetUrl)
+      return parseOEmbedUrl(targetUrl) || parseCustomDomainUrl(Models, targetUrl)
+    })
+    .then((parsed) => {
       if (!parsed) {
         httpError(ResponseCodes['400_BAD_REQUEST'], 'Invalid url param')
       }

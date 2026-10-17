@@ -5,6 +5,7 @@ import axios from 'axios'
 import ENV from '../envServer.js'
 import monq from 'monq'
 import FormFieldTypes from '../constants/FormFieldTypes.js'
+import { emitDemoEvent } from '../helpers/workspaceEvents.js'
 
 const FORM_FIELD_NAME = {
   EMAIL: 'email',
@@ -165,6 +166,11 @@ const handler = function (req, res) {
       // if(!ENV.PROCESS_DEMO_ACTIVITY_EVENTS) {
       //   return newLeadDoc
       // }
+
+      if (newLeadDoc.storyId) {
+
+        emitDemoEvent(Models, newLeadDoc.storyId, 'demo.lead', { lead: newLeadDoc })
+      }
       
       // Enqueue lead-collection-event
       return enqueueDemoLeadCollectionEvent(

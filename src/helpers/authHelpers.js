@@ -1,11 +1,26 @@
+import crypto from 'crypto'
 import AuthTokenStatuses from '../constants/AuthTokenStatuses.js'
 import { normalizeSubscriptions } from './subscriptionHelpers.js'
 
+// Long-lived API keys (ld_live_…) and OAuth access tokens (ld_oat_…) are stored as a SHA-256 hash in `token`
+export const API_TOKEN_RE = /^ld_(live|oat)_[A-Za-z0-9]{20,}$/
+export const hashToken = token => crypto.createHash('sha256').update(String(token)).digest('hex')
+
 export function getUserByAccessToken(token, UserModel, AuthToken) {
-    let userDataPromise = AuthToken.findOne({ token: token, status: AuthTokenStatuses.ACTIVE }).lean()
+    const isApiToken = API_TOKEN_RE.test(String(token || ''))
+    let userDataPromise = AuthToken.findOne({
+        token: isApiToken ? hashToken(token) : token,
+        status: AuthTokenStatuses.ACTIVE,
+        expiresAt: { $not: { $lte: new Date() } }
+    }).lean()
         .then(authToken => {
             if (!authToken) {
                 throw new Error('No user found by the userId from the access token')
+            }
+
+            if (isApiToken) {
+
+                AuthToken.updateOne({ _id: authToken._id }, { $set: { lastUsedAt: new Date() } }).catch(() => {})
             }
 
             return authToken
@@ -31,7 +46,6 @@ export function getUserByAccessToken(token, UserModel, AuthToken) {
                 })
         })
 }
-
 
 export function getUserAndTokenByInstanceId(instanceId, UserModel, AuthToken) {
     let userAndTokenPromise = AuthToken.findOne({ status: AuthTokenStatuses.ACTIVE, authorizedInstances: { $in: [instanceId] } }).lean()

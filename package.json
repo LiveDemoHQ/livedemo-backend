@@ -35,6 +35,7 @@
     "@hapi/joi": "^17.1.1",
     "@livekit/rtc-node": "^1.1.0",
     "@mux/mux-node": "^12.8.1",
+    "@node-saml/node-saml": "^5.1.0",
     "@popperjs/core": "^2.11.6",
     "@tippyjs/react": "^4.2.6",
     "@xmldom/xmldom": "^0.8.11",

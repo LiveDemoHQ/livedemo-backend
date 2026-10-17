@@ -10,6 +10,10 @@ import AuthTokenSchema from './AuthToken.js'
 import AuthToken_UserSchema from './AuthToken_User.js'
 import AuthToken_DirectInstallSchema from './AuthToken_UserDirectInstall.js'
 import AuthToken_UserChangePassword from './AuthToken_UserChangePassword.js'
+import AuthToken_ApiKeySchema from './AuthToken_ApiKey.js'
+import OAuthClientSchema from './OAuthClient.js'
+import OAuthCodeSchema from './OAuthCode.js'
+import SamlRequestSchema from './SamlRequest.js'
 
 import WorkspaceSchema from './Workspace.js'
 import WorkspaceMemberSchema from './WorkspaceMember.js'
@@ -178,6 +182,7 @@ export const initModels = (conn) => {
   authTokenModel.discriminator('AuthToken_User', AuthToken_UserSchema)
   authTokenModel.discriminator('AuthToken_UserDirectInstall', AuthToken_DirectInstallSchema)
   authTokenModel.discriminator('AuthToken_UserChangePassword', AuthToken_UserChangePassword)
+  authTokenModel.discriminator('AuthToken_ApiKey', AuthToken_ApiKeySchema)
 
   let screenModel = conn.model('Screen', ScreenSchema)
   screenModel.discriminator(ScreenTypes.SCREEN_PAGE, Screen_PageSchema)
@@ -260,6 +265,9 @@ export const initModels = (conn) => {
   conn.model('WorkspaceWebhook', WorkspaceWebhookSchema)
   conn.model('AgentEmail', AgentEmailSchema)
   conn.model('Feedback', FeedbackSchema)
+  conn.model('OAuthClient', OAuthClientSchema)
+  conn.model('OAuthCode', OAuthCodeSchema)
+  conn.model('SamlRequest', SamlRequestSchema)
 
   // conn.model('Subscriber', SubscriberSchema)
 
@@ -293,6 +301,10 @@ export const getModels = (conn) => {
     AuthToken: conn.model('AuthToken'),
     AuthToken_User: conn.model('AuthToken_User'),
     AuthToken_UserChangePassword: conn.model('AuthToken_UserChangePassword'),
+    AuthToken_ApiKey: conn.model('AuthToken_ApiKey'),
+    OAuthClient: conn.model('OAuthClient'),
+    OAuthCode: conn.model('OAuthCode'),
+    SamlRequest: conn.model('SamlRequest'),
     Config: conn.model('Config'),
     Card: conn.model('Card'),
     User: conn.model('User'),

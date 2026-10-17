@@ -4,6 +4,7 @@ import authUtils from '../helpers/authUtils.js'
 import { sendEmail } from '../helpers/emails/emailsSender.js'
 import { syncSignupSubscriber } from '../helpers/sequenzy/sequenzyClient.js'
 import Templates from '../helpers/emails/templates/index.js'
+import { assertNotSsoEnforced } from '../helpers/sso.js'
 import mongoose from 'mongoose'
 const { ObjectId } = mongoose.Types
 
@@ -69,6 +70,7 @@ const handler = function (req, res) {
     
     // Find or create user
     let userObj = await Models.User.findOne({ 'googleProfile.email': email }).lean()
+    await assertNotSsoEnforced(Models, email, userObj && userObj._id)
 
     if (userObj) {
       await Models.User.findOneAndUpdate(

@@ -2,7 +2,7 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import ENV from '../envServer.js'
 import loadPublicAgent from '../helpers/agent/loadPublicAgent.js'
 import { validateDemoAction } from '../helpers/agent/validateActions.js'
-import { sendError } from '../helpers/agent/http.js'
+import { sendError, httpError } from '../helpers/agent/http.js'
 import { usesAnamVoice } from '../helpers/agent/anam.js'
 import { allowedOrigin, frameAncestors, resolveShowBranding } from '../helpers/agent/embed.js'
 
@@ -31,6 +31,8 @@ const handler = async function (req, res) {
 
   try {
     const agent = await loadPublicAgent(req, Models, agentId)
+    // Custom domains (middlewares/customDomain.js) only serve their own workspace's agents
+    if (req.customDomainWorkspaceId && String(agent.workspaceId) !== req.customDomainWorkspaceId) httpError(ResponseCodes['404_NOT_FOUND'], 'Agent not found')
     const mode = req.agentMode === 'editor' ? 'editor' : 'published'
 
     let defaultDemoId = null

@@ -5,6 +5,7 @@ import { sendEmail } from '../helpers/emails/emailsSender.js'
 import Templates from '../helpers/emails/templates/index.js'
 import ENV from '../envServer.js'
 import authUtils from '../helpers/authUtils.js'
+import { assertNotSsoEnforced } from '../helpers/sso.js'
 
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
@@ -22,6 +23,7 @@ const handler = function (req, res) {
       // Find user by email
       return Models.User.findOne({ email: email }).lean()
     })
+    .then((userDoc) => assertNotSsoEnforced(Models, requestBody.email, userDoc && userDoc._id).then(() => userDoc))
     .then((userDoc) => {
       if (userDoc) {
         return sendForgotPasswordEmail(userDoc, Models)
