@@ -384,9 +384,15 @@ img-src 'self'
   data:
   *;
 
+style-src 'self' 'unsafe-inline' blob:
+  ${ENV.STORIES_API}
+  ${ENV.LIVEDEMO_CDN_URL}
+  https:;
+
 font-src 'self'
   https://fonts.googleapis.com
   https://fonts.gstatic.com
+  https:
   data:;
 
 frame-src 'self'
