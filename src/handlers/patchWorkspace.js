@@ -76,6 +76,11 @@ const handler = function (req, res) {
         updateObj.name = name
       }
 
+      if(requestBody.analyticsExcludedIps) {
+
+        updateObj.analyticsExcludedIps = [...new Set(requestBody.analyticsExcludedIps)]
+      }
+
       return Models.Workspace.findOneAndUpdate(
         { _id: workspaceId },
         {

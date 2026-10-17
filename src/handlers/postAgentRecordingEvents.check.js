@@ -3,6 +3,7 @@
 // editor sessions start getting recorded, or the per-IP / per-session caps break.
 import assert from 'assert'
 import handler from './postAgentRecordingEvents.js'
+import isAnalyticsExcludedIp from '../helpers/isAnalyticsExcludedIp.js'
 
 const lean = value => ({ lean: async () => value })
 
@@ -53,6 +54,16 @@ assert.strictEqual(editor.calls.inserted.length, 0)
 
 const missing = await run(null, events)
 assert.strictEqual(missing.res.statusCode, 404)
+
+// Workspace analyticsExcludedIps: postAgentSession flags the session, nothing gets stored
+const excluded = await run({ ...published, recordingDisabled: true }, events)
+assert.strictEqual(excluded.res.statusCode, 403, 'IP-excluded sessions must not be recorded')
+assert.strictEqual(excluded.calls.inserted.length, 0)
+const workspaceWith = ips => ({ Workspace: { findOne: () => lean({ analyticsExcludedIps: ips }) } })
+assert.strictEqual(await isAnalyticsExcludedIp('5.5.5.5', workspaceWith(['5.5.5.5']), 'ws1'), true)
+assert.strictEqual(await isAnalyticsExcludedIp('5.5.5.6', workspaceWith(['5.5.5.5']), 'ws1'), false)
+assert.strictEqual(await isAnalyticsExcludedIp('5.5.5.5', workspaceWith(undefined), 'ws1'), false, 'no list = feature off')
+assert.strictEqual(await isAnalyticsExcludedIp('', workspaceWith(['']), 'ws1'), false, 'unknown IP is never excluded')
 
 // 1000 events per session: truncate the batch that crosses it, reject after
 const nearCap = await run(published, events, { exists: true, eventsCount: 999 })

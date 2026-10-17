@@ -9,6 +9,7 @@ import rateLimit from '../helpers/agent/rateLimit.js'
 import { buildPersonalization, companyFromDomain, encodeVars } from '../helpers/agent/personalization.js'
 import { writeField } from '../helpers/agent/qualification.js'
 import { emitSafe, recapUrl, sessionPayload } from '../helpers/workspaceEvents.js'
+import isAnalyticsExcludedIp from '../helpers/isAnalyticsExcludedIp.js'
 
 const CHANNELS = ['link', 'oembed', 'embed']
 const TRIGGERS = ['bubble', 'pill', 'pill_mic', 'preview', 'chip', 'button', 'api', 'smartbar', 'auto']
@@ -110,10 +111,14 @@ const handler = async function (req, res) {
       fields = writeField(fields, 'company', personalization.company, 'host') || fields
     }
 
+    // The chat still needs the session; only the rrweb replay is skipped
+    const recordingDisabled = mode === 'published' && await isAnalyticsExcludedIp(clientIp, Models, agent.workspaceId)
+
     const session = await new Models.AgentSession({
       workspaceId: agent.workspaceId,
       agentId: agent._id,
       mode,
+      recordingDisabled,
       visitorName,
       visitorEmail,
       visitorSessionId: short.uuid(),
@@ -152,6 +157,7 @@ const handler = async function (req, res) {
       _id: session._id,
       visitorSessionId: session.visitorSessionId,
       leadId: session.leadId || null,
+      recordingDisabled,
       personalization,
       personalizationVars: encodeVars(personalization),
       recapUrl: session.recapToken ? recapUrl(session) : null,

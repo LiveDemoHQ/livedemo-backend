@@ -32,6 +32,10 @@ const WorkspaceSchema = new mongoose.Schema({
     invitedEmails: [
       {$type: String, default: []}
     ],
+    // Visits from these IPs get no analytics Session / recording. Empty = off. See helpers/isAnalyticsExcludedIp.js
+    analyticsExcludedIps: [
+      { $type: String }
+    ],
     tags: [{
       name: { $type: String, default: '' }
     }],

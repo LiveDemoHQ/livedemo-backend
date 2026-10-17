@@ -30,6 +30,9 @@ const handler = async function (req, res) {
     if (agentSession.mode === 'editor') {
       httpError(ResponseCodes['400_BAD_REQUEST'], 'Editor sessions are not recorded')
     }
+    if (agentSession.recordingDisabled) {
+      httpError(ResponseCodes['403_FORBIDDEN'], 'Recording is disabled for this IP')
+    }
     if (!events.length) return sendJson(res)
 
     // IP limit counts new recordings only; later flushes of the same one are free

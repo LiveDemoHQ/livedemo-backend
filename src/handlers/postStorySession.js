@@ -4,6 +4,7 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import ENV from '../envServer.js'
 import moment from "moment"
 import monq from 'monq'
+import isAnalyticsExcludedIp from '../helpers/isAnalyticsExcludedIp.js'
 
 function enqueueDemoVisitEvent(storyId, sessionId) {
   const client = monq(ENV.DB_URI || 'mongodb://localhost:27017/livedemo_app')
@@ -28,6 +29,7 @@ const handler = function (req, res) {
   let storyId = req.params.storyId
   let requestBody = null
   let authUserDoc = null
+  let isExcluded = false
 
   let clientIp = req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'] : (ENV.ENV === 'dev' ? '69.200.224.152' : '')
   // Make sure to get the Client IP, because there could be multiple IPs in the x-forwarded-for header
@@ -45,12 +47,20 @@ const handler = function (req, res) {
 
       // helpers.validateUserHasAccessToWorkspace(authUserDoc, workspaceId)
     })
-    .then(() => {
-      if(clientIp) {
+    .then(() => isAnalyticsExcludedIp(clientIp, Models, workspaceId))
+    .then((excluded) => {
+      isExcluded = excluded
+      if(clientIp && !isExcluded) {
+
         return helpers.getClientIpData(clientIp)
       }
     })
     .then((clientIpData) => {
+      // No session = the demo bundle does not start recording
+      if(isExcluded) {
+
+        return null
+      }
 
       let sessionObj = {
         storyId: storyId,
@@ -81,7 +91,7 @@ const handler = function (req, res) {
       return new Models.Session(sessionObj).save()
     })
     .then((sessionDoc) => {
-      if(!ENV.PROCESS_DEMO_ACTIVITY_EVENTS) {
+      if(!sessionDoc || !ENV.PROCESS_DEMO_ACTIVITY_EVENTS) {
         return sessionDoc
       }
       
@@ -109,7 +119,7 @@ const handler = function (req, res) {
 
       res.set(resultResponse.headers)
       res.status(resultResponse.statusCode)
-      res.send(JSON.stringify(sessionDoc))
+      res.send(JSON.stringify(sessionDoc || { recordingDisabled: true }))
     })
     .catch((error) => {
       console.log(error)

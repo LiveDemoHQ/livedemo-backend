@@ -13,6 +13,8 @@ const AgentSession = new mongoose.Schema({
 
   // Editor sessions are excluded from analytics
   mode: { type: String, enum: ['published', 'editor'], default: 'published' },
+  // Visitor IP is in the workspace's analyticsExcludedIps: no rrweb replay
+  recordingDisabled: { type: Boolean, default: false },
 
   visitorName: { type: String },
   visitorEmail: { type: String },
