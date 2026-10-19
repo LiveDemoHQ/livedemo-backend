@@ -302,6 +302,11 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json({limit: '5000mb', extended: true}))
 // Customer domains only reach their own public demo / agent pages (rewritten here); everything else 404s
 app.use(setupMongo, customDomain)
+// Our API/preview hosts stay out of search; embedded previews still count for the page that embeds them
+app.use((req, res, next) => {
+    if (!req.customDomainWorkspaceId) res.set('X-Robots-Tag', 'noindex, indexifembedded')
+    next()
+})
 app.options('*', (req, res) => {
     const resultResponse = {
         statusCode: ResponseCodes['200_OK'],

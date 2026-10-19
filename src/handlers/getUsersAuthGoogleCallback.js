@@ -54,6 +54,7 @@ const handler = function (req, res) {
         // Find or create user
         let userObj = await Models.User.findOne({ 'googleProfile.email': userRes.email }).lean()
         await assertNotSsoEnforced(Models, userRes.email, userObj && userObj._id)
+        const isNewUser = !userObj
 
         if (userObj) {
             console.log('user found')
@@ -232,7 +233,7 @@ const handler = function (req, res) {
 
         const redirectPath = shouldRedirectToOnboarding(userDoc) ? '/onboarding' : returnPath
         const encodedPage = encodeURIComponent(redirectPath)
-        const redirectUrl = `${ENV.SERVER_URL}/auth/?page=${encodedPage}&token=${authTokenDoc.token}`
+        const redirectUrl = `${ENV.SERVER_URL}/auth/?page=${encodedPage}&token=${authTokenDoc.token}${isNewUser ? '&signup=google' : ''}`
 
         const resultResponse = {
             statusCode: ResponseCodes['302_FOUND'],

@@ -71,6 +71,7 @@ const handler = function (req, res) {
     // Find or create user
     let userObj = await Models.User.findOne({ 'googleProfile.email': email }).lean()
     await assertNotSsoEnforced(Models, email, userObj && userObj._id)
+    const isNewUser = !userObj
 
     if (userObj) {
       await Models.User.findOneAndUpdate(
@@ -216,7 +217,7 @@ const handler = function (req, res) {
 
     const redirectPath = shouldRedirectToOnboarding(userDoc) ? '/onboarding' : '/'
     const encodedPage = encodeURIComponent(redirectPath)
-    const redirectUrl = `${ENV.SERVER_URL}/auth/?page=${encodedPage}&token=${authTokenDoc.token}`
+    const redirectUrl = `${ENV.SERVER_URL}/auth/?page=${encodedPage}&token=${authTokenDoc.token}${isNewUser ? '&signup=google' : ''}`
 
     res.set({ ...CORS_HEADERS, 'Content-Type': 'application/json' })
     res.status(ResponseCodes['200_OK'])
