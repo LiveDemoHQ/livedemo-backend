@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import AuthTokenStatuses from '../constants/AuthTokenStatuses.js'
+import AuthTokenTypes from '../constants/AuthTokenTypes.js'
 import { normalizeSubscriptions } from './subscriptionHelpers.js'
 
 // Long-lived API keys (ld_live_…) and OAuth access tokens (ld_oat_…) are stored as a SHA-256 hash in `token`
@@ -11,6 +12,8 @@ export function getUserByAccessToken(token, UserModel, AuthToken) {
     let userDataPromise = AuthToken.findOne({
         token: isApiToken ? hashToken(token) : token,
         status: AuthTokenStatuses.ACTIVE,
+        // Reset tokens only work on POST /users/changePassword, never as a login session
+        type: { $ne: AuthTokenTypes.AuthToken_UserChangePassword },
         expiresAt: { $not: { $lte: new Date() } }
     }).lean()
         .then(authToken => {

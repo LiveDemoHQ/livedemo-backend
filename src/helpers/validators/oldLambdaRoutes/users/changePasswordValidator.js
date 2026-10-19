@@ -4,7 +4,7 @@ function validateBody(body) {
 
 
   let schema = Joi.object().keys({
-    newPassword: Joi.string().required()
+    newPassword: Joi.string().min(8).max(128).required()
   })
 
   const result = schema.validate(body)

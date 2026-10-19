@@ -356,7 +356,7 @@ function validateBody(body, validatorFunction) {
     const validationResult = validatorFunction(body)
     if (validationResult.error) {
         const response = {
-            statusCode: 500,
+            statusCode: ResponseCodes['400_BAD_REQUEST'],
             headers: {
                 'Access-Control-Max-Age': 600,
                 'Access-Control-Allow-Origin': '*',

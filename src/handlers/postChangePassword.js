@@ -3,84 +3,48 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import changePasswordValidator from '../helpers/validators/oldLambdaRoutes/users/changePasswordValidator.js'
 import authUtils from '../helpers/authUtils.js'
 import AuthTokenStatuses from '../constants/AuthTokenStatuses.js'
-import { getUserByAccessToken } from '../helpers/authHelpers.js'
+import { httpError } from '../helpers/agent/http.js'
 
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
-  let authUserDoc = null
   let requestBody = null
-  let authToken = null
 
-  return Promise.resolve().then(async () => {
+  return Promise.resolve().then(() => {
+      const authToken = String(req.get('Authorization') || '').split(' ')[1]
+      if (!authToken) {
 
-      return helpers.authReq(req, Models)
-    })
-    .then(({ authUser, authToken: token }) => {
-      authUserDoc = authUser
-      authToken = token
-
-      // Validate request body
-      let validatedBody = helpers.validateBody(req.body, changePasswordValidator)
-      requestBody = validatedBody.value
-
-      if (!requestBody) {
-        const resultResponse = {
-          statusCode: ResponseCodes['400_BAD_REQUEST'],
-          headers: {
-            'Access-Control-Max-Age': 600,
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'ClientId,Authorization,Content-Type,Accept', // Required for CORS support to work
-            // Required for CORS support to work
-            'Access-Control-Allow-Credentials': true, // Required for cookies, authorization headers with HTTPS
-          }
-        }
-
-        let error = new Error('Invalid request body')
-        error.resultResponse = resultResponse
-        throw error
+        httpError(ResponseCodes['401_UNAUTHORIZED'], 'Missing reset token')
       }
 
-      // Get user by access token
-      return getUserByAccessToken(authToken, Models.User, Models.AuthToken)
-    })
-    .then((userData) => {
-      const newPassword = requestBody.newPassword
+      // Validate before consuming so a bad body doesn't burn the link
+      requestBody = helpers.validateBody(req.body, changePasswordValidator).value
 
-      // Generate hash for new password
-      return authUtils.generateHash(newPassword)
-        .then((newPassHash) => {
-          return Models.User.findOneAndUpdate(
-            { _id: userData._id },
-            { password: newPassHash }
-          )
-        })
-        .then(() => {
-          return userData
-        })
+      return authUtils.consumeChangePasswordToken(authToken, Models.AuthToken)
+    })
+    .then((tokenDoc) => {
+      if (!tokenDoc) {
+
+        httpError(ResponseCodes['400_BAD_REQUEST'], 'This reset link is invalid or has expired. Please request a new one.')
+      }
+
+      return Models.User.findOne({ _id: tokenDoc.userId }).lean()
     })
     .then((userData) => {
-      // Create new token for user
-      return authUtils.createTokenForUser(userData, Models.AuthToken)
-        .then((authTokenDoc) => {
-          return {
-            userData,
-            authTokenDoc
-          }
-        })
-    })
-    .then(({ userData, authTokenDoc }) => {
-      // Expire the old change password token
-      return Models.AuthToken_UserChangePassword.findOneAndUpdate(
-        { token: authToken },
-        { status: AuthTokenStatuses.EXPIRED }
-      )
-        .then(() => {
-          return {
-            userData,
-            authTokenDoc
-          }
-        })
+      if (!userData) {
+
+        httpError(ResponseCodes['400_BAD_REQUEST'], 'This reset link is invalid or has expired. Please request a new one.')
+      }
+
+      return authUtils.generateHash(requestBody.newPassword)
+        .then((newPassHash) => Models.User.updateOne({ _id: userData._id }, { password: newPassHash }))
+        // Sign out every existing session and kill any other reset links
+        .then(() => Promise.all([
+          Models.AuthToken_User.updateMany({ userId: userData._id, status: AuthTokenStatuses.ACTIVE }, { status: AuthTokenStatuses.EXPIRED }),
+          Models.AuthToken_UserChangePassword.updateMany({ userId: userData._id, status: AuthTokenStatuses.ACTIVE }, { status: AuthTokenStatuses.EXPIRED })
+        ]))
+        .then(() => authUtils.createTokenForUser(userData, Models.AuthToken))
+        .then((authTokenDoc) => ({ userData, authTokenDoc }))
     })
     .then(({ userData, authTokenDoc }) => {
       const resultResponse = {
@@ -113,9 +77,8 @@ const handler = function (req, res) {
         resultResponse = error.resultResponse
       } else {
 
-
         resultResponse = {
-          statusCode: ResponseCodes['400_BAD_REQUEST'],
+          statusCode: ResponseCodes['500_INTERNAL_SERVER_ERROR'],
           headers: {
             'Access-Control-Max-Age': 600,
             'Access-Control-Allow-Origin': '*',
@@ -124,10 +87,9 @@ const handler = function (req, res) {
             'Access-Control-Allow-Credentials': true, // Required for cookies, authorization headers with HTTPS
           },
           body: JSON.stringify({
-            error: error.message || 'Something went wrong, please try again'
+            error: 'Something went wrong, please try again'
           })
         }
-
       }
 
       res.set(resultResponse.headers)

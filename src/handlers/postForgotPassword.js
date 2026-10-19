@@ -6,6 +6,17 @@ import Templates from '../helpers/emails/templates/index.js'
 import ENV from '../envServer.js'
 import authUtils from '../helpers/authUtils.js'
 import { assertNotSsoEnforced } from '../helpers/sso.js'
+import ipRateLimit from '../helpers/agent/ipRateLimit.js'
+import LambdaRateLimiter from 'lambda-rate-limiter'
+import { httpError } from '../helpers/agent/http.js'
+
+const checkIpLimit = ipRateLimit({
+  limit: 10,
+  interval: 15 * 60 * 1000,
+  message: 'Too many password reset requests, please try again later'
+})
+// Stops one inbox being flooded from many IPs
+const emailLimiter = LambdaRateLimiter({ interval: 15 * 60 * 1000, uniqueTokenPerInterval: 5000 })
 
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
@@ -16,7 +27,12 @@ const handler = function (req, res) {
       // Validate request body (no authentication required for forgot password)
       let validatedBody = helpers.validateBody(req.body, forgotPasswordValidator)
       requestBody = validatedBody.value
+      return checkIpLimit(req)
     })
+    .then(() => emailLimiter.check(3, requestBody.email.trim().toLowerCase()).catch(() => {
+
+      httpError(ResponseCodes['429_TOO_MANY_REQUESTS'], 'Too many password reset requests, please try again later')
+    }))
     .then(async () => {
       const email = requestBody.email
 
@@ -26,7 +42,9 @@ const handler = function (req, res) {
     .then((userDoc) => assertNotSsoEnforced(Models, requestBody.email, userDoc && userDoc._id).then(() => userDoc))
     .then((userDoc) => {
       if (userDoc) {
-        return sendForgotPasswordEmail(userDoc, Models)
+
+        // Not awaited, so response time doesn't reveal whether the account exists
+        sendForgotPasswordEmail(userDoc, Models).catch((error) => console.log('forgotPassword email failed', error))
       } else {
         // Return success even if user doesn't exist (security best practice)
         return Promise.resolve()
