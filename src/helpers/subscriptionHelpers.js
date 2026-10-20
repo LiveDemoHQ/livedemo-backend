@@ -1,4 +1,5 @@
 import SubscriptionTypes from '../constants/SubscriptionTypes.js'
+import SubscriptionTypesAvatarLimits from '../constants/SubscriptionTypesAvatarLimits.js'
 
 function toIdString(id) {
   if (!id) return null
@@ -125,6 +126,11 @@ export async function setActiveUserSubscription(Models, userId, activeSubscripti
     { _id: activeId },
     { $set: { active: true } }
   )
+}
+
+/** Avatar limits stored on a new subscription. Unknown plans get 0 / 0 (no live avatar on our keys). */
+export function avatarLimitsFor(type) {
+  return SubscriptionTypesAvatarLimits[type] || { sessionAvatarTime: 0, concurrentSessionAvatars: 0 }
 }
 
 export const PAID_PLAN_USER_FEATURE_FLAGS = {

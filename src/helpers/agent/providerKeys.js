@@ -32,16 +32,22 @@ export function publicKeyStatus(workspace) {
     ]))
 }
 
-export function resolveKey(workspace, provider) {
+// ownKey: the workspace's saved key decrypted. False falls back to LiveDemo's key.
+export function resolveKeyInfo(workspace, provider) {
     const entry = workspace && workspace.providerKeys && workspace.providerKeys[provider]
     if (canUseCustomKeys(workspace) && entry && entry.enc) {
+
         try {
-            return open(entry.enc, purpose(provider), String(workspace._id))
+            return { apiKey: open(entry.enc, purpose(provider), String(workspace._id)), ownKey: true }
         } catch (err) {
             console.log(`[providerKeys] ${provider} key for workspace ${workspace._id} could not be decrypted, using the default`)
         }
     }
-    return PROVIDERS[provider].defaultKey()
+    return { apiKey: PROVIDERS[provider].defaultKey(), ownKey: false }
+}
+
+export function resolveKey(workspace, provider) {
+    return resolveKeyInfo(workspace, provider).apiKey
 }
 
 // The workspace's own key on Growth, else LiveDemo's

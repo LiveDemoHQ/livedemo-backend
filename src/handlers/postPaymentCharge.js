@@ -18,6 +18,7 @@ import WorkspaceTypes from '../constants/WorkspaceTypes.js'
 import {
   getSubscriptionWorkspaceIds,
   setActiveUserSubscription,
+  avatarLimitsFor,
 } from '../helpers/subscriptionHelpers.js'
 import {
   getOrCreateSubscriptionCustomer,
@@ -438,6 +439,7 @@ function createSubscriptionAndCharge(workspace, authUserDoc, subscriptionType, a
         autoPay: autoPay,
         expired: false,
         expireDate: SubscriptionTypesExpireDates[subscriptionType.toLowerCase()],
+        ...avatarLimitsFor(SubscriptionTypes[subscriptionType]),
       })
         .save()
         .then((subscription) =>

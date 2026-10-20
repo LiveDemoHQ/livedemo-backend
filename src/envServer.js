@@ -27,6 +27,10 @@ export default {
   'ELEVENLABS_VOICES_COLLECTION':  process.env.ELEVENLABS_VOICES_COLLECTION ? process.env.ELEVENLABS_VOICES_COLLECTION : "",
   'ANAM_API_KEY': process.env.ANAM_API_KEY ? process.env.ANAM_API_KEY : "",
   'LEMONSLICE_API_KEY': process.env.LEMONSLICE_API_KEY ? process.env.LEMONSLICE_API_KEY : "",
+  // When set, Growth avatar minutes and the concurrent-session cap are enforced. Unset = record only.
+  'AVATAR_MINUTES_ENFORCED': process.env.AVATAR_MINUTES_ENFORCED
+    ? ['true', '1', 'yes'].includes(String(process.env.AVATAR_MINUTES_ENFORCED).toLowerCase())
+    : false,
   'LIVEKIT_URL': process.env.LIVEKIT_URL ? process.env.LIVEKIT_URL : "",
   'LIVEKIT_API_KEY': process.env.LIVEKIT_API_KEY ? process.env.LIVEKIT_API_KEY : "",
   'LIVEKIT_API_SECRET': process.env.LIVEKIT_API_SECRET ? process.env.LIVEKIT_API_SECRET : "",

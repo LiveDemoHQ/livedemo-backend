@@ -3,7 +3,7 @@ import { avatarIsLive, isLemonSlice, createAnamSessionToken } from '../helpers/a
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import ipRateLimit from '../helpers/agent/ipRateLimit.js'
-import { workspaceApiKey } from '../helpers/agent/providerKeys.js'
+import { beginAvatarSession, failAvatarSession, anamSessionCap } from '../helpers/agent/avatarMinutes.js'
 
 // Each token opens a billed Anam session
 const checkIpLimit = ipRateLimit({ limit: 10, interval: 60 * 60 * 1000, message: 'Too many avatar sessions, try again later' })
@@ -11,20 +11,28 @@ const checkIpLimit = ipRateLimit({ limit: 10, interval: 60 * 60 * 1000, message:
 // POST /agents/:agentId/anam-session — short-lived Anam token for the talking face.
 // No workspace twin: the editor pane never opens a (billed) Anam session.
 const handler = async function (req, res) {
-  const { Models } = req.mongo
+    const { Models } = req.mongo
+    let row
 
-  try {
-    const agent = await loadPublicAgent(req, Models, req.params.agentId)
-    if (!avatarIsLive(agent) || isLemonSlice(agent)) {
-      httpError(ResponseCodes['400_BAD_REQUEST'], 'Avatar is not enabled for this agent')
+    try {
+        const agent = await loadPublicAgent(req, Models, req.params.agentId)
+        if (!avatarIsLive(agent) || isLemonSlice(agent)) {
+            httpError(ResponseCodes['400_BAD_REQUEST'], 'Avatar is not enabled for this agent')
+        }
+        await checkIpLimit(req)
+
+        const started = await beginAvatarSession(Models, agent, 'anam')
+        row = started.row
+        const sessionToken = await createAnamSessionToken(agent, started.access.apiKey, anamSessionCap(started.access))
+        sendJson(res, {
+            sessionToken,
+            usageId: row._id,
+            remainingSeconds: started.access.remainingSeconds
+        })
+    } catch (error) {
+        if (row) await failAvatarSession(Models, row).catch(err => console.log('[avatarMinutes] close failed', err.message))
+        sendError(res, error)
     }
-    await checkIpLimit(req)
-
-    const sessionToken = await createAnamSessionToken(agent, await workspaceApiKey(Models, agent.workspaceId, 'anam'))
-    sendJson(res, { sessionToken })
-  } catch (error) {
-    sendError(res, error)
-  }
 }
 
 export default handler

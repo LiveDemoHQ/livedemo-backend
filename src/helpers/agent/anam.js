@@ -151,11 +151,12 @@ export function pickAvatarModel(avatar) {
 
 // ElevenLabs voice: passthrough, we pipe PCM. Anam voice: Anam TTS speaks text
 // we send with talk(); CUSTOMER_CLIENT_V1 = no Anam LLM, Gemini stays the brain.
-export function buildPersonaConfig(agent) {
+export function buildPersonaConfig(agent, maxSessionLengthSeconds) {
   const base = {
     avatarId: agent.anamAvatarId,
     avatarModel: agent.anamAvatarModel || 'cara-4',
   }
+  if (maxSessionLengthSeconds) base.maxSessionLengthSeconds = maxSessionLengthSeconds
   if (usesAnamVoice(agent)) {
     return { ...base, voiceId: agent.anamVoiceId, llmId: 'CUSTOMER_CLIENT_V1', skipGreeting: true }
   }
@@ -163,8 +164,8 @@ export function buildPersonaConfig(agent) {
 }
 
 // apiKey: the workspace's own Anam key (Growth), else ours
-export async function createAnamSessionToken(agent, apiKey) {
-  const personaConfig = buildPersonaConfig(agent)
+export async function createAnamSessionToken(agent, apiKey, maxSessionLengthSeconds) {
+  const personaConfig = buildPersonaConfig(agent, maxSessionLengthSeconds)
   const context = {
     agentId: agent._id ? String(agent._id) : undefined,
     avatarId: personaConfig.avatarId,

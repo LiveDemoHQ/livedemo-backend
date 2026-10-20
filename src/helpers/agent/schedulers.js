@@ -1,5 +1,6 @@
 import enqueueJob from '../enqueueJob.js'
 import enqueueIndexAgentKnowledge from './enqueueIndexJob.js'
+import { closeStaleAvatarUsage } from './avatarMinutes.js'
 
 // Timers for the jobs-server process (setup.js). Each tick claims rows with a
 // conditional update before enqueueing, so overlapping ticks never double-queue.
@@ -59,5 +60,6 @@ export async function recrawlStaleSources(Models) {
 export default function startAgentSchedulers(Models) {
     const run = (name, fn) => () => fn(Models).catch(err => console.log(`${name} failed`, err.message))
     setInterval(run('finalizeIdleSessions', finalizeIdleSessions), SWEEP_MS)
+    setInterval(run('closeStaleAvatarUsage', closeStaleAvatarUsage), SWEEP_MS)
     setInterval(run('recrawlStaleSources', recrawlStaleSources), RECRAWL_TICK_MS)
 }

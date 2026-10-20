@@ -22,11 +22,18 @@ const Subscription = new mongoose.Schema({
     // exportsAllowed: { type: Number, default: 0 },
     // instantUpdatesAllowed: { type: Number, default: 0 },
     membersAllowed: { type: Number, default: 1 },
+    // Live avatar minutes per workspace per calendar month (UTC), on LiveDemo's keys. 0 = none.
+    sessionAvatarTime: { type: Number, default: 0 },
+    // Live avatar sessions at once per workspace, on LiveDemo's keys. 0 = none.
+    concurrentSessionAvatars: { type: Number, default: 0 },
     adminsAllowed: { type: Number, default: 0 },
     attachedJobs: [
       { type: mongoose.Schema.ObjectId, ref: 'Job' }
     ],
   }, options
 )
+
+// Avatar session start looks up the active subscription for a workspace
+Subscription.index({ workspaceIds: 1, active: 1 })
 
 export default  Subscription

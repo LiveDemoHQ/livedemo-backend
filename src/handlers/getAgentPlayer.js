@@ -4,6 +4,7 @@ import loadPublicAgent from '../helpers/agent/loadPublicAgent.js'
 import { validateDemoAction } from '../helpers/agent/validateActions.js'
 import { sendError, httpError } from '../helpers/agent/http.js'
 import { usesAnamVoice } from '../helpers/agent/anam.js'
+import { isAvatarAvailable } from '../helpers/agent/avatarMinutes.js'
 import { allowedOrigin, frameAncestors, resolveShowBranding } from '../helpers/agent/embed.js'
 
 // Third-party hosts the agent bundle talks to directly (WebRTC media is not CSP-governed):
@@ -77,6 +78,7 @@ const handler = async function (req, res) {
         theme: agent.theme || 'light',
         voiceEnabled: agent.voiceEnabled,
         avatarsEnabled: !!agent.avatarsEnabled,
+        avatarAvailable: agent.avatarsEnabled ? await isAvatarAvailable(Models, agent) : true,
         anamAvatarId: agent.anamAvatarId || '',
         avatarProvider: agent.avatarProvider || 'anam',
         lemonsliceAvatarId: agent.lemonsliceAvatarId || '',

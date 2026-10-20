@@ -12,6 +12,7 @@ import {
 import {
   enablePaidPlanUserFeatureFlags,
   setActiveUserSubscription,
+  avatarLimitsFor,
 } from '../helpers/subscriptionHelpers.js'
 
 const handler = function (req, res) {
@@ -75,7 +76,8 @@ const handler = function (req, res) {
         autoPay: false,
         expired: false,
         expireDate: SubscriptionTypesExpireDates[subscriptionType.toLowerCase()],
-        membersAllowed: SubscriptionTypesMembersAllowed[subscriptionType] || 1
+        membersAllowed: SubscriptionTypesMembersAllowed[subscriptionType] || 1,
+        ...avatarLimitsFor(SubscriptionTypes[subscriptionType])
       }).save()
 
       await setActiveUserSubscription(Models, authUserDoc._id, subscription._id)

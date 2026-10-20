@@ -76,6 +76,7 @@ import LaunchConfigSchema from './LaunchConfig.js'
 
 import AiDemoAgentSchema from './AiDemoAgent.js'
 import LemonSliceAvatarSchema from './LemonSliceAvatar.js'
+import AvatarUsageSchema from './AvatarUsage.js'
 import AgentKnowledgeSourceSchema from './AgentKnowledgeSource.js'
 import AgentKnowledgeChunkSchema from './AgentKnowledgeChunk.js'
 import AgentRevisionSchema from './AgentRevision.js'
@@ -256,6 +257,7 @@ export const initModels = (conn) => {
 
   conn.model('AiDemoAgent', AiDemoAgentSchema)
   conn.model('LemonSliceAvatar', LemonSliceAvatarSchema)
+  conn.model('AvatarUsage', AvatarUsageSchema)
   conn.model('AgentKnowledgeSource', AgentKnowledgeSourceSchema)
   conn.model('AgentKnowledgeChunk', AgentKnowledgeChunkSchema)
   conn.model('AgentRevision', AgentRevisionSchema)
@@ -357,6 +359,7 @@ export const getModels = (conn) => {
     LaunchConfig: conn.model('LaunchConfig'),
     AiDemoAgent: conn.model('AiDemoAgent'),
     LemonSliceAvatar: conn.model('LemonSliceAvatar'),
+    AvatarUsage: conn.model('AvatarUsage'),
     AgentKnowledgeSource: conn.model('AgentKnowledgeSource'),
     AgentKnowledgeChunk: conn.model('AgentKnowledgeChunk'),
     AgentRevision: conn.model('AgentRevision'),

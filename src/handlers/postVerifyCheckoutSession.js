@@ -13,6 +13,7 @@ import {
   normalizeSubscription,
   enablePaidPlanUserFeatureFlags,
   setActiveUserSubscription,
+  avatarLimitsFor,
 } from '../helpers/subscriptionHelpers.js'
 import {
   saveUserCardFromStripePaymentMethod,
@@ -222,6 +223,7 @@ const handler = async function (req, res) {
       expired: false,
       expireDate: SubscriptionTypesExpireDates[subscriptionType],
       membersAllowed,
+      ...avatarLimitsFor(subscriptionType),
     }).save()
 
     await setActiveUserSubscription(Models, authUserDoc._id, subscription._id)

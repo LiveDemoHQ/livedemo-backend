@@ -200,6 +200,9 @@ import postAgentTtsHandler from './handlers/postAgentTts.js'
 import getAnamAvatarsHandler from './handlers/getAnamAvatars.js'
 import getAnamVoicesHandler from './handlers/getAnamVoices.js'
 import postAnamSessionHandler from './handlers/postAnamSession.js'
+import postAvatarUsageHeartbeatHandler from './handlers/postAvatarUsageHeartbeat.js'
+import postAvatarUsageEndHandler from './handlers/postAvatarUsageEnd.js'
+import getWorkspaceAvatarUsageHandler from './handlers/getWorkspaceAvatarUsage.js'
 import getLemonSliceAvatarsHandler from './handlers/getLemonSliceAvatars.js'
 import postLemonSliceAvatarHandler, { IMAGE_TYPES as AVATAR_IMAGE_TYPES } from './handlers/postLemonSliceAvatar.js'
 import deleteLemonSliceAvatarHandler from './handlers/deleteLemonSliceAvatar.js'
@@ -872,6 +875,9 @@ app.post('/agents/:agentId/ack', [setupMongo, corsMiddleware], postAgentAckHandl
 app.post('/agents/:agentId/sessions/:agentSessionId/recording-events', [setupMongo, corsMiddleware], postAgentRecordingEventsHandler)
 app.post('/agents/:agentId/anam-session', [setupMongo, corsMiddleware], postAnamSessionHandler)
 app.post('/agents/:agentId/lemonslice-session', [setupMongo, corsMiddleware], postLemonSliceSessionHandler)
+app.post('/agents/:agentId/avatar-usage/:usageId/heartbeat', [setupMongo, corsMiddleware], postAvatarUsageHeartbeatHandler)
+app.post('/agents/:agentId/avatar-usage/:usageId/end', [setupMongo, corsMiddleware], postAvatarUsageEndHandler)
+app.get('/workspaces/:workspaceId/avatar-usage', [setupMongo, sessionOnly], getWorkspaceAvatarUsageHandler)
 // Shareable conversation recap (token = AgentSession.recapToken)
 app.get('/recaps/:token', [setupMongo], agentRecap.view)
 app.post('/recaps/:token/viewers', [setupMongo], agentRecap.addViewer)

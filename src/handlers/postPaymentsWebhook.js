@@ -4,7 +4,7 @@ import ENV from '../envServer.js'
 import { syncUserStripeCustomerId } from '../helpers/paymentHelpers.js'
 import SubscriptionTypes from '../constants/SubscriptionTypes.js'
 import SubscriptionTypesExpireDates from '../constants/SubscriptionTypesExpireDates.js'
-import { setActiveUserSubscription, enablePaidPlanUserFeatureFlags } from '../helpers/subscriptionHelpers.js'
+import { setActiveUserSubscription, enablePaidPlanUserFeatureFlags, avatarLimitsFor } from '../helpers/subscriptionHelpers.js'
 
 const PRODUCT_TO_SUBSCRIPTION_TYPE = {
   'prod_UXbDm4HqbawhNo': SubscriptionTypes.PRO_MONTHLY,
@@ -125,6 +125,12 @@ async function handleSubscriptionUpdated(stripeSubscription, Models) {
       console.log(`[webhook] subscription.updated — plan change detected: ${existingSubscription.type} → ${newSubscriptionType}`)
     }
 
+    // Reset avatar limits only when the plan type changes, so a hand-edited
+    // custom limit survives renewals and payment-status updates.
+    const avatarLimits = newSubscriptionType && existingSubscription && newSubscriptionType !== existingSubscription.type
+      ? avatarLimitsFor(newSubscriptionType)
+      : null
+
     const update = {
       active: true,
       expired: false,
@@ -133,6 +139,7 @@ async function handleSubscriptionUpdated(stripeSubscription, Models) {
         type: newSubscriptionType,
         expireDate: SubscriptionTypesExpireDates[newSubscriptionType],
       }),
+      ...(avatarLimits || {}),
     }
 
     console.log(`[webhook] subscription.updated — applying active update`, update)

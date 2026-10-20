@@ -163,9 +163,9 @@ export function assertConfigured(apiKey) {
   }
 }
 
-export async function createLemonSliceSession(Models, agent) {
-  const apiKey = await workspaceApiKey(Models, agent.workspaceId, 'lemonslice')
-  assertConfigured(apiKey)
+export async function createLemonSliceSession(Models, agent, apiKey) {
+  const key = apiKey || await workspaceApiKey(Models, agent.workspaceId, 'lemonslice')
+  assertConfigured(key)
   const avatar = await findAvatar(Models, agent.workspaceId, agent.lemonsliceAvatarId)
   if (!avatar) httpError(ResponseCodes['400_BAD_REQUEST'], 'Avatar is not enabled for this agent')
 
@@ -180,8 +180,14 @@ export async function createLemonSliceSession(Models, agent) {
     attributes: { 'lk.publish_on_behalf': identity },
   })
 
-  await postSession(buildSessionBody(avatar, avatarToken), { agentId: String(agent._id), avatarId: avatar.id }, apiKey)
-  return { livekitUrl: ENV.LIVEKIT_URL, token, avatarIdentity: AVATAR_IDENTITY }
+  const session = await postSession(buildSessionBody(avatar, avatarToken), { agentId: String(agent._id), avatarId: avatar.id }, key)
+  return {
+    livekitUrl: ENV.LIVEKIT_URL,
+    token,
+    avatarIdentity: AVATAR_IDENTITY,
+    room,
+    controlUrl: session.control_url || ''
+  }
 }
 
 async function postSession(body, context, apiKey) {
@@ -221,7 +227,7 @@ export async function reframeWithSession(imageUrl, apiKey) {
   return session.edited_image_url || null
 }
 
-function terminateSession(session, apiKey) {
+export function terminateSession(session, apiKey) {
   if (!session.control_url) return
   fetch(session.control_url, {
     method: 'POST',
