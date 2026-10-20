@@ -9,6 +9,8 @@ import {
     periodOf,
     heartbeatDelta,
     remainingSeconds,
+    creditsForSeconds,
+    creditsForMinutes,
     mergeLimits,
     avatarAccess,
     claimSlot,
@@ -27,6 +29,9 @@ assert.strictEqual(heartbeatDelta(new Date(now.getTime() + 5000), now), 0)
 
 assert.strictEqual(remainingSeconds(3600, 3599), 1)
 assert.strictEqual(remainingSeconds(3600, 4000), 0)
+assert.strictEqual(creditsForSeconds(3600), 1000)
+assert.strictEqual(creditsForMinutes(60), 1000)
+assert.strictEqual(creditsForSeconds(0), 0)
 
 assert.deepStrictEqual(mergeLimits([]), { sessionAvatarTime: 0, concurrentSessionAvatars: 0 })
 assert.deepStrictEqual(mergeLimits([{}]), { sessionAvatarTime: 0, concurrentSessionAvatars: 0 })

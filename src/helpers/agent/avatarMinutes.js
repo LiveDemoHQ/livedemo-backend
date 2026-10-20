@@ -12,6 +12,17 @@ export const MAX_DELTA_MS = AvatarMinutes.MAX_DELTA_MS
 export const STALE_MS = AvatarMinutes.STALE_MS
 export const MAX_SESSION_SECONDS = AvatarMinutes.MAX_SESSION_SECONDS
 
+// 1000 credits = 60 minutes of live face. The ledger stays in seconds.
+const CREDITS_PER_60_MIN = 1000
+
+export function creditsForSeconds(seconds) {
+    return Math.round((Number(seconds) || 0) * CREDITS_PER_60_MIN / 3600)
+}
+
+export function creditsForMinutes(minutes) {
+    return Math.round((Number(minutes) || 0) * CREDITS_PER_60_MIN / 60)
+}
+
 export function enforced() {
     return !!ENV.AVATAR_MINUTES_ENFORCED
 }
@@ -320,7 +331,13 @@ export async function usageSummary(Models, workspaceId) {
     return {
         period,
         usedSeconds: used,
+        usedCredits: creditsForSeconds(used),
+        creditAllowance: creditsForMinutes(limits.sessionAvatarTime),
         ownKeySeconds: ownUsed,
+        ownKeyCredits: {
+            anam: creditsForSeconds(ownUsed.anam),
+            lemonslice: creditsForSeconds(ownUsed.lemonslice)
+        },
         sessionAvatarTime: limits.sessionAvatarTime,
         concurrentSessionAvatars: limits.concurrentSessionAvatars,
         activeSessions,
