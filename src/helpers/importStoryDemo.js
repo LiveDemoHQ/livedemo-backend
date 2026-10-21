@@ -131,6 +131,10 @@ export async function importStoryDemo(Models, payload, { workspaceId, userId }) 
                 if (popup && popup.showPreviewImage && !popup.previewImageUrl) {
                     popup.previewImageUrl = screen.imageUrl || ''
                 }
+                // the player shows a "Description" placeholder for an empty description, '<p></p>' is the editor's empty one
+                if (popup && !popup.description) {
+                    popup.description = '<p></p>'
+                }
                 // popup.form ({ fields, showTopLabels, showBackground }, e.g. a scraped lead form) becomes the step's Form
                 if (popup && popup.form) {
                     step._id = step._id || new ObjectId()

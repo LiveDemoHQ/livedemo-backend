@@ -249,7 +249,37 @@ export function remapSandbox(sandbox, screenIdMap) {
         } : {}),
         ...(s.sandboxDuplicateOf ? { sandboxDuplicateOf: screen(s.sandboxDuplicateOf) } : {})
     })
-    return { sandbox: remapped, screenFields }
+    return { sandbox: remapped, screenFields, flowIdMap }
+}
+
+// remapSandbox drops refs it can't resolve; a claimed copy must not ship a half-working sandbox.
+// Refs that were already dangling in the source (sourceIds lacks them) are not the copy's fault.
+// screenPairs: [{ source, copy }] screen docs/payloads; sourceIds: Set of source screen + flow ids
+export function assertSandboxIntact(source, copy, screenPairs, sourceIds) {
+    const live = id => !!id && sourceIds.has(String(id))
+    const liveCount = ids => (ids || []).filter(live).length
+    const sourceFlows = source.flows || []
+    const copyFlows = copy.flows || []
+    if (sourceFlows.length !== copyFlows.length) throw new Error('Sandbox flows could not be copied')
+
+    sourceFlows.forEach((flow, i) => {
+        const copied = copyFlows[i]
+        const sameCounts = liveCount(flow.screenIds) === (copied.screenIds || []).length
+            && liveCount(flow.completion && flow.completion.screenIds) === ((copied.completion && copied.completion.screenIds) || []).length
+        if (!sameCounts || (live(flow.startScreenId) && !copied.startScreenId)) throw new Error(`Sandbox flow ${i + 1} could not be copied`)
+    })
+
+    for (const { source: screen, copy: copiedScreen } of screenPairs) {
+        const links = screen.sandboxLinks || []
+        const copiedLinks = copiedScreen.sandboxLinks || []
+        links.forEach((link, i) => {
+            const copiedLink = copiedLinks[i] || {}
+            if ((live(link.gotoScreen) && !copiedLink.gotoScreen) || (live(link.gotoFlowId) && !copiedLink.gotoFlowId)) {
+
+                throw new Error(`Sandbox link on screen "${screen.name || screen.index}" could not be copied`)
+            }
+        })
+    }
 }
 
 export const SETTINGS = [

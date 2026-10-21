@@ -108,4 +108,4 @@ node jobs-server.js
 
 ## License
 
-MIT License (see [`LICENSE`](LICENSE)).
+Functional Source License, Version 1.1, MIT Future License (FSL-1.1-MIT), see [`LICENSE`](LICENSE). Each version becomes MIT-licensed two years after its release.

@@ -40,6 +40,10 @@ const ScreenStepSchema = new mongoose.Schema({
       clickNodeId: { type: Number, default: null },
       // CSS box-shadow drawn around the rrwebNodeId node, e.g. to dim the rest of the page
       spotlightShadow: { type: String, default: '' },
+      // per-hotspot overrides of the story theme; null = use theme
+      backgroundColor: { type: String, default: null },
+      textColor: { type: String, default: null },
+      ringsColor: { type: String, default: null },
     },
     popup: {
       type: {type: String, default: 'popup'}, //popup, form, embed, start, iframe
@@ -48,6 +52,7 @@ const ScreenStepSchema = new mongoose.Schema({
       showOverlay: {type: Boolean, default: false},
       overlayBackgroundColor: {type: String, default: 'rgba(0,0,0,0.65)'},
       showBackground: {type: Boolean, default: false},
+      textColor: {type: String, default: null},
 
       title: {type: String, default: 'Title'},
       description: {type: String, default: '<p>Description</p>'},

@@ -2,7 +2,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import ENV from '../envServer.js'
 import isAnalyticsExcludedIp from '../helpers/isAnalyticsExcludedIp.js'
 import ipRateLimit from '../helpers/agent/ipRateLimit.js'
-import { sendJson, sendError } from '../helpers/agent/http.js'
+import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
+import ResponseCodes from '../constants/ResponseCodes.js'
 import normalizeShowcase, { videoEmbed } from '../helpers/showcase/normalizeShowcase.js'
 import { loadShowcaseInWorkspace, loadPublicShowcase, resolveItems } from '../helpers/showcase/showcase.js'
 
@@ -96,11 +97,17 @@ const remove = wrap(async (req, res) => {
 })
 
 const publish = wrap(async (req, res) => {
-    const { Models } = await auth(req)
+    const { Models, authUser } = await auth(req)
+    const isPublished = !!(req.body && req.body.isPublished)
+    // A claimed template can land in a workspace without the plan; unpublishing stays allowed
+    if (isPublished && !(authUser.featureFlags && authUser.featureFlags.allowShowcases)) {
+
+        httpError(ResponseCodes['403_FORBIDDEN'], 'Upgrade your plan to publish Showcases')
+    }
     const showcase = await loadShowcaseInWorkspace(Models, req.params.workspaceId, req.params.showcaseId)
     const updated = await Models.Showcase.findOneAndUpdate(
         { _id: showcase._id },
-        { $set: { isPublished: !!(req.body && req.body.isPublished) } },
+        { $set: { isPublished } },
         { new: true }
     )
     sendJson(res, await withResolvedItems(Models, updated))

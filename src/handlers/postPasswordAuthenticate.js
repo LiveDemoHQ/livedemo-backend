@@ -1,7 +1,7 @@
 import ResponseCodes from '../constants/ResponseCodes.js'
 import userValidators from '../helpers/validators/userValidators.js'
 import authUtils from '../helpers/authUtils.js'
-import { cloneUrlDemoStoriesForUser } from '../helpers/cloneUrlDemoStoriesForUser.js'
+import claimBrowserSessionForUser from '../helpers/claimBrowserSessionForUser.js'
 import { getPostAuthRedirectPath } from '../helpers/emailHelpers.js'
 import { assertNotSsoEnforced } from '../helpers/sso.js'
 
@@ -68,14 +68,8 @@ const handler = function (req, res) {
         })
     })
     .then(({ userDataSaved, authToken }) => {
-      const browserSessionId = requestBody.browserSessionId || null
-      if(browserSessionId) {
-        return cloneUrlDemoStoriesForUser(browserSessionId, userDataSaved, Models)
-          .catch(err => console.error('[postPasswordAuthenticate] cloneUrlDemoStoriesForUser error', err))
-          .then(() => ({ userDataSaved, authToken }))
-      } else {
-        return Promise.resolve({ userDataSaved, authToken })
-      }
+      return claimBrowserSessionForUser(requestBody.browserSessionId, userDataSaved, Models)
+        .then(() => ({ userDataSaved, authToken }))
     })
     .then(({ userDataSaved, authToken }) => {
       const redirectPath = getPostAuthRedirectPath(userDataSaved)

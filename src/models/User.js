@@ -71,6 +71,8 @@ const UserSchema = new mongoose.Schema({
       allowAIAgents: { type: Boolean, default: false},
       allowShowcases: { type: Boolean, default: false},
       allowChecklist: { type: Boolean, default: false},
+      // Set by hand only, never by a plan (see subscriptionHelpers.check.js)
+      allowOwnableContent: { type: Boolean, default: false},
     },
     onboarding: {
       goals: [{

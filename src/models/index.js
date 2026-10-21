@@ -89,6 +89,8 @@ import FeedbackSchema from './Feedback.js'
 import ShowcaseSchema from './Showcase.js'
 import ShowcaseSessionSchema from './ShowcaseSession.js'
 import ChecklistProgressSchema from './ChecklistProgress.js'
+import OwnClaimSchema from './OwnClaim.js'
+import OwnClaimTokenSchema from './OwnClaimToken.js'
 
 
 // const ChannelSchema = require('./Channel')
@@ -273,6 +275,8 @@ export const initModels = (conn) => {
   conn.model('Showcase', ShowcaseSchema)
   conn.model('ShowcaseSession', ShowcaseSessionSchema)
   conn.model('ChecklistProgress', ChecklistProgressSchema)
+  conn.model('OwnClaim', OwnClaimSchema)
+  conn.model('OwnClaimToken', OwnClaimTokenSchema)
   conn.model('OAuthClient', OAuthClientSchema)
   conn.model('OAuthCode', OAuthCodeSchema)
   conn.model('SamlRequest', SamlRequestSchema)
@@ -378,6 +382,8 @@ export const getModels = (conn) => {
     Showcase: conn.model('Showcase'),
     ShowcaseSession: conn.model('ShowcaseSession'),
     ChecklistProgress: conn.model('ChecklistProgress'),
+    OwnClaim: conn.model('OwnClaim'),
+    OwnClaimToken: conn.model('OwnClaimToken'),
 
     // Channel: conn.model('Channel'),
     // InstantMessagesChannel: conn.model('InstantMessagesChannel'),

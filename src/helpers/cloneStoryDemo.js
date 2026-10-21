@@ -2,7 +2,7 @@ import mongoose from 'mongoose'
 import fsp from 'fs/promises'
 import ENV from '../envServer.js'
 import ScreenTypes from '../constants/ScreenTypes.js'
-import { remapSandbox } from './sandbox/sandbox.js'
+import { remapSandbox, assertSandboxIntact } from './sandbox/sandbox.js'
 import { copyChecklist } from './checklist/checklist.js'
 
 const { ObjectId } = mongoose.Types
@@ -95,6 +95,7 @@ async function cloneForm(oldFormId, refs, Models) {
   const { _id, createdAt, updatedAt, leads, ...formData } = form
   return new Models.Form({
     ...formData,
+    ...(refs.stripIntegrations ? { hubspot: {} } : {}),
     storyId: refs.storyId,
     screenId: refs.screenId,
     stepId: refs.stepId,
@@ -189,24 +190,53 @@ async function remapScreenEmbeddedRefs(savedScreen, oldScreen, refs, Models) {
   }
 }
 
+// Sandbox handlers treat Screen.find({ storyId }) as the truth: hidden / duplicate screens may be missing
+// from story.screens. Listed screens first (index order), extras after
+async function sandboxScreens(Models, storyDoc, listed) {
+  const listedIds = new Set(listed.map(s => String(s._id)))
+  const all = await Models.Screen.find({ storyId: storyDoc._id }).lean()
+  return [...listed, ...all.filter(s => !listedIds.has(String(s._id))).sort((a, b) => a.index - b.index)]
+}
+
+async function cloneFlowRecordings(sandbox, newStoryId) {
+  const newStoryDir = `${ENV.STORIES_FOLDER}/${newStoryId}`
+  await fsp.mkdir(newStoryDir, { recursive: true })
+  for (const flow of sandbox.flows || []) {
+    if (!flow.recordingFilePath) continue
+    const dest = `${newStoryDir}/flow-${flow._id}.rrweb.json`
+    await copyFileSafe(flow.recordingFilePath, dest)
+    flow.recordingFilePath = dest
+  }
+}
+
 /**
  * Deep-clone a StoryDemo (all screens, steps, files, forms, audio, cursors).
  * @param {string|ObjectId} storyId
  * @param {string|ObjectId} userId
  * @param {string|ObjectId} workspaceId
  * @param {object} Models
- * @param {{ nameSuffix?: string }} options
- * @returns {Promise<ObjectId|null>} new story id
+ * @param {{ nameSuffix?: string, collect?: boolean, deferChecklist?: boolean, clonedFrom?: object }} options
+ *   collect: return { newStoryId, stepIdMap, flowIdMap } and fail on a broken sandbox copy
+ *   deferChecklist: keep the source checklist as is; the caller rewrites it (remapChecklistForClone)
+ *   clonedFrom: "Make it yours" claim provenance; also blanks form integrations
+ * @returns {Promise<ObjectId|object|null>} new story id (or the collect object)
  */
 export async function cloneStoryDemo(storyId, userId, workspaceId, Models, options = {}) {
-  const { nameSuffix = ' (2)' } = options
+  const {
+    nameSuffix = ' (2)',
+    collect = false,
+    deferChecklist = false,
+    clonedFrom = null
+  } = options
 
   const storyDoc = await Models.Story.findOne({ _id: storyId, deletedAt: null }).populate('screens').lean()
   if (!storyDoc) return null
 
   const newStoryId = new ObjectId()
   const oldStoryId = storyDoc._id
-  const oldScreens = [...(storyDoc.screens || [])].sort((a, b) => a.index - b.index)
+  const listedScreens = [...(storyDoc.screens || [])].sort((a, b) => a.index - b.index)
+  const isSandbox = storyDoc.mode === 'sandbox' && !!storyDoc.sandbox
+  const oldScreens = isSandbox ? await sandboxScreens(Models, storyDoc, listedScreens) : listedScreens
 
   const newScreenIds = oldScreens.map(() => new ObjectId())
   const firstNewScreenId = newScreenIds[0] || null
@@ -229,7 +259,8 @@ export async function cloneStoryDemo(storyId, userId, workspaceId, Models, optio
     return newScreenIdByScreenIndex.get(screenIndex) || firstNewScreenId
   }
 
-  const sandboxRemap = storyDoc.mode === 'sandbox' && storyDoc.sandbox ? remapSandbox(storyDoc.sandbox, oldScreenIdToNew) : null
+  const sandboxRemap = isSandbox ? remapSandbox(storyDoc.sandbox, oldScreenIdToNew) : null
+  if (sandboxRemap) await cloneFlowRecordings(sandboxRemap.sandbox, newStoryId)
 
   const oldStoryCursors = await Models.CursorPositions.find({ storyId: oldStoryId }).lean()
   const cursorIdMap = new Map()
@@ -283,8 +314,20 @@ export async function cloneStoryDemo(storyId, userId, workspaceId, Models, optio
     }
 
     const savedScreen = await new ScreenModel(screenPayload).save()
-    await remapScreenEmbeddedRefs(savedScreen, screen, { storyId: newStoryId, workspaceId }, Models)
+    await remapScreenEmbeddedRefs(savedScreen, screen, {
+      storyId: newStoryId,
+      workspaceId,
+      stripIntegrations: !!clonedFrom
+    }, Models)
     savedScreens.push(savedScreen)
+  }
+
+  if (sandboxRemap && collect) {
+    const sourceIds = new Set([
+      ...oldScreens.map(s => String(s._id)),
+      ...(storyDoc.sandbox.flows || []).map(f => String(f._id))
+    ])
+    assertSandboxIntact(storyDoc.sandbox, sandboxRemap.sandbox, oldScreens.map((screen, i) => ({ source: screen, copy: savedScreens[i] })), sourceIds)
   }
 
   const {
@@ -294,10 +337,14 @@ export async function cloneStoryDemo(storyId, userId, workspaceId, Models, optio
     deletedAt,
     links,
     isPublished,
+    ownable,
+    clonedFrom: _sourceClonedFrom,
     screens: _oldScreens,
     content: oldContentField,
     ...storyData
   } = storyDoc
+
+  const stepIdMap = new Map(oldScreens.flatMap((screen, i) => (screen.steps || []).map((step, j) => [String(step._id), savedScreens[i].steps[j] && savedScreens[i].steps[j]._id])))
 
   let contentField = oldContentField
   if (oldContentField?.contentId) {
@@ -313,14 +360,14 @@ export async function cloneStoryDemo(storyId, userId, workspaceId, Models, optio
     }
   }
 
-  if (storyData.custom && storyData.custom.checklist) {
+  if (storyData.custom && storyData.custom.checklist && !deferChecklist) {
     storyData.custom = {
       ...storyData.custom,
       checklist: await copyChecklist(Models, storyData.custom.checklist, {
         oldStoryId,
         newStoryId,
         workspaceId,
-        stepIds: new Map(oldScreens.flatMap((screen, i) => (screen.steps || []).map((step, j) => [String(step._id), savedScreens[i].steps[j] && savedScreens[i].steps[j]._id])))
+        stepIds: stepIdMap
       })
     }
   }
@@ -331,13 +378,18 @@ export async function cloneStoryDemo(storyId, userId, workspaceId, Models, optio
     name: `${storyDoc.name || 'Untitled'}${nameSuffix}`,
     userId,
     workspaceId,
-    screens: savedScreens.map((s) => s._id),
+    // Sandbox extras keep living outside story.screens, like in the source
+    screens: savedScreens.slice(0, listedScreens.length).map((s) => s._id),
     content: contentField,
     links: [],
     isPublished: false,
     deletedAt: null,
     ...(sandboxRemap ? { sandbox: sandboxRemap.sandbox } : {}),
+    ...(clonedFrom ? { clonedFrom } : {}),
   }).save()
 
+  if (collect) {
+    return { newStoryId, stepIdMap, flowIdMap: sandboxRemap ? sandboxRemap.flowIdMap : new Map() }
+  }
   return newStoryId
 }

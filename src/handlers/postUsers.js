@@ -4,7 +4,7 @@ import userValidators from '../helpers/validators/userValidators.js'
 import authUtils from '../helpers/authUtils.js'
 import { sendEmail } from '../helpers/emails/emailsSender.js'
 import Templates from '../helpers/emails/templates/index.js'
-import { cloneUrlDemoStoriesForUser } from '../helpers/cloneUrlDemoStoriesForUser.js'
+import claimBrowserSessionForUser from '../helpers/claimBrowserSessionForUser.js'
 import {
   createAndSendEmailVerificationCode,
   getPostAuthRedirectPath,
@@ -207,14 +207,8 @@ const handler = function (req, res) {
         })
     })
     .then(({ savedUserData, authTokenData }) => {
-      const browserSessionId = requestBody.browserSessionId || null
-      if(browserSessionId) {
-        return cloneUrlDemoStoriesForUser(browserSessionId, savedUserData, Models)
-          .catch(err => console.error('[postUsers] cloneUrlDemoStoriesForUser error', err))
-          .then(() => ({ savedUserData, authTokenData }))
-      } else {
-        return Promise.resolve({ savedUserData, authTokenData })
-      }
+      return claimBrowserSessionForUser(requestBody.browserSessionId, savedUserData, Models)
+        .then(() => ({ savedUserData, authTokenData }))
     })
     .then(({ savedUserData, authTokenData }) => {
       const redirectPath = getPostAuthRedirectPath(savedUserData)

@@ -87,6 +87,24 @@ export async function copyChecklist(Models, checklist, { oldStoryId, newStoryId,
     return { ...checklist, items }
 }
 
+// Stories a checklist sends the viewer to; a "Make it yours" claim copies all of them (cloneStoryGraphForUser)
+export const checklistTargetIds = checklist => (checklist && Array.isArray(checklist.items) ? uniqueTargets(checklist.items).filter(id => HEX24.test(id)) : [])
+
+// Phase 2 of a claim, once every story of the graph is copied. storyIdMap / stepIdMaps: old id → new id.
+// Item _ids are kept (local to the host); items whose target or step wasn't copied are dropped.
+export function remapChecklistForClone(checklist, { storyIdMap, stepIdMaps }) {
+    const items = (checklist.items || []).flatMap((item) => {
+        const target = targetIdOf(item)
+        if (!target) return [item]
+        const storyId = storyIdMap.get(target)
+        if (!storyId) return []
+        if (item.clickAction.type !== 'openStep' || !item.clickAction.stepId) return [{ ...item, clickAction: { ...item.clickAction, storyId } }]
+        const stepId = (stepIdMaps.get(target) || new Map()).get(String(item.clickAction.stepId))
+        return stepId ? [{ ...item, clickAction: { ...item.clickAction, storyId, stepId } }] : []
+    })
+    return { ...checklist, items, version: 1 }
+}
+
 // Items the viewer sees: demo / step items whose demo is gone (deleted / sandbox) are hidden
 export async function visibleItems(Models, host) {
     const items = host.custom.checklist.items || []

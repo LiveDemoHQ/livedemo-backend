@@ -5,6 +5,7 @@ import { sendEmail } from '../helpers/emails/emailsSender.js'
 import { syncSignupSubscriber } from '../helpers/sequenzy/sequenzyClient.js'
 import Templates from '../helpers/emails/templates/index.js'
 import { assertNotSsoEnforced } from '../helpers/sso.js'
+import claimBrowserSessionForUser from '../helpers/claimBrowserSessionForUser.js'
 import mongoose from 'mongoose'
 const { ObjectId } = mongoose.Types
 
@@ -210,6 +211,8 @@ const handler = function (req, res) {
         { new: true }
       ).lean()
     }
+
+    await claimBrowserSessionForUser(req.body.browserSessionId, userDoc, Models)
 
     // Create auth token
     const userDocForToken = await Models.User.findOne({ _id: userDoc._id })

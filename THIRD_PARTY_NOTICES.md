@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-This project is licensed under MIT. Some included dependencies may have different licenses.
+This project is licensed under FSL-1.1-MIT (see [LICENSE](./LICENSE)). Some included dependencies may have different licenses.
 
 ## ffmpeg-static
 

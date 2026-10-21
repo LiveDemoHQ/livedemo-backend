@@ -5,7 +5,7 @@ import authUtils from '../helpers/authUtils.js'
 import { sendEmail } from '../helpers/emails/emailsSender.js'
 import { syncSignupSubscriber } from '../helpers/sequenzy/sequenzyClient.js'
 import Templates from '../helpers/emails/templates/index.js'
-import { cloneUrlDemoStoriesForUser } from '../helpers/cloneUrlDemoStoriesForUser.js'
+import claimBrowserSessionForUser from '../helpers/claimBrowserSessionForUser.js'
 import { assertNotSsoEnforced } from '../helpers/sso.js'
 import axios from 'axios'
 import mongoose from 'mongoose'
@@ -223,13 +223,7 @@ const handler = function (req, res) {
         // Redirect to frontend with token (return path from OAuth state set at google-link)
         const decodedState = decodeReturnPathFromOAuthState(req.query.state)
         const returnPath = decodedState.returnPath
-        const browserSessionId = decodedState.browserSessionId || null
-
-        if (browserSessionId) {
-            await cloneUrlDemoStoriesForUser(browserSessionId, userDoc, Models).catch(err =>
-                console.error('[getUsersAuthGoogleCallback] cloneUrlDemoStoriesForUser error', err)
-            )
-        }
+        await claimBrowserSessionForUser(decodedState.browserSessionId, userDoc, Models)
 
         const redirectPath = shouldRedirectToOnboarding(userDoc) ? '/onboarding' : returnPath
         const encodedPage = encodeURIComponent(redirectPath)

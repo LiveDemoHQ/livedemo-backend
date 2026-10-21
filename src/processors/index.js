@@ -6,6 +6,7 @@ import processAutoRecording from './processAutoRecording.js'
 import processDemoActivityEvents from './processDemoActivityEvents.js'
 import processAgentKnowledge from './processAgentKnowledge.js'
 import processAgentSession from './processAgentSession.js'
+import processOwnClaim from './processOwnClaim.js'
 
 const configsArr = [
   // publishLiveDemo
@@ -15,7 +16,8 @@ const configsArr = [
   processAutoRecording,
   processDemoActivityEvents,
   processAgentKnowledge,
-  processAgentSession
+  processAgentSession,
+  processOwnClaim
 ]
 
 

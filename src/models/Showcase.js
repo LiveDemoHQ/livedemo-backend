@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
 import short from 'short-uuid'
+import { OwnableSchema, ClonedFromSchema } from './Ownable.js'
 
 const options = {
     strict: true,
@@ -90,6 +91,8 @@ const Showcase = new mongoose.Schema({
     },
 
     tags: { type: [String], default: [] },
+    ownable: { type: OwnableSchema, default: undefined },
+    clonedFrom: { type: ClonedFromSchema, default: undefined },
     deletedAt: { type: Date, default: null }
 }, options)
 

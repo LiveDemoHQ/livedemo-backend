@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { OwnableSchema, ClonedFromSchema } from './Ownable.js'
 
 const options = {
   strict: true,
@@ -135,6 +136,8 @@ const AiDemoAgent = new mongoose.Schema({
   },
 
   tags: { type: [String], default: [] },
+  ownable: { type: OwnableSchema, default: undefined },
+  clonedFrom: { type: ClonedFromSchema, default: undefined },
   links: [{ type: String, ref: 'Link' }],
   deletedAt: { type: Date, default: null },
 }, options)

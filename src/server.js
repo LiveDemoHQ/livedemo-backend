@@ -231,6 +231,7 @@ import agentRecap from './handlers/agentRecap.js'
 import captureAgentRevision from './middlewares/captureAgentRevision.js'
 import agentEditorMode, { agentEditorModeOptional } from './middlewares/agentEditorMode.js'
 import showcases from './handlers/showcases.js'
+import ownClaims from './handlers/ownClaims.js'
 import checklists from './handlers/checklists.js'
 import getShowcasePlayerHandler from './handlers/getShowcasePlayer.js'
 import sandbox from './handlers/sandbox.js'
@@ -901,6 +902,17 @@ app.post('/workspaces/:workspaceId/showcases/:showcaseId/publish', [setupMongo],
 app.get('/showcases/:showcaseId/player', [setupMongo, corsMiddleware], getShowcasePlayerHandler)
 app.post('/showcases/:showcaseId/sessions', [setupMongo, corsMiddleware], showcases.createSession)
 app.post('/showcases/:showcaseId/sessions/:sessionId/events', [setupMongo, corsMiddleware, express.text({ type: 'text/plain', limit: '64kb' })], showcases.postEvents)
+// "Make it yours" templates — author routes (auth inside) + public claim routes used by the web-app preview pages
+app.put('/workspaces/:workspaceId/stories/:id/ownable', [setupMongo], ownClaims.putOwnable('story'))
+app.put('/workspaces/:workspaceId/agents/:id/ownable', [setupMongo], ownClaims.putOwnable('agent'))
+app.put('/workspaces/:workspaceId/showcases/:id/ownable', [setupMongo], ownClaims.putOwnable('showcase'))
+app.get('/workspaces/:workspaceId/stories/:id/ownable/preview-count', [setupMongo], ownClaims.getPreviewCount('story'))
+app.get('/workspaces/:workspaceId/agents/:id/ownable/preview-count', [setupMongo], ownClaims.getPreviewCount('agent'))
+app.get('/workspaces/:workspaceId/showcases/:id/ownable/preview-count', [setupMongo], ownClaims.getPreviewCount('showcase'))
+app.get('/workspaces/:workspaceId/own-claims/analytics', [setupMongo], ownClaims.getAnalytics)
+app.get('/own-claims/eligibility', [setupMongo], ownClaims.getEligibility)
+app.post('/own-claims', [setupMongo], ownClaims.postClaim)
+app.get('/own-claims/:claimId', [setupMongo], ownClaims.getClaim)
 // StoryDemo checklist viewer progress. The token is the capability; events arrive via sendBeacon as text/plain.
 app.post('/checklists/:hostStoryId/progress', [setupMongo, corsMiddleware], checklists.start)
 app.post('/checklists/:hostStoryId/progress/:token/events', [setupMongo, corsMiddleware, express.text({ type: 'text/plain', limit: '64kb' })], checklists.postEvents)

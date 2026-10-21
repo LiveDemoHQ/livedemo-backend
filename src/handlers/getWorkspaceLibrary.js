@@ -1,6 +1,12 @@
 import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 
+const FIELDS_BY_TYPE = {
+  pages: '_id name index imageUrl recordingRole baseScreenId type createdAt updatedAt',
+  screenshots: '_id name index imageUrl createdAt updatedAt',
+  videos: '_id name index asset.playback_ids createdAt updatedAt'
+}
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -19,9 +25,7 @@ const handler = function (req, res) {
     .then(async () => {
       const foundWorkspace = await Models.Workspace.findOne({
         _id: workspaceId,
-      })
-        .populate('library.screenshots', '_id name index imageUrl createdAt', null, { sort: { createdAt: -1, _id: -1 } })
-        .populate('library.videos', '_id name index asset.playback_ids createdAt', null, { sort: { createdAt: -1, _id: -1 } })
+      }).select('library').lean()
 
       if (!foundWorkspace) {
         const error = new Error('Workspace not found')
@@ -38,21 +42,26 @@ const handler = function (req, res) {
         throw error
       }
 
-      // All Screen_Pages in the workspace (incl. rrweb base/delta), last created first.
-      const allPages = await Models.Screen.find({
-        workspaceId,
-        type: 'Screen_Page',
-      })
-        .select('_id name index imageUrl recordingRole baseScreenId type createdAt updatedAt')
-        .sort({ createdAt: -1, _id: -1 })
-        .lean()
+      const type = FIELDS_BY_TYPE[req.query.type] ? req.query.type : 'screenshots'
+      const page = Math.max(parseInt(req.query.page, 10) || 1, 1)
+      const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100)
 
-      const lib = foundWorkspace.library || {}
-      return {
-        pages: allPages,
-        screenshots: lib.screenshots || [],
-        videos: lib.videos || [],
-      }
+      // Pages: all Screen_Pages in the workspace (incl. rrweb base/delta). Screenshots/videos: ids kept on the workspace.
+      const filter = type === 'pages'
+        ? { workspaceId, type: 'Screen_Page' }
+        : { _id: { $in: (foundWorkspace.library || {})[type] || [] } }
+
+      const [items, total] = await Promise.all([
+        Models.Screen.find(filter)
+          .select(FIELDS_BY_TYPE[type])
+          .sort({ updatedAt: -1, _id: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .lean(),
+        Models.Screen.countDocuments(filter)
+      ])
+
+      return { items, total }
     })
     .then((libraryObj) => {
       const resultResponse = {

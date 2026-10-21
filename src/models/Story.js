@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import StoryTypes from "../constants/StoryTypes.js";
 import SandboxSchema from './Sandbox.js'
 import ChecklistSchema from './StoryChecklist.js'
+import { OwnableSchema, ClonedFromSchema } from './Ownable.js'
 
 const options = {
     strict: true,
@@ -120,6 +121,8 @@ const Story = new mongoose.Schema({
         },
 
         tags: { type: [String], default: [] },
+        ownable: { type: OwnableSchema, default: undefined },
+        clonedFrom: { type: ClonedFromSchema, default: undefined },
         links: [
             {type: String, ref: 'Link'}
         ],

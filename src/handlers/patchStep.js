@@ -57,6 +57,12 @@ const handler = function (req, res) {
         updateObj['steps.$.view.hotspot.placement'] = stepView.hotspot.placement
       }
 
+      for (const colorField of ['backgroundColor', 'textColor', 'ringsColor']) {
+        if (stepView && stepView.hotspot && stepView.hotspot[colorField] !== undefined) {
+          updateObj[`steps.$.view.hotspot.${colorField}`] = stepView.hotspot[colorField]
+        }
+      }
+
       if (stepView && stepView.pointer && stepView.pointer.selector) {
         updateObj['steps.$.view.pointer.selector'] = stepView.pointer.selector
       }
@@ -127,6 +133,10 @@ const handler = function (req, res) {
 
       if (stepView && stepView.popup && stepView.popup.showBackground !== undefined) {
         updateObj['steps.$.view.popup.showBackground'] = stepView.popup.showBackground
+      }
+
+      if (stepView && stepView.popup && stepView.popup.textColor !== undefined) {
+        updateObj['steps.$.view.popup.textColor'] = stepView.popup.textColor
       }
 
       if (stepView && stepView.popup && stepView.popup.showPreviewImage !== undefined) {
