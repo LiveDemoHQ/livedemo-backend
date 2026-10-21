@@ -12,10 +12,40 @@ import { MAX_PAGES_CAP } from '../helpers/agent/siteCrawler.js'
 //            site: { url, maxPages?, refreshHours? } crawls the whole site (siteCrawler.js)
 //            call: { rawText } sales-call transcript, used for phrasing only
 // multipart: { type: 'file', file } (pdf, md, txt, html)
+// Optional chunks: [{ text, embedding, metadata: { title, url } }] (JSON string in multipart) stores
+// already-embedded chunks (livedemo-cursor import-prod) and skips indexing
 //
 // PDFs ≤4MB: base64 stored for native gemini-embedding-2 embed (≤6 pages).
 // Larger or multi-page PDFs: text extraction + chunked text embeddings.
 const PDF_MAX_STORE_BYTES = 4 * 1024 * 1024
+const EMBED_DIMS = 768
+const MAX_IMPORTED_CHUNKS = 5000
+
+// Embeddings from another env only match here if it used the same model + dims
+export function importedChunks(value) {
+  let chunks = value
+  if (typeof value === 'string') {
+    try {
+      chunks = JSON.parse(value)
+    } catch (err) {
+      httpError(ResponseCodes['400_BAD_REQUEST'], 'chunks must be JSON')
+    }
+  }
+  if (!Array.isArray(chunks) || !chunks.length || chunks.length > MAX_IMPORTED_CHUNKS) {
+    httpError(ResponseCodes['400_BAD_REQUEST'], `chunks must be 1-${MAX_IMPORTED_CHUNKS} items`)
+  }
+  return chunks.map(chunk => {
+    if (typeof chunk?.text !== 'string' || !Array.isArray(chunk.embedding) || chunk.embedding.length !== EMBED_DIMS || !chunk.embedding.every(Number.isFinite)) {
+      httpError(ResponseCodes['400_BAD_REQUEST'], `each chunk needs text and a ${EMBED_DIMS}-number embedding`)
+    }
+    const metadata = chunk.metadata || {}
+    return {
+      text: chunk.text,
+      embedding: chunk.embedding,
+      metadata: { title: metadata.title ? String(metadata.title) : undefined, url: metadata.url ? String(metadata.url) : undefined },
+    }
+  })
+}
 
 async function extractFileText(file) {
   const name = (file.originalname || '').toLowerCase()
@@ -102,14 +132,33 @@ const handler = async function (req, res) {
       httpError(ResponseCodes['400_BAD_REQUEST'], 'Invalid source type')
     }
 
-    const source = await new Models.AgentKnowledgeSource(sourceObj).save()
+    const chunks = body.chunks !== undefined ? importedChunks(body.chunks) : null
+    if (chunks) {
+      sourceObj.status = 'ready'
+      sourceObj.chunkCount = chunks.length
+      // Keeps the refresh scheduler from re-crawling (and re-embedding) right away
+      if (type === 'url' || type === 'site') sourceObj.lastCrawledAt = new Date()
+    }
+    const source = new Models.AgentKnowledgeSource(sourceObj)
+    if (chunks) {
+      await Models.AgentKnowledgeChunk.insertMany(chunks.map(chunk => ({
+        ...chunk,
+        agentId: agent._id,
+        workspaceId: agent.workspaceId,
+        sourceId: source._id,
+        sourceType: type,
+      })))
+    }
+    await source.save()
     await Models.AiDemoAgent.updateOne(
       { _id: agent._id },
       { $addToSet: { knowledgeSourceIds: source._id } }
     )
 
-    enqueueIndexAgentKnowledge(agent._id, source._id)
-      .catch(err => console.log('enqueue indexAgentKnowledge failed', err))
+    if (!chunks) {
+      enqueueIndexAgentKnowledge(agent._id, source._id)
+        .catch(err => console.log('enqueue indexAgentKnowledge failed', err))
+    }
 
     sendJson(res, source)
   } catch (error) {

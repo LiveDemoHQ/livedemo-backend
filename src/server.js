@@ -785,6 +785,8 @@ app.post('/workspaces/:workspaceId/lemonslice-avatars/:avatarId([a-f0-9]{24})/cl
 const uploadKnowledgeFile = multer({
     limits: {
         fileSize: 20 * 1024 * 1024,
+        // Imported chunks ride along as a JSON field: ~15KB of embedding each
+        fieldSize: 100 * 1024 * 1024,
         files: 1,
     },
     fileFilter: function (req, file, callback) {
