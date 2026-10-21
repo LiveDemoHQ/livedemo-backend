@@ -1,5 +1,6 @@
 import processStoryDemo from './processStoryDemo.js'
 import processStoryDemoDom from './processStoryDemoDom.js'
+import processSandboxDom from './processSandboxDom.js'
 import processStoryDemoVideo from './processStoryDemoVideo.js'
 import processAutoRecording from './processAutoRecording.js'
 import processDemoActivityEvents from './processDemoActivityEvents.js'
@@ -10,6 +11,7 @@ const configsArr = [
   // publishLiveDemo
   processStoryDemo,
   processStoryDemoDom,
+  processSandboxDom,
   processAutoRecording,
   processDemoActivityEvents,
   processAgentKnowledge,

@@ -414,6 +414,9 @@ async function processStoryDemoDom(sharedConfig, params, callback) {
     })
 }
 
+// Shared with processSandboxDom
+export { pickClickMeta, pickThumbnail, deltaScreenName, createRrwebScreenDoc }
+
 const config = {
   queueNames: ['storyDemos'],
   jobNames: ['processStoryDemoDom'],

@@ -1,6 +1,8 @@
 import StoryStatuses from '../constants/StoryStatuses.js'
 import mongoose from 'mongoose'
 import StoryTypes from "../constants/StoryTypes.js";
+import SandboxSchema from './Sandbox.js'
+import ChecklistSchema from './StoryChecklist.js'
 
 const options = {
     strict: true,
@@ -47,8 +49,10 @@ const Story = new mongoose.Schema({
                 buttonBackgroundColor: {type: String, default: '#1070ff'},// buttonColor
                 buttonTextColor: {type: String, default: '#FFFFFF'}, // buttonColor
                 fontFamily: {type: String, default: ''}, // google font name, empty = default font
+                fontSize: {type: Number, default: 15}, // base text px, other demo text scales from it
                 showTooltipArrow: {type: Boolean, default: true},
                 hoverGlow: {type: Boolean, default: true},
+                pulsatingBorderColor: {type: String, default: '#1070ff'}, // pointer pulsating border
                 footerButtons: {type: String, default: 'backAndNext'}, // backAndNext | nextArrow
                 watermarkConfig: {
                     imageUrl: {type: String, default: ''},
@@ -65,6 +69,7 @@ const Story = new mongoose.Schema({
                 isTabsEnabled: {type: Boolean, default: true},
                 customCursor: {type: Boolean, default: false}, // oversized arrow, hand over clickables
             },
+            checklist: { type: ChecklistSchema, default: () => ({}) },
             background: {
                 isActive: {type: Boolean, default: false},
                 backgroundColor: {type: String, default: '#FFFFFF'},
@@ -100,6 +105,18 @@ const Story = new mongoose.Schema({
                 width:  { type: Number },
                 height: { type: Number },
             },
+        },
+
+        // Absent = guided StoryDemo. No defaults, so guided documents and payloads stay unchanged
+        mode: { type: String, enum: ['guided', 'sandbox'] },
+        sandbox: { type: SandboxSchema, default: undefined },
+        // "Add flow to…" recordings: the temporary story that carries the upload
+        sandboxCapture: {
+            type: new mongoose.Schema({
+                targetSandboxId: { type: mongoose.Schema.Types.ObjectId, ref: 'Story', default: null },
+                flowName: { type: String, default: '' }
+            }, { _id: false }),
+            default: undefined
         },
 
         tags: { type: [String], default: [] },

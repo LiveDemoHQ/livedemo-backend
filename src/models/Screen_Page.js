@@ -9,6 +9,7 @@ const options = {
 import ScreenStepSchema from './ScreenStep.js'
 import ScreenTransitionSchema from './ScreenTransition.js'
 import ScreenPageTransitionSchema from './ScreenPageTransition.js'
+import SandboxLinkSchema from './SandboxLink.js'
 
 const ScreenPage = new mongoose.Schema({
 
@@ -24,6 +25,11 @@ const ScreenPage = new mongoose.Schema({
     eventCount:    { type: Number },
     fromTimeMs:    { type: Number },
     toTimeMs:      { type: Number },
+
+    // Sandbox screens only. No defaults: StoryDemo screens never get these keys
+    sandboxLinks:       { type: [SandboxLinkSchema], default: undefined },
+    sandboxDuplicateOf: { type: mongoose.Schema.Types.ObjectId, ref: 'Screen' },
+    sandboxHidden:      { type: Boolean },
 
   }, options
 )

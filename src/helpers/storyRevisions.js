@@ -28,6 +28,7 @@ export async function captureStoryPreImage(Models, { storyId, workspaceId, fullS
       status: story.status,
       custom: story.custom,
       screens: story.screens,
+      ...(story.sandbox ? { sandbox: story.sandbox } : {}),
     },
     screenIndexes: screens.map(s => ({ _id: s._id, index: s.index })),
     fullScreens: fullScreens ? screens : null,
@@ -84,6 +85,7 @@ async function applyRevision(Models, rev) {
       status: storyPreImage.status,
       custom: storyPreImage.custom,
       screens: storyPreImage.screens,
+      ...(storyPreImage.sandbox ? { sandbox: storyPreImage.sandbox } : {}),
     }
   })
 
@@ -105,6 +107,13 @@ async function applyRevision(Models, rev) {
     const toInsert = fullScreens.filter(s => !currentIds.has(String(s._id)))
     if (toInsert.length) {
       await Models.Screen.collection.insertMany(toInsert)
+    }
+    // Sandbox bulk edits (merge, delete, sync) rewrite links on many screens
+    if (storyPreImage.sandbox) {
+      const toReplace = fullScreens.filter(s => currentIds.has(String(s._id)))
+      if (toReplace.length) {
+        await Models.Screen.collection.bulkWrite(toReplace.map(s => ({ replaceOne: { filter: { _id: s._id }, replacement: s } })))
+      }
     }
   }
 

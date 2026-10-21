@@ -89,7 +89,22 @@ const handler = function (req, res) {
         sessionObj.stepsCount = requestBody.stepsCount
       }
 
-      return new Models.Session(sessionObj).save()
+      if (!requestBody.showcaseSessionId) {
+
+        return new Models.Session(sessionObj).save()
+      }
+      // Played inside a showcase: link only if that showcase visit is in this workspace and lists this story
+      return Models.ShowcaseSession.findOne({ _id: requestBody.showcaseSessionId, workspaceId }).select('showcaseId').lean()
+        .then((showcaseSession) => showcaseSession && Models.Showcase.exists({ _id: showcaseSession.showcaseId, 'items.storyId': storyId })
+          .then((listed) => listed && showcaseSession))
+        .then((showcaseSession) => {
+          if (showcaseSession) {
+
+            sessionObj.showcaseId = showcaseSession.showcaseId
+            sessionObj.showcaseSessionId = showcaseSession._id
+          }
+          return new Models.Session(sessionObj).save()
+        })
     })
     .then((sessionDoc) => {
       if (sessionDoc) {

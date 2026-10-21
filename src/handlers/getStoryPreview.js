@@ -6,6 +6,8 @@ import * as sanitezeLib from '@braintree/sanitize-url'
 import he from 'he'
 import { decodeVars } from '../helpers/agent/personalization.js'
 import getAgentPlayerHandler from './getAgentPlayer.js'
+import getSandboxPreview from './getSandboxPreview.js'
+import { getChecklistContext, configJson } from '../helpers/checklist/checklist.js'
 const sanitize = sanitezeLib.sanitizeUrl
 
 const handler = function (req, res) {
@@ -77,6 +79,12 @@ const handler = function (req, res) {
                 .lean()
         })
         .then(async (storyDoc) => {
+
+            if (storyDoc && storyDoc.mode === 'sandbox') {
+
+                await getSandboxPreview(req, res, storyDoc._id)
+                throw { agentPlayerSent: true }
+            }
 
             if (storyDoc) {
 
@@ -165,10 +173,17 @@ const handler = function (req, res) {
             const themeFontFamily = (storyDoc.custom && storyDoc.custom.theme &&
                 /^[A-Za-z0-9 ]{1,50}$/.test(storyDoc.custom.theme.fontFamily || '') && storyDoc.custom.theme.fontFamily) || ''
 
+            // data-ld-theme: the checklist demo swap (injectScript.js applyDemoTheme) replaces these tags
             if (themeFontFamily) {
                 htmlString += `    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>\n` +
-                    `    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(themeFontFamily).replace(/%20/g, '+')}:wght@400;500;600;700&display=swap"/>\n` +
-                    `    <style>:root{--ld-demo-font:'${themeFontFamily}', sans-serif;}</style>\n`
+                    `    <link data-ld-theme rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(themeFontFamily).replace(/%20/g, '+')}:wght@400;500;600;700&display=swap"/>\n` +
+                    `    <style data-ld-theme>:root{--ld-demo-font:'${themeFontFamily}', sans-serif;}</style>\n`
+            }
+
+            const themeFontSize = Number(storyDoc.custom && storyDoc.custom.theme && storyDoc.custom.theme.fontSize)
+            const themeFontScale = themeFontSize >= 10 && themeFontSize <= 28 && themeFontSize !== 15 ? themeFontSize / 15 : null
+            if (themeFontScale) {
+                htmlString += `    <style data-ld-theme>:root{--ld-demo-font-scale:${themeFontScale};}</style>\n`
             }
 
             // htmlString += '<script src="https://cdn.lr-in-prod.com/LogRocket.min.js" crossorigin="anonymous"></script>\n' +
@@ -286,6 +301,13 @@ const handler = function (req, res) {
                 return step
             })
 
+            // Checklist "Open step" task: ?stepId= wins over ?step=
+            const stepIdIndex = req.query.stepId ? steps.findIndex(step => String(step._id) === String(req.query.stepId)) : -1
+            if (stepIdIndex !== -1) {
+
+                stepIndex = stepIdIndex
+            }
+
             if (steps.length !== 0) {
 
                 if (stepIndex > steps[steps.length - 1].index) {
@@ -298,22 +320,38 @@ const handler = function (req, res) {
             }
 
 
+            const checklistContext = await getChecklistContext(Models, storyDoc, {
+                hostId: req.query.checklist,
+                token: req.query.cl,
+                hide: !!req.query.hideChecklist,
+                variables: [...extraVars, ...(storyDoc.custom.variables || [])]
+            })
+
+            const config = {
+                SCREENS: screenIds.map(String),
+                STEPS: steps,
+                TRANSITIONS: transitions,
+                workspaceId: String(storyDoc.workspaceId),
+                currentStepIndex: stepIndex,
+                storyId: String(storyDoc._id),
+                isEmbed: !!isEmbed,
+                isSessionRecordingDisabled: !!isSessionRecordingDisabled,
+                checklistContext,
+                storyDemo: storyDoc,
+                hasEnded: false
+            }
+
+            // Checklist task swap: the player fetches the next demo's window.config instead of reloading the page
+            if (req.query.playerConfig) {
+
+                res.set({ 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' })
+                res.status(ResponseCodes['200_OK'])
+                res.send(configJson({ config, theme: { fontFamily: themeFontFamily, fontScale: themeFontScale } }))
+                throw { agentPlayerSent: true } // response already sent
+            }
+
             htmlString += '<script>\n' +
-                'window.config = {\n' +
-                'SCREENS: ' + '[\'' + screenIds.join('\',\'') + '\'],' + '\n' +
-
-                'STEPS: ' + JSON.stringify(steps, null, 2) + '\n,' +
-                'TRANSITIONS: ' + JSON.stringify(transitions, null, 2) + '\n,' +
-                'workspaceId: "' + storyDoc.workspaceId + '"\n,' +
-                'currentStepIndex: ' + stepIndex + '\n,' +
-                'storyId: "' + storyDoc._id + '"\n,' +
-                'isEmbed:' + !!isEmbed + ',\n' +
-                'isSessionRecordingDisabled:' + isSessionRecordingDisabled + ',\n' +
-                'storyDemo: ' + JSON.stringify(storyDoc, null, 2) + ',\n' +
-                'hasEnded: ' + 'false' + '\n' +
-
-                '}\n' +
-
+                'window.config = ' + configJson(config) + '\n' +
                 '</script>\n'
 
 

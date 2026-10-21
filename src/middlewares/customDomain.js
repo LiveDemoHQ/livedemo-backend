@@ -38,6 +38,8 @@ export function rewriteForWorkspace(path, workspaceId) {
     if (story) return `/workspaces/${workspaceId}/stories/${story[1]}/preview?embed${story[2] ? `&link=${story[2]}` : ''}`
     const agent = path.match(/^\/agents\/([a-f0-9]{24})(?:\/links\/[a-f0-9]{24})?\/?$/)
     if (agent) return `/agents/${agent[1]}/player`
+    const showcase = path.match(/^\/showcases\/([a-f0-9]{24})\/?$/)
+    if (showcase) return `/showcases/${showcase[1]}/player`
     return null
 }
 

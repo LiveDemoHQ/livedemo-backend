@@ -29,8 +29,10 @@ const handler = function (req, res) {
       let buttonBackgroundColor = requestBody.buttonBackgroundColor
       let buttonTextColor = requestBody.buttonTextColor
       let fontFamily = requestBody.fontFamily || ''
+      let fontSize = requestBody.fontSize || 15
       let showTooltipArrow = !!requestBody.showTooltipArrow
       let hoverGlow = requestBody.hoverGlow !== false
+      let pulsatingBorderColor = requestBody.pulsatingBorderColor || '#1070ff'
       let footerButtons = requestBody.footerButtons || 'backAndNext'
 
       let watermarkConfigIsActive = requestBody.watermarkConfig.isActive
@@ -47,8 +49,10 @@ const handler = function (req, res) {
           'custom.theme.buttonBackgroundColor': buttonBackgroundColor,
           'custom.theme.buttonTextColor': buttonTextColor,
           'custom.theme.fontFamily': fontFamily,
+          'custom.theme.fontSize': fontSize,
           'custom.theme.showTooltipArrow': showTooltipArrow,
           'custom.theme.hoverGlow': hoverGlow,
+          'custom.theme.pulsatingBorderColor': pulsatingBorderColor,
           'custom.theme.footerButtons': footerButtons,
           'custom.theme.watermarkConfig.isActive': watermarkConfigIsActive,
           'custom.theme.watermarkConfig.text': watermarkConfigText,

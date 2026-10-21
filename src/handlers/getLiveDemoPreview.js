@@ -3,6 +3,7 @@ import fsp from 'fs/promises'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import ScreenTypes from '../constants/ScreenTypes.js'
 import ENV from '../envServer.js'
+import { getChecklistContext, configJson } from '../helpers/checklist/checklist.js'
 
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
@@ -170,6 +171,13 @@ const handler = function (req, res) {
         return step
       })
 
+      // Checklist "Open step" task: ?stepId= wins over ?step=
+      const stepIdIndex = req.query.stepId ? steps.findIndex(step => String(step._id) === String(req.query.stepId)) : -1
+      if (stepIdIndex !== -1) {
+
+        stepIndex = stepIdIndex
+      }
+
       if (steps.length !== 0) {
 
         if (stepIndex > steps[steps.length - 1].index) {
@@ -182,6 +190,13 @@ const handler = function (req, res) {
       }
 
 
+      const checklistContext = await getChecklistContext(Models, storyDoc, {
+        hostId: req.query.checklist,
+        token: req.query.cl,
+        hide: !!req.query.hideChecklist,
+        variables: storyDoc.custom.variables || []
+      })
+
       htmlString += '<script>\n' +
         'window.config = {\n' +
         'SCREENS: ' + '[\'' + screenIds.join('\',\'') + '\'],' + '\n' +
@@ -191,6 +206,7 @@ const handler = function (req, res) {
         'workspaceId: "' + storyDoc.workspaceId + '"\n,' +
         'currentStepIndex: ' + stepIndex + '\n,' +
         'storyId: "' + storyDoc._id + '"\n,' +
+        'checklistContext: ' + configJson(checklistContext) + '\n,' +
         'storyDemo: ' + JSON.stringify(storyDoc, null, 2) + '\n,' +
         'hasEnded: ' + 'false' + '\n' +
 

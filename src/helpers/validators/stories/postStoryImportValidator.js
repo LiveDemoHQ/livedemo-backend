@@ -27,6 +27,11 @@ function validateBody(body) {
       imageData: Joi.string().allow(''),
       videoData: Joi.string().allow(''),
     })).min(1).required(),
+    assets: Joi.array().items(Joi.object().keys({
+      url: Joi.string().required(),
+      mimeType: Joi.string().required(),
+      data: Joi.string().required(),
+    })),
   })
 
   return schema.validate(body)

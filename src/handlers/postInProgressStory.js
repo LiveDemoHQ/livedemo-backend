@@ -4,7 +4,17 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import StoryStatuses from '../constants/StoryStatuses.js'
 // const {STORY_REQUESTS_FOLDER} = ENV
 import mongoose from 'mongoose';
+import { httpError } from '../helpers/agent/http.js'
 const { ObjectId } = mongoose.Types;
+
+// "Add flow to…" must target a sandbox of the same workspace
+async function assertSandboxCapture(Models, body) {
+    if (body.targetSandboxId) {
+
+        const target = await Models.Story.exists({ _id: body.targetSandboxId, workspaceId: body.workspaceId, mode: 'sandbox', deletedAt: null })
+        if (!target) httpError(ResponseCodes['400_BAD_REQUEST'], 'targetSandboxId must be a sandbox in this workspace')
+    }
+}
 
 
 const handler = function (req, res) {
@@ -23,6 +33,12 @@ const handler = function (req, res) {
             requestBody = validatedBody.value
 
             helpers.validateUserHasAccessToWorkspace(authUserDoc, requestBody.workspaceId)
+        }).then(async () => {
+
+            if (requestBody.mode === 'sandbox') {
+
+                await assertSandboxCapture(Models, requestBody)
+            }
         }).then(() => {
 
             const storyFields = {
@@ -44,6 +60,14 @@ const handler = function (req, res) {
                 storyFields.tabInfo = {
                     width: requestBody.rrweb.viewport.width,
                     height: requestBody.rrweb.viewport.height,
+                }
+            }
+            if (requestBody.mode === 'sandbox') {
+
+                storyFields.mode = 'sandbox'
+                if (requestBody.targetSandboxId || requestBody.flowName) {
+
+                    storyFields.sandboxCapture = { targetSandboxId: requestBody.targetSandboxId || null, flowName: requestBody.flowName || '' }
                 }
             }
             if (requestBody.windowMeasures) {

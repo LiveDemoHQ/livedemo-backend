@@ -81,7 +81,19 @@ const handler = function (req, res) {
         updateObj['steps.$.view.pointer.tooltipY'] = stepView.pointer.tooltipY
       }
 
-      if (stepView && stepView.popup && stepView.popup.title) {
+      if (stepView && stepView.pointer && stepView.pointer.pulsatingBorder !== undefined) {
+        updateObj['steps.$.view.pointer.pulsatingBorder'] = !!stepView.pointer.pulsatingBorder
+      }
+
+      if (stepView && stepView.pointer && stepView.pointer.showOverlay !== undefined) {
+        updateObj['steps.$.view.pointer.showOverlay'] = !!stepView.pointer.showOverlay
+      }
+
+      if (stepView && stepView.pointer && stepView.pointer.overlayBackgroundColor !== undefined) {
+        updateObj['steps.$.view.pointer.overlayBackgroundColor'] = stepView.pointer.overlayBackgroundColor
+      }
+
+      if (stepView && stepView.popup && stepView.popup.title !== undefined) {
         updateObj['steps.$.view.popup.title'] = stepView.popup.title
       }
 
@@ -113,6 +125,10 @@ const handler = function (req, res) {
         updateObj['steps.$.view.popup.overlayBackgroundColor'] = stepView.popup.overlayBackgroundColor
       }
 
+      if (stepView && stepView.popup && stepView.popup.showBackground !== undefined) {
+        updateObj['steps.$.view.popup.showBackground'] = stepView.popup.showBackground
+      }
+
       if (stepView && stepView.popup && stepView.popup.showPreviewImage !== undefined) {
         updateObj['steps.$.view.popup.showPreviewImage'] = stepView.popup.showPreviewImage
       }
@@ -135,6 +151,10 @@ const handler = function (req, res) {
 
       if (stepView && stepView.hideBackButton !== undefined) {
         updateObj['steps.$.view.hideBackButton'] = stepView.hideBackButton
+      }
+
+      if (stepView && stepView.hideContent !== undefined) {
+        updateObj['steps.$.view.hideContent'] = stepView.hideContent
       }
 
       if (stepView && stepView.nextButtonText) {

@@ -72,6 +72,7 @@ const handler = function (req, res) {
         Models.AiDemoAgent.updateMany({ workspaceId }, { $set: { deletedAt: new Date() } }),
         Models.AgentKnowledgeChunk.deleteMany({ workspaceId }),
         Models.AgentKnowledgeSource.deleteMany({ workspaceId }),
+        Models.ChecklistProgress.deleteMany({ workspaceId }),
       ])
     })
     .then(() => {

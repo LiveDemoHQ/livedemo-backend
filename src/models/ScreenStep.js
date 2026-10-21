@@ -24,6 +24,9 @@ const ScreenStepSchema = new mongoose.Schema({
       targetMode: {type: String, default: 'select'},
       tooltipX: {type: Number, default: 200},
       tooltipY: {type: Number, default: 200},
+      pulsatingBorder: {type: Boolean, default: false},
+      showOverlay: {type: Boolean, default: false},
+      overlayBackgroundColor: {type: String, default: 'rgba(0,0,0,0.45)'},
     },
     hotspot: {
       frameX: { type: Number, default: 200 },
@@ -44,6 +47,7 @@ const ScreenStepSchema = new mongoose.Schema({
       embedHtmlContent: {type: String, default: null},
       showOverlay: {type: Boolean, default: false},
       overlayBackgroundColor: {type: String, default: 'rgba(0,0,0,0.65)'},
+      showBackground: {type: Boolean, default: false},
 
       title: {type: String, default: 'Title'},
       description: {type: String, default: '<p>Description</p>'},
@@ -67,6 +71,7 @@ const ScreenStepSchema = new mongoose.Schema({
     showStepNumbers: {type: Boolean, default: true},
     showFooter: {type: Boolean, default: false},
     hideBackButton: {type: Boolean, default: false},
+    hideContent: {type: Boolean, default: false}, // pointer/hotspot without the text card
     /*
       top, top-start, top-end
       bottom, bottom-start, bottom-end

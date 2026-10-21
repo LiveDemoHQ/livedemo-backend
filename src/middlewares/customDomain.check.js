@@ -60,6 +60,8 @@ result = await run('demos.acme.com', `/livedemos/${STORY}/links/${LINK}?step=2`)
 assert.equal(result.req.url, `/workspaces/${WS}/stories/${STORY}/preview?embed&link=${LINK}&step=2`)
 result = await run('demos.acme.com', `/agents/${STORY}`)
 assert.equal(result.req.url, `/agents/${STORY}/player`)
+result = await run('demos.acme.com', `/showcases/${STORY}?item=abc`)
+assert.equal(result.req.url, `/showcases/${STORY}/player?item=abc`)
 
 // (c) anything else on a customer domain is 404, including POSTs to public paths
 assert.equal((await run('demos.acme.com', '/workspaces/x/leads')).status, 404)

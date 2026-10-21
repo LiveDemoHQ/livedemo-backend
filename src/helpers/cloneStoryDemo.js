@@ -2,6 +2,8 @@ import mongoose from 'mongoose'
 import fsp from 'fs/promises'
 import ENV from '../envServer.js'
 import ScreenTypes from '../constants/ScreenTypes.js'
+import { remapSandbox } from './sandbox/sandbox.js'
+import { copyChecklist } from './checklist/checklist.js'
 
 const { ObjectId } = mongoose.Types
 
@@ -227,6 +229,8 @@ export async function cloneStoryDemo(storyId, userId, workspaceId, Models, optio
     return newScreenIdByScreenIndex.get(screenIndex) || firstNewScreenId
   }
 
+  const sandboxRemap = storyDoc.mode === 'sandbox' && storyDoc.sandbox ? remapSandbox(storyDoc.sandbox, oldScreenIdToNew) : null
+
   const oldStoryCursors = await Models.CursorPositions.find({ storyId: oldStoryId }).lean()
   const cursorIdMap = new Map()
   for (const cursor of oldStoryCursors) {
@@ -274,6 +278,10 @@ export async function cloneStoryDemo(storyId, userId, workspaceId, Models, optio
       delete screenPayload.popups.formId
     }
 
+    if (sandboxRemap) {
+      Object.assign(screenPayload, sandboxRemap.screenFields(screen))
+    }
+
     const savedScreen = await new ScreenModel(screenPayload).save()
     await remapScreenEmbeddedRefs(savedScreen, screen, { storyId: newStoryId, workspaceId }, Models)
     savedScreens.push(savedScreen)
@@ -305,6 +313,18 @@ export async function cloneStoryDemo(storyId, userId, workspaceId, Models, optio
     }
   }
 
+  if (storyData.custom && storyData.custom.checklist) {
+    storyData.custom = {
+      ...storyData.custom,
+      checklist: await copyChecklist(Models, storyData.custom.checklist, {
+        oldStoryId,
+        newStoryId,
+        workspaceId,
+        stepIds: new Map(oldScreens.flatMap((screen, i) => (screen.steps || []).map((step, j) => [String(step._id), savedScreens[i].steps[j] && savedScreens[i].steps[j]._id])))
+      })
+    }
+  }
+
   await new Models.Story({
     ...storyData,
     _id: newStoryId,
@@ -316,6 +336,7 @@ export async function cloneStoryDemo(storyId, userId, workspaceId, Models, optio
     links: [],
     isPublished: false,
     deletedAt: null,
+    ...(sandboxRemap ? { sandbox: sandboxRemap.sandbox } : {}),
   }).save()
 
   return newStoryId

@@ -18,6 +18,11 @@ const Session = new mongoose.Schema({
     // Missing type on old docs means 'livedemo'.
     type: { type: String, enum: ['livedemo', 'agent'], default: 'livedemo' },
     agentSessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'AgentSession', default: null },
+    // Story play opened from a showcase (still type 'livedemo')
+    showcaseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Showcase', default: null },
+    showcaseSessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'ShowcaseSession', default: null },
+    // Story play inside a checklist journey
+    checklistProgressId: { type: mongoose.Schema.Types.ObjectId, ref: 'ChecklistProgress', default: null },
     workspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' },
     storyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Story' },
     clientIpData: {},
@@ -34,5 +39,6 @@ const Session = new mongoose.Schema({
 )
 
 Session.index({ agentSessionId: 1 }, { partialFilterExpression: { agentSessionId: { $type: 'objectId' } } })
+Session.index({ showcaseSessionId: 1 }, { partialFilterExpression: { showcaseSessionId: { $type: 'objectId' } } })
 
 export default  Session

@@ -2,9 +2,11 @@ import mongoose from 'mongoose'
 import fsp from 'fs/promises'
 import ENV from '../envServer.js'
 import ScreenTypes from '../constants/ScreenTypes.js'
+import FormTypes from '../constants/FormTypes.js'
 import { stringifyRrwebEvents } from './rrwebEventNames.js'
 import helpers from './livedemoHelpers.js'
 import flixHelpers from './flixHelpers.js'
+import { copyChecklist } from './checklist/checklist.js'
 
 // Imports an exported story ({ story, screens: [{ screenDoc, events, imageData?, videoData? }] }, e.g. a livedemo-cursor output)
 // as a new story in workspaceId. Recordings are written to this server's STORIES_FOLDER; imageData (base64 png)
@@ -129,6 +131,23 @@ export async function importStoryDemo(Models, payload, { workspaceId, userId }) 
                 if (popup && popup.showPreviewImage && !popup.previewImageUrl) {
                     popup.previewImageUrl = screen.imageUrl || ''
                 }
+                // popup.form ({ fields, showTopLabels, showBackground }, e.g. a scraped lead form) becomes the step's Form
+                if (popup && popup.form) {
+                    step._id = step._id || new ObjectId()
+                    const { fields, showTopLabels, showBackground } = popup.form
+                    const form = await new Models.Form({
+                        type: FormTypes.STEP,
+                        fields,
+                        showTopLabels,
+                        showBackground,
+                        storyId: newStoryId,
+                        screenId: newScreenId,
+                        stepId: step._id,
+                        workspaceId,
+                    }).save()
+                    popup.formId = form._id
+                    delete popup.form
+                }
             }
 
             const ScreenModel = screenModelForType(Models, screen.type)
@@ -150,6 +169,14 @@ export async function importStoryDemo(Models, payload, { workspaceId, userId }) 
             ...storyFields
         } = payload.story
 
+        if (storyFields.custom && storyFields.custom.checklist) {
+
+            storyFields.custom = {
+                ...storyFields.custom,
+                checklist: await copyChecklist(Models, storyFields.custom.checklist, { oldStoryId: _oldStoryId, newStoryId, workspaceId })
+            }
+        }
+
         await new Models.Story({
             ...storyFields,
             _id: newStoryId,
@@ -163,6 +190,7 @@ export async function importStoryDemo(Models, payload, { workspaceId, userId }) 
     } catch (err) {
         // Don't leave a half-imported story behind
         await Models.Screen.deleteMany({ storyId: newStoryId })
+        await Models.Form.deleteMany({ storyId: newStoryId })
         await fsp.rm(storyDir, { recursive: true, force: true })
         throw err
     }

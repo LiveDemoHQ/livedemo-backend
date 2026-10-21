@@ -230,6 +230,10 @@ import customDomain from './middlewares/customDomain.js'
 import agentRecap from './handlers/agentRecap.js'
 import captureAgentRevision from './middlewares/captureAgentRevision.js'
 import agentEditorMode, { agentEditorModeOptional } from './middlewares/agentEditorMode.js'
+import showcases from './handlers/showcases.js'
+import checklists from './handlers/checklists.js'
+import getShowcasePlayerHandler from './handlers/getShowcasePlayer.js'
+import sandbox from './handlers/sandbox.js'
 
 import multer from 'multer'
 
@@ -640,6 +644,9 @@ app.post('/workspaces/:workspaceId/stories/:storyId/custom/theme', [setupMongo, 
 
 app.post('/workspaces/:workspaceId/stories/:storyId/custom/misc', [setupMongo, rev('story', 'custom:misc')], postCustomMiscHandler)
 
+app.post('/workspaces/:workspaceId/stories/:storyId/custom/checklist/uploadImage', [setupMongo, uploadImage.single('image')], checklists.uploadImage)
+app.post('/workspaces/:workspaceId/stories/:storyId/custom/checklist', [setupMongo, rev('story', 'custom:checklist')], checklists.save)
+
 app.post('/workspaces/:workspaceId/stories/:storyId/custom/security', [setupMongo, rev('story', 'custom:security')], postCustomSecurityHandler)
 
 app.post('/workspaces/:workspaceId/stories/:storyId/custom/background', [setupMongo, rev('story', 'custom:background')], postCustomBackgroundHandler)
@@ -881,6 +888,32 @@ app.get('/workspaces/:workspaceId/avatar-usage', [setupMongo, sessionOnly], getW
 // Shareable conversation recap (token = AgentSession.recapToken)
 app.get('/recaps/:token', [setupMongo], agentRecap.view)
 app.post('/recaps/:token/viewers', [setupMongo], agentRecap.addViewer)
+// ---------------------------------------------------------------------------
+
+// Showcases (multi-demo hubs) — editor routes, auth inside every handler
+app.post('/workspaces/:workspaceId/showcases', [setupMongo], showcases.create)
+app.get('/workspaces/:workspaceId/showcases', [setupMongo], showcases.list)
+app.get('/workspaces/:workspaceId/showcases/:showcaseId', [setupMongo], showcases.get)
+app.patch('/workspaces/:workspaceId/showcases/:showcaseId', [setupMongo], showcases.patch)
+app.delete('/workspaces/:workspaceId/showcases/:showcaseId', [setupMongo], showcases.remove)
+app.post('/workspaces/:workspaceId/showcases/:showcaseId/publish', [setupMongo], showcases.publish)
+// Visitor routes (published, or Bearer + member). Events arrive via sendBeacon as text/plain.
+app.get('/showcases/:showcaseId/player', [setupMongo, corsMiddleware], getShowcasePlayerHandler)
+app.post('/showcases/:showcaseId/sessions', [setupMongo, corsMiddleware], showcases.createSession)
+app.post('/showcases/:showcaseId/sessions/:sessionId/events', [setupMongo, corsMiddleware, express.text({ type: 'text/plain', limit: '64kb' })], showcases.postEvents)
+// StoryDemo checklist viewer progress. The token is the capability; events arrive via sendBeacon as text/plain.
+app.post('/checklists/:hostStoryId/progress', [setupMongo, corsMiddleware], checklists.start)
+app.post('/checklists/:hostStoryId/progress/:token/events', [setupMongo, corsMiddleware, express.text({ type: 'text/plain', limit: '64kb' })], checklists.postEvents)
+// ---------------------------------------------------------------------------
+
+// Sandbox StoryDemos — editor routes, auth inside every handler. Player: getStoryPreview -> getSandboxPreview
+app.patch('/workspaces/:workspaceId/stories/:storyId/sandbox', [setupMongo, rev('story', 'sandbox:update')], sandbox.patchSandbox)
+app.get('/workspaces/:workspaceId/stories/:storyId/sandbox/links', [setupMongo], sandbox.getLinks)
+app.post('/workspaces/:workspaceId/stories/:storyId/sandbox/screens/:screenId/links', [setupMongo, rev('screen', 'link:add')], sandbox.postLink)
+app.patch('/workspaces/:workspaceId/stories/:storyId/sandbox/screens/:screenId/links/:linkId', [setupMongo, rev('screen', 'link:update')], sandbox.patchLink)
+app.delete('/workspaces/:workspaceId/stories/:storyId/sandbox/screens/:screenId/links/:linkId', [setupMongo, rev('screen', 'link:delete')], sandbox.deleteLink)
+app.post('/workspaces/:workspaceId/stories/:storyId/sandbox/screens/:screenId/merge', [setupMongo, rev('story', 'sandbox:merge', { fullScreens: true })], sandbox.mergeScreen)
+app.delete('/workspaces/:workspaceId/stories/:storyId/sandbox/screens/:screenId', [setupMongo, rev('story', 'sandbox:screenDelete', { fullScreens: true })], sandbox.deleteScreen)
 // ---------------------------------------------------------------------------
 
 // Public tutorial search — no auth required, IP rate-limited (5 req/s/IP)

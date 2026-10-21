@@ -1,5 +1,6 @@
 import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
+import { getChecklistContext } from '../helpers/checklist/checklist.js'
 
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
@@ -49,7 +50,7 @@ const handler = function (req, res) {
               model: 'CursorPositions',
             }
           ],
-          select: '_id name type screens steps customTransitions width height imageUrl index asset playbackRate popups zoomSpans zoomSpan startTime endTime cursorPositions recordingRole baseScreenId fromTimeMs toTimeMs eventCount',
+          select: '_id name type screens steps customTransitions width height imageUrl index asset playbackRate popups zoomSpans zoomSpan startTime endTime cursorPositions recordingRole baseScreenId fromTimeMs toTimeMs eventCount sandboxLinks sandboxHidden sandboxDuplicateOf',
         })
         .populate('content.contentId')
 
@@ -57,13 +58,15 @@ const handler = function (req, res) {
 
       return Promise.all([storyPromise, cursorPositionsPromise])
     })
-    .then(([foundStory, cursorPositions]) => {
+    .then(async ([foundStory, cursorPositions]) => {
       let responsePayload = foundStory ? (foundStory.toObject ? foundStory.toObject() : foundStory) : null;
       if (responsePayload) {
         if (Array.isArray(responsePayload.screens)) {
           responsePayload.screens.sort((a, b) => a.index - b.index)
         }
         responsePayload.cursorPositions = cursorPositions;
+        // Editor preview: checklist renders live from the config, nothing is persisted
+        responsePayload.checklistContext = await getChecklistContext(Models, responsePayload, { isEditor: true })
       }
 
       const resultResponse = {

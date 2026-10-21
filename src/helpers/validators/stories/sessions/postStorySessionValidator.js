@@ -5,7 +5,8 @@ function validateBody(body) {
 
 
   let schema = Joi.object().keys({
-    stepsCount: Joi.number().optional()
+    stepsCount: Joi.number().optional(),
+    showcaseSessionId: Joi.string().hex().length(24).optional()
   })
 
   const result = schema.validate(body)

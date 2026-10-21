@@ -86,6 +86,9 @@ import AgentSessionEventSchema from './AgentSessionEvent.js'
 import WorkspaceWebhookSchema from './WorkspaceWebhook.js'
 import AgentEmailSchema from './AgentEmail.js'
 import FeedbackSchema from './Feedback.js'
+import ShowcaseSchema from './Showcase.js'
+import ShowcaseSessionSchema from './ShowcaseSession.js'
+import ChecklistProgressSchema from './ChecklistProgress.js'
 
 
 // const ChannelSchema = require('./Channel')
@@ -267,6 +270,9 @@ export const initModels = (conn) => {
   conn.model('WorkspaceWebhook', WorkspaceWebhookSchema)
   conn.model('AgentEmail', AgentEmailSchema)
   conn.model('Feedback', FeedbackSchema)
+  conn.model('Showcase', ShowcaseSchema)
+  conn.model('ShowcaseSession', ShowcaseSessionSchema)
+  conn.model('ChecklistProgress', ChecklistProgressSchema)
   conn.model('OAuthClient', OAuthClientSchema)
   conn.model('OAuthCode', OAuthCodeSchema)
   conn.model('SamlRequest', SamlRequestSchema)
@@ -369,6 +375,9 @@ export const getModels = (conn) => {
     WorkspaceWebhook: conn.model('WorkspaceWebhook'),
     AgentEmail: conn.model('AgentEmail'),
     Feedback: conn.model('Feedback'),
+    Showcase: conn.model('Showcase'),
+    ShowcaseSession: conn.model('ShowcaseSession'),
+    ChecklistProgress: conn.model('ChecklistProgress'),
 
     // Channel: conn.model('Channel'),
     // InstantMessagesChannel: conn.model('InstantMessagesChannel'),

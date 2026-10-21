@@ -32,6 +32,10 @@ const handler = function (req, res) {
         })
         .then((deletedStory) => {
 
+            return Models.ChecklistProgress.deleteMany({ hostStoryId: storyId, workspaceId }).then(() => deletedStory)
+        })
+        .then((deletedStory) => {
+
             const resultResponse = {
                 statusCode: ResponseCodes['200_OK'],
                 headers: {

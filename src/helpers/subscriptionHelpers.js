@@ -141,6 +141,7 @@ export const PAID_PLAN_USER_FEATURE_FLAGS = {
   'featureFlags.allowForms': true,
   'featureFlags.allowEmbed': true,
   'featureFlags.allowPersonalization': true,
+  'featureFlags.allowShowcases': true,
 }
 
 const AI_AGENTS_SUBSCRIPTION_TYPES = new Set([

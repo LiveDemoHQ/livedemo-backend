@@ -109,7 +109,7 @@ const handler = function (req, res) {
         }
       )
 
-      await flixHelpers.enqueueProcessStoryDemoDom(storyId)
+      await (storyDoc.mode === 'sandbox' ? flixHelpers.enqueueProcessSandboxDom(storyId) : flixHelpers.enqueueProcessStoryDemoDom(storyId))
 
       res.set({
         'Access-Control-Allow-Origin': '*',

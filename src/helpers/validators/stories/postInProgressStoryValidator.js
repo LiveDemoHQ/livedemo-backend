@@ -26,6 +26,9 @@ function validateBody(body) {
     }).optional(),
     tabInfo: Joi.object().optional(),
     windowMeasures: Joi.object().optional(),
+    mode: Joi.string().valid('guided', 'sandbox').optional(),
+    targetSandboxId: Joi.string().hex().length(24).optional(),
+    flowName: Joi.string().max(120).allow('').optional(),
   })
 
   const result = schema.validate(body)
