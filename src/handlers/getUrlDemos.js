@@ -1,4 +1,5 @@
 import ResponseCodes from '../constants/ResponseCodes.js'
+import findPreviewStory from '../helpers/findPreviewStory.js'
 
 const CORS_HEADERS = {
     'Access-Control-Max-Age': 600,
@@ -53,48 +54,7 @@ const handler = function (req, res) {
                 return res.send(JSON.stringify(urlDemo))
             }
 
-            const storyId = urlDemo.storyId
-
-            return Promise.all([
-                Models.Story.findOne({ _id: storyId, deletedAt: null })
-                    .populate({
-                        path: 'screens',
-                        populate: [
-                            {
-                                path: 'customTransitions.gotoScreen',
-                                model: 'Screen',
-                                select: '_id name'
-                            },
-                            {
-                                path: 'steps.view.popup.formId',
-                                model: 'Form',
-                            },
-                            {
-                                path: 'steps.stepAudioId',
-                                model: 'Audio',
-                            },
-                            {
-                                path: 'steps.view.popup.buttons.gotoScreen',
-                                model: 'Screen',
-                            },
-                            {
-                                path: 'cursorPositions',
-                                model: 'CursorPositions',
-                            }
-                        ],
-                        select: '_id name type screens steps customTransitions width height imageUrl index asset playbackRate popups zoomSpans zoomSpan startTime endTime cursorPositions recordingRole baseScreenId fromTimeMs toTimeMs eventCount',
-                    })
-                    .populate('content.contentId'),
-                Models.CursorPositions.find({ storyId }).lean()
-            ]).then(([foundStory, cursorPositions]) => {
-                let storyDoc = foundStory ? (foundStory.toObject ? foundStory.toObject() : foundStory) : null
-                if (storyDoc) {
-                    if (Array.isArray(storyDoc.screens)) {
-                        storyDoc.screens.sort((a, b) => a.index - b.index)
-                    }
-                    storyDoc.cursorPositions = cursorPositions
-                }
-
+            return findPreviewStory(Models, urlDemo.storyId).then((storyDoc) => {
                 res.set(CORS_HEADERS)
                 res.status(ResponseCodes['200_OK'])
                 return res.send(JSON.stringify({ ...urlDemo, storyDoc }))

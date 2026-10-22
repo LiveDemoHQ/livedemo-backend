@@ -98,7 +98,7 @@ export function enqueueOwnClaim(claimId) {
     return enqueueJob('ownClaims', 'processOwnClaim', { claimId: String(claimId) })
 }
 
-const firstWorkspaceId = userDoc => {
+export const firstWorkspaceId = userDoc => {
     const first = userDoc.workspaces && userDoc.workspaces[0]
     return first && first._id ? first._id : first
 }

@@ -24,6 +24,11 @@ const handler = function (req, res) {
         workspaceId: workspaceId,
         deletedAt: null
       }
+      const search = String(req.query.search || '').trim().slice(0, 100)
+      if (search) {
+
+        filter.name = { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' }
+      }
       const populate = {
         path: 'screens',
         select: '_id type imageUrl'

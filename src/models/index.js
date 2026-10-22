@@ -69,6 +69,7 @@ import HubspotTokenSchema from './HubspotToken.js'
 import CursorPositionsSchema from './CursorPositions.js'
 import TutorialSchema from './Tutorial.js'
 import UrlDemoSchema from './UrlDemo.js'
+import MigrateDemoSchema from './MigrateDemo.js'
 import EmailVerificationCodeSchema from './EmailVerificationCode.js'
 import LaunchLinkSchema from './LaunchLink.js'
 import LaunchSubscriberSchema from './LaunchSubscriber.js'
@@ -255,6 +256,7 @@ export const initModels = (conn) => {
   conn.model('CursorPositions', CursorPositionsSchema)
   conn.model('Tutorial', TutorialSchema)
   conn.model('UrlDemo', UrlDemoSchema)
+  conn.model('MigrateDemo', MigrateDemoSchema)
   conn.model('EmailVerificationCode', EmailVerificationCodeSchema)
   conn.model('LaunchLink', LaunchLinkSchema)
   conn.model('LaunchSubscriber', LaunchSubscriberSchema)
@@ -363,6 +365,7 @@ export const getModels = (conn) => {
     CursorPositions: conn.model('CursorPositions'),
     Tutorial: conn.model('Tutorial'),
     UrlDemo: conn.model('UrlDemo'),
+    MigrateDemo: conn.model('MigrateDemo'),
     EmailVerificationCode: conn.model('EmailVerificationCode'),
     LaunchLink: conn.model('LaunchLink'),
     LaunchSubscriber: conn.model('LaunchSubscriber'),

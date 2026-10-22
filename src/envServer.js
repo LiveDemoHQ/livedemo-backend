@@ -37,6 +37,10 @@ export default {
   'ELEVENLABS_SCRIBE_MODEL': process.env.ELEVENLABS_SCRIBE_MODEL ? process.env.ELEVENLABS_SCRIBE_MODEL : "scribe_v2_realtime",
   'SES_ACCESS_KEY_ID': process.env.SES_ACCESS_KEY_ID ? process.env.SES_ACCESS_KEY_ID : "",
   'SES_SECRET_ACCESS_KEY': process.env.SES_SECRET_ACCESS_KEY ? process.env.SES_SECRET_ACCESS_KEY : "",
+  // Shared secret for /internal/* (livedemo-ai-api); empty = those routes always 401
+  'INTERNAL_API_KEY': process.env.INTERNAL_API_KEY ? process.env.INTERNAL_API_KEY : "",
+  // Workspace every cloned Storylane / Arcade / Navattic / Supademo demo lands in (MigrateDemo)
+  'MIGRATE_WORKSPACE_ID': process.env.MIGRATE_WORKSPACE_ID ? process.env.MIGRATE_WORKSPACE_ID : "",
   'GMAIL': {
     CLIENT_ID: process.env.GMAIL__CLIENT_ID,
     CLIENT_SECRET: process.env.GMAIL__CLIENT_SECRET,

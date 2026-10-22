@@ -12,7 +12,8 @@ const sesClient = new SESClient({
 })
 
 
-let templateNames = ['emailVerification']
+// node src/helpers/emails/createTemplates.js migrateDemoReady
+let templateNames = process.argv.length > 2 ? process.argv.slice(2) : ['emailVerification']
 // let templateNames = Object.keys(Templates)
 for (let i = 0; i < templateNames.length; i++) {
   let template = Templates[templateNames[i]]

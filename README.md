@@ -55,6 +55,8 @@ Key variables to update in `dev.env`:
 | `MUX_TOKEN_ID` / `MUX_TOKEN_SECRET` | Mux credentials |
 | `DEMOS_FOLDER` | Local path to store demo files |
 | `STORIES_FOLDER` | Local path to store story files |
+| `MIGRATE_WORKSPACE_ID` | Workspace cloned Storylane / Arcade / Navattic / Supademo demos land in (`POST /migratedemos` returns 503 without it) |
+| `INTERNAL_API_KEY` | Shared secret for `/internal/*` (livedemo-ai-api); random 32-byte hex, same in both services. Empty = 401 |
 
 ### 3. Start the server
 
@@ -95,6 +97,11 @@ The server listens on port `3005` by default. Key resource groups:
 | `/workspaces` | Workspace management |
 | `/integrations` | HubSpot and other integrations |
 | `/subscriptions` | Stripe billing |
+| `/migratedemos` | Clone a public Storylane / Arcade / Navattic / Supademo demo (landing form, public) |
+| `/internal/*` | Called by livedemo-ai-api only (`Authorization: Internal <INTERNAL_API_KEY>`): story import, clone emails, clone claims |
+
+Cloned demos: the `migrateDemoReady` email template must be created once per environment with
+`node src/helpers/emails/createTemplates.js migrateDemoReady`. Check: `node src/helpers/migrateDemos.check.js`.
 
 ---
 

@@ -232,6 +232,7 @@ import captureAgentRevision from './middlewares/captureAgentRevision.js'
 import agentEditorMode, { agentEditorModeOptional } from './middlewares/agentEditorMode.js'
 import showcases from './handlers/showcases.js'
 import ownClaims from './handlers/ownClaims.js'
+import migrateDemos from './handlers/migrateDemos.js'
 import checklists from './handlers/checklists.js'
 import getShowcasePlayerHandler from './handlers/getShowcasePlayer.js'
 import sandbox from './handlers/sandbox.js'
@@ -937,6 +938,14 @@ app.get('/tutorials/search', [setupMongo, corsMiddleware], getTutorialsSearchHan
 // URL demo processing — no auth required, IP rate-limited (3 req/min/IP)
 app.post('/urldemos', [setupMongo, corsMiddleware], postUrlDemosHandler)
 app.get('/urldemos/:urlDemoId', [setupMongo, corsMiddleware], getUrlDemosHandler)
+
+// Cloned Storylane / Arcade / Navattic / Supademo demos — public landing form (3 req/min/IP, 5/day/email)
+app.post('/migratedemos', [setupMongo, corsMiddleware], migrateDemos.postMigrateDemo)
+app.get('/migratedemos/:migrateDemoId', [setupMongo, corsMiddleware], migrateDemos.getMigrateDemo)
+// livedemo-ai-api only: Authorization: Internal <INTERNAL_API_KEY>, no CORS
+app.post('/internal/workspaces/:workspaceId/stories/import', [setupMongo], migrateDemos.postInternalStoryImport)
+app.post('/internal/migratedemos/:migrateDemoId/emails', [setupMongo], migrateDemos.postInternalEmails)
+app.post('/internal/migratedemos/:migrateDemoId/claims', [setupMongo], migrateDemos.postInternalClaims)
 
 console.log(ENV.ENV)
 let server
