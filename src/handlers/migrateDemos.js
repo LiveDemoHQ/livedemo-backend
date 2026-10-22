@@ -18,6 +18,7 @@ import {
     claimMigrateDemoRequests,
     sendMigrateDemoEmails
 } from '../helpers/migrateDemos.js'
+import { syncMigrateLead } from '../helpers/sequenzy/sequenzyClient.js'
 
 // Clone a public Storylane / Arcade / Navattic / Supademo demo (livedemo-ai-api/clone_demos_tech_design.md).
 // Public (landing page):
@@ -87,6 +88,7 @@ const postMigrateDemo = wrap(async (req, res) => {
         }
     })
     sendJson(res, { _id: doc._id, status: doc.status })
+    syncMigrateLead(email, Models, { provider: providerOf(url) })
 })
 
 // No browserSessionId filter: the email link is opened on other devices, and the content is a copy of a public demo

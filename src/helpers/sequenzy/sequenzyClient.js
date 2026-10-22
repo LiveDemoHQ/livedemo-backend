@@ -70,6 +70,11 @@ export async function syncSignupSubscriber(userDoc, Models, { source } = {}) {
             'sequenzy.subscriberId': subscriberId,
             'sequenzy.syncedAt': new Date(),
             'sequenzy.lastSyncError': null,
+            // e.g. unsubscribed as a migrate lead before signing up
+            ...(response?.subscriber?.status === 'unsubscribed' && {
+              'emailConfig.isSubscribed': false,
+              'emailConfig.unsubscribedAt': new Date(),
+            }),
           },
         }
       )
@@ -88,6 +93,35 @@ export async function syncSignupSubscriber(userDoc, Models, { source } = {}) {
         }
       ).catch(() => {})
     }
+    return null
+  }
+}
+
+/**
+ * Landing-page demo migration lead (no LiveDemo account yet). Tagged so Sequenzy sequences can target it.
+ * Skips emails whose LiveDemo user unsubscribed. Never throws.
+ */
+export async function syncMigrateLead(email, Models, { provider } = {}) {
+  if (!isEnabled() || !email) return null
+  const user = Models?.User ? await Models.User.findOne({ email }).select('emailConfig').lean().catch(() => null) : null
+  if (user?.emailConfig?.isSubscribed === false) return null
+
+  const tags = ['migrate-demo']
+  if (provider) tags.push(`migrate:${provider}`)
+  try {
+    const response = await getClient().subscribers.create({
+      email,
+      tags,
+      customAttributes: { migrateRequestedAt: new Date().toISOString() },
+      optInMode: 'confirmed',
+      enrollInSequences: true,
+      lists: [],
+      duplicateStrategy: 'merge',
+    })
+    console.log(`[sequenzy] migrate lead ok email=${email} provider=${provider || ''} subscriberId=${response?.subscriber?.id || ''}`)
+    return response
+  } catch (err) {
+    console.log('[sequenzy] syncMigrateLead error:', err?.message || err)
     return null
   }
 }
