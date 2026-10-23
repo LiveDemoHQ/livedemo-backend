@@ -3,6 +3,7 @@ import flixHelpers from '../helpers/flixHelpers.js'
 import postStoriesValidator from '../helpers/validators/stories/postStoriesValidator.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import StoryStatuses from '../constants/StoryStatuses.js'
+import demoStepLimit from '../helpers/demoStepLimit.js'
 import ENV from '../envServer.js'
 // const {STORY_REQUESTS_FOLDER} = ENV
 import mongoose from 'mongoose';
@@ -28,6 +29,11 @@ const handler = function (req, res) {
             requestBody = validatedBody.value
 
             helpers.validateUserHasAccessToWorkspace(authUserDoc, requestBody.workspaceId)
+
+            const clickCount = (requestBody.capturedEvents || [])
+                .filter((event) => event && event.type === 'click')
+                .length
+            demoStepLimit.assertClickCount(clickCount)
         })
         .then(() => {
             if (requestBody.storyId) {

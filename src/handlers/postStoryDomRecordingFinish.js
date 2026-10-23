@@ -4,6 +4,7 @@ import fsp from 'fs/promises'
 import ENV from '../envServer.js'
 import StoryStatuses from '../constants/StoryStatuses.js'
 import flixHelpers from '../helpers/flixHelpers.js'
+import demoStepLimit from '../helpers/demoStepLimit.js'
 
 const SCREENDOC_ENCODING = 'utf-8'
 
@@ -82,6 +83,10 @@ const handler = function (req, res) {
       if (storyDoc.rrweb && storyDoc.rrweb.version) {
         recording.version = storyDoc.rrweb.version
       }
+
+      demoStepLimit.assertClickCount(
+        Array.isArray(recording.clickThumbnails) ? recording.clickThumbnails.length : 0
+      )
 
       if (!recording.events.length) {
         const error = new Error('No rrweb events to process')

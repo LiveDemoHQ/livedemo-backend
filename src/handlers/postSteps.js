@@ -3,6 +3,7 @@ import postStepValidator from '../helpers/validators/stories/screens/steps/postS
 import ResponseCodes from '../constants/ResponseCodes.js'
 import StepViewTypes from '../constants/StepViewTypes.js'
 import ScreenPopupTypes from '../constants/ScreenPopupTypes.js'
+import demoStepLimit from '../helpers/demoStepLimit.js'
 import mongoose from 'mongoose'
 
 const { ObjectId } = mongoose.Types
@@ -40,6 +41,7 @@ const handler = function (req, res) {
                 .then((screens) => {
                     let currentScreen = screens.find(s => s._id.toString() === screenId.toString());
                     let nextScreen = screens[currentScreen.index + 1] || currentScreen
+                    demoStepLimit.assertCanAddStep(screens, screenId)
                     return { screens, nextScreen };
                 })
         })

@@ -8,6 +8,7 @@ function validateBody(body) {
   let schema = Joi.object().keys({
     name: Joi.string().required(),
     // shortId: Joi.string().required(),
+    // Click count capped in postStories via demoStepLimit (array may include non-clicks)
     capturedEvents: Joi.array(),
     videoBase64: Joi.string().required(),
     screenshots: Joi.object(),

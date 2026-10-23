@@ -5,7 +5,7 @@ function validateBody(body) {
 
 
   let schema = Joi.object().keys({
-    events: Joi.array(),
+    events: Joi.array().max(10),
   })
 
   const result = schema.validate(body)

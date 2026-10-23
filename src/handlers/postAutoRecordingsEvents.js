@@ -2,6 +2,7 @@ import helpers from '../helpers/livedemoHelpers.js'
 import postAutoRecordingsEventsValidator
     from '../helpers/validators/workspaces/auto-recordings/events/postAutoRecordingsEventsValidator.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
+import DemoLimits from '../constants/DemoLimits.js'
 
 const handler = function (req, res) {
     let {Models, conn} = req.mongo
@@ -33,7 +34,10 @@ const handler = function (req, res) {
             }
 
 
-            let events = requestBody.events
+            let events = requestBody.events || []
+            const existingClicks = (autoRecordingDoc.sessionData && autoRecordingDoc.sessionData.eventsClickCount) || 0
+            const room = Math.max(0, DemoLimits.MAX_AI_RECORDING_CLICKS - existingClicks)
+            events = events.slice(0, room)
 
             let eventClicksCount = events.length
 
@@ -70,6 +74,10 @@ const handler = function (req, res) {
                         overwrite: false
                     })
                 })
+            }
+
+            if (!events.length) {
+                return []
             }
 
             return Models.AutoRecordingEvent.insertMany(events)
