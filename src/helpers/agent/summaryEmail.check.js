@@ -19,7 +19,7 @@ const out = renderSummaryEmail({ agent, vars: { firstName: 'Ana', summary: 'S' }
 assert.ok(!/[\r\n]/.test(out.subject), 'subject is one line')
 assert.ok(!out.html.includes('<script>'), 'template html is escaped')
 assert.ok(out.html.includes('Acme &lt;b&gt;'))
-assert.ok(out.html.includes('<a href="https://a.com/r?x=1&amp;y=2"'), 'urls are linked')
+assert.ok(!out.html.includes('<a ') && !out.html.includes('style='), 'no links or styles')
 assert.ok(out.html.includes('https://api/u/t') && out.text.includes('Unsubscribe: https://api/u/t'))
 
 const def = renderSummaryEmail({ agent: { name: 'Bot' }, vars: { firstName: 'Ana', agentName: 'Bot', summary: 'S', recapUrl: '' }, unsubscribeUrl: 'u' })
@@ -35,21 +35,20 @@ assert.ok(buildMime({ from: { ...from, replyTo: 'sales@acme.io' }, to: 'a@b.co',
 assert.throws(() => buildMime({ from, to: 'a@b.co\r\nBcc: z@z.z', subject: '', html: '', text: '', unsubscribeUrl: 'u' }))
 assert.ok(!isValidEmail('a b@c.de') && !isValidEmail('<a@b.co>') && isValidEmail('first.last+tag@sub.acme.io'))
 
-const structured = renderSummaryEmail({
+const plain = renderSummaryEmail({
     agent: { name: 'George' },
     vars: {
         firstName: 'Hari',
         agentName: 'George',
-        summary: 'You were looking into product tours.\n\nWhat we covered:\n- How AI agents guide prospects\n- A <b>live</b> workflow demo\n\nNext steps:\n- Book a call',
+        summary: 'You were looking into product tours.\n\nWhat we covered:\n- How AI agents guide prospects\n- A <b>live</b> workflow demo',
         recapUrl: 'https://x.io/r/1.'
     },
     unsubscribeUrl: 'u'
 })
-assert.ok(/<ul[^>]*>.*How AI agents guide prospects.*<\/ul>/s.test(structured.html), 'bullets render as a list')
-assert.ok(structured.html.includes('font-weight:600">What we covered:'), 'label lines render as headings')
-assert.ok(structured.html.includes('&lt;b&gt;live'), 'bullet content is escaped')
-assert.ok(structured.html.includes('<a href="https://x.io/r/1" style="color:#1070ff">https://x.io/r/1</a>.'), 'trailing period stays outside the link')
-assert.ok(structured.text.includes('What we covered:\n- How AI agents'), 'text part keeps the structure')
+assert.ok(!plain.html.includes('<ul') && !plain.html.includes('font-weight'), 'no list/heading formatting')
+assert.ok(plain.html.includes('&lt;b&gt;live'), 'body is escaped')
+assert.ok(plain.html.includes('https://x.io/r/1.'), 'urls stay plain text')
+assert.ok(plain.text.includes('What we covered:\n- How AI agents'), 'text part keeps the structure')
 
 assert.deepStrictEqual(normalizeSummarySettings({ summaryIdleMinutes: '15' }), { summaryIdleMinutes: 15 })
 assert.throws(() => normalizeSummarySettings({ summaryIdleMinutes: 7 }))

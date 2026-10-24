@@ -69,61 +69,14 @@ export function fillTemplate(template, vars) {
         .trim()
 }
 
-// Trailing sentence punctuation belongs to the prose, not the URL
-const linkify = escapedLine => escapedLine.replace(/https?:\/\/[^\s<]+/g, (match) => {
-    const trailing = (match.match(/(?:[.,;:!?)]|&quot;|&#39;)+$/) || [''])[0]
-    const url = match.slice(0, match.length - trailing.length)
-    return `<a href="${url}" style="color:#1070ff">${url}</a>${trailing}`
-})
-
-const BULLET_RE = /^\s*[-*\u2022]\s+/
-// Short "Label:" lines (e.g. "What we covered:") read as headings
-const isHeadingLine = line => /^[^:]{1,40}:$/.test(line.trim()) && !/https?:/.test(line)
-
-// One blank-line-separated block -> paragraphs, bulleted lists and headings
-function renderBlock(block) {
-    const out = []
-    let prose = []
-    let bullets = []
-    const flushProse = () => {
-        if (prose.length) out.push(`<p style="margin:0 0 16px">${prose.join('<br>')}</p>`)
-        prose = []
-    }
-    const flushBullets = () => {
-        if (bullets.length) out.push(`<ul style="margin:0 0 16px;padding-left:22px">${bullets.map(b => `<li style="margin:0 0 6px">${b}</li>`).join('')}</ul>`)
-        bullets = []
-    }
-    block.split('\n').forEach((line) => {
-        if (BULLET_RE.test(line)) {
-            flushProse()
-            bullets.push(linkify(esc(line.replace(BULLET_RE, '').trim())))
-        } else if (isHeadingLine(line)) {
-            flushProse()
-            flushBullets()
-            out.push(`<p style="margin:0 0 8px;font-weight:600">${esc(line.trim())}</p>`)
-        } else {
-            flushBullets()
-            prose.push(linkify(esc(line)))
-        }
-    })
-    flushProse()
-    flushBullets()
-    return out.join('\n')
-}
-
 export function renderSummaryEmail({ agent, vars, unsubscribeUrl }) {
     const settings = agent.summaryEmail || {}
     const subject = fillTemplate(settings.subject || DEFAULT_SUBJECT, vars).replace(/\s+/g, ' ').slice(0, 200)
     const body = fillTemplate(settings.body || DEFAULT_BODY, vars)
-    const blocks = body.split(/\n{2,}/).map(renderBlock)
-    const footer = `Sent by ${esc(agent.name || 'our demo agent')} via LiveDemo. <a href="${esc(unsubscribeUrl)}" style="color:#6b7280">Unsubscribe</a>`
-    const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#ffffff">
-<div style="max-width:560px;margin:0 auto;font:16px/1.65 -apple-system,'Segoe UI',Arial,sans-serif;color:#1f2937">
-${blocks.join('\n')}
-</div>
-<p style="max-width:560px;margin:28px auto 0;padding-top:16px;border-top:1px solid #e5e7eb;font:12px/1.5 Arial,sans-serif;color:#6b7280">${footer}</p>
-</body></html>`
-    const text = `${body}\n\n--\nSent by ${agent.name || 'our demo agent'} via LiveDemo. Unsubscribe: ${unsubscribeUrl}`
+    const footer = `Sent by ${agent.name || 'our demo agent'} via LiveDemo. Unsubscribe: ${unsubscribeUrl}`
+    const text = `${body}\n\n--\n${footer}`
+    // Plain text only — html mirrors text with <br>, no styles / lists / linkify
+    const html = `<!doctype html><html><body>${esc(body).replace(/\n/g, '<br>')}<br><br>--<br>${esc(footer)}</body></html>`
     return { subject, html, text }
 }
 
