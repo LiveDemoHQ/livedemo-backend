@@ -12,15 +12,19 @@ export const DEFAULT_SUBJECT = 'Your {{agentName}} conversation recap'
 export const DEFAULT_BODY = [
     'Hi {{firstName}},',
     '',
-    'Thanks for chatting with {{agentName}}. Here is a quick recap of our conversation:',
+    'Thanks for taking the time to chat with {{agentName}}.',
+    'Here is a quick recap so you have everything in one place.',
     '',
     '{{summary}}',
     '',
     'Demos you watched: {{demos}}',
     '',
-    'See the full recap: {{recapUrl}}',
+    'If you want to go back over it or share it with a teammate, the full recap is here: {{recapUrl}}',
     '',
-    'Want to talk to the team? Book a time: {{bookingUrl}}'
+    'Happy to go deeper with the team whenever suits you. You can pick a time here: {{bookingUrl}}',
+    '',
+    'Best,',
+    '{{agentName}}'
 ].join('\n')
 
 const EMAIL_RE = /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<>"',;]+$/
@@ -65,19 +69,59 @@ export function fillTemplate(template, vars) {
         .trim()
 }
 
-const linkify = escapedLine => escapedLine.replace(/https?:\/\/[^\s<]+/g, url => `<a href="${url}" style="color:#1070ff">${url}</a>`)
+// Trailing sentence punctuation belongs to the prose, not the URL
+const linkify = escapedLine => escapedLine.replace(/https?:\/\/[^\s<]+/g, (match) => {
+    const trailing = (match.match(/(?:[.,;:!?)]|&quot;|&#39;)+$/) || [''])[0]
+    const url = match.slice(0, match.length - trailing.length)
+    return `<a href="${url}" style="color:#1070ff">${url}</a>${trailing}`
+})
+
+const BULLET_RE = /^\s*[-*\u2022]\s+/
+// Short "Label:" lines (e.g. "What we covered:") read as headings
+const isHeadingLine = line => /^[^:]{1,40}:$/.test(line.trim()) && !/https?:/.test(line)
+
+// One blank-line-separated block -> paragraphs, bulleted lists and headings
+function renderBlock(block) {
+    const out = []
+    let prose = []
+    let bullets = []
+    const flushProse = () => {
+        if (prose.length) out.push(`<p style="margin:0 0 16px">${prose.join('<br>')}</p>`)
+        prose = []
+    }
+    const flushBullets = () => {
+        if (bullets.length) out.push(`<ul style="margin:0 0 16px;padding-left:22px">${bullets.map(b => `<li style="margin:0 0 6px">${b}</li>`).join('')}</ul>`)
+        bullets = []
+    }
+    block.split('\n').forEach((line) => {
+        if (BULLET_RE.test(line)) {
+            flushProse()
+            bullets.push(linkify(esc(line.replace(BULLET_RE, '').trim())))
+        } else if (isHeadingLine(line)) {
+            flushProse()
+            flushBullets()
+            out.push(`<p style="margin:0 0 8px;font-weight:600">${esc(line.trim())}</p>`)
+        } else {
+            flushBullets()
+            prose.push(linkify(esc(line)))
+        }
+    })
+    flushProse()
+    flushBullets()
+    return out.join('\n')
+}
 
 export function renderSummaryEmail({ agent, vars, unsubscribeUrl }) {
     const settings = agent.summaryEmail || {}
     const subject = fillTemplate(settings.subject || DEFAULT_SUBJECT, vars).replace(/\s+/g, ' ').slice(0, 200)
     const body = fillTemplate(settings.body || DEFAULT_BODY, vars)
-    const paragraphs = body.split(/\n{2,}/).map(p => `<p style="margin:0 0 16px">${p.split('\n').map(line => linkify(esc(line))).join('<br>')}</p>`)
+    const blocks = body.split(/\n{2,}/).map(renderBlock)
     const footer = `Sent by ${esc(agent.name || 'our demo agent')} via LiveDemo. <a href="${esc(unsubscribeUrl)}" style="color:#6b7280">Unsubscribe</a>`
-    const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#f6f7f9">
-<div style="max-width:560px;margin:0 auto;padding:28px;background:#fff;border-radius:12px;font:15px/1.6 -apple-system,'Segoe UI',Arial,sans-serif;color:#111827">
-${paragraphs.join('\n')}
+    const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#ffffff">
+<div style="max-width:560px;margin:0 auto;font:16px/1.65 -apple-system,'Segoe UI',Arial,sans-serif;color:#1f2937">
+${blocks.join('\n')}
 </div>
-<p style="max-width:560px;margin:16px auto 0;font:12px/1.5 Arial,sans-serif;color:#6b7280;text-align:center">${footer}</p>
+<p style="max-width:560px;margin:28px auto 0;padding-top:16px;border-top:1px solid #e5e7eb;font:12px/1.5 Arial,sans-serif;color:#6b7280">${footer}</p>
 </body></html>`
     const text = `${body}\n\n--\nSent by ${agent.name || 'our demo agent'} via LiveDemo. Unsubscribe: ${unsubscribeUrl}`
     return { subject, html, text }

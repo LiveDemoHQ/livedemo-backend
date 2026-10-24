@@ -35,6 +35,22 @@ assert.ok(buildMime({ from: { ...from, replyTo: 'sales@acme.io' }, to: 'a@b.co',
 assert.throws(() => buildMime({ from, to: 'a@b.co\r\nBcc: z@z.z', subject: '', html: '', text: '', unsubscribeUrl: 'u' }))
 assert.ok(!isValidEmail('a b@c.de') && !isValidEmail('<a@b.co>') && isValidEmail('first.last+tag@sub.acme.io'))
 
+const structured = renderSummaryEmail({
+    agent: { name: 'George' },
+    vars: {
+        firstName: 'Hari',
+        agentName: 'George',
+        summary: 'You were looking into product tours.\n\nWhat we covered:\n- How AI agents guide prospects\n- A <b>live</b> workflow demo\n\nNext steps:\n- Book a call',
+        recapUrl: 'https://x.io/r/1.'
+    },
+    unsubscribeUrl: 'u'
+})
+assert.ok(/<ul[^>]*>.*How AI agents guide prospects.*<\/ul>/s.test(structured.html), 'bullets render as a list')
+assert.ok(structured.html.includes('font-weight:600">What we covered:'), 'label lines render as headings')
+assert.ok(structured.html.includes('&lt;b&gt;live'), 'bullet content is escaped')
+assert.ok(structured.html.includes('<a href="https://x.io/r/1" style="color:#1070ff">https://x.io/r/1</a>.'), 'trailing period stays outside the link')
+assert.ok(structured.text.includes('What we covered:\n- How AI agents'), 'text part keeps the structure')
+
 assert.deepStrictEqual(normalizeSummarySettings({ summaryIdleMinutes: '15' }), { summaryIdleMinutes: 15 })
 assert.throws(() => normalizeSummarySettings({ summaryIdleMinutes: 7 }))
 assert.throws(() => normalizeSummarySettings({ summaryIdleMinutes: 65 }))

@@ -27,7 +27,13 @@ function buildPrompt(agent, messages, missing) {
         '- unanswered: visitor questions the agent did not actually answer (said it does not know, deflected, or stayed vague). Rewrite each as a standalone question. Empty if none.'
     ]
     if (emailsVisitor(agent)) {
-        lines.push('- visitorSummary: 2-4 sentences written TO the visitor (second person, friendly, no sales jargon): what they asked about, the key answers, the demos they saw. Never mention intent, qualification or internal notes.')
+        lines.push([
+            '- visitorSummary: plain text for an email written TO the visitor, as a thoughtful person would write a follow-up (second person, warm, conversational, no sales jargon, no markdown except leading "- " bullets). Use real newlines. Structure:',
+            '  1) One or two sentences on what they were looking into (no greeting, no sign-off; the email already has those).',
+            '  2) A blank line, then the line "What we covered:" followed by 2-5 lines each starting with "- ": one concrete question and its answer, or one demo they saw, in a single short line.',
+            '  3) Only if there are real follow-ups: a blank line, the line "Next steps:" and 1-3 lines starting with "- ".',
+            '  Leave out any section with nothing real to say. Never mention intent, qualification or internal notes.'
+        ].join('\n'))
     }
     if (missing.length) {
         lines.push('- fields: values the visitor clearly stated in the transcript, keyed by field. Omit a key when not stated. Fields:')
@@ -95,7 +101,7 @@ export default async function summarizeAgentSession(Models, { sessionId, final }
                 topics: (out.topics || []).map(t => String(t).slice(0, 60)).slice(0, 6),
                 intent: ['low', 'medium', 'high'].includes(out.intent) ? out.intent : 'low',
                 unanswered: (out.unanswered || []).map(q => String(q).slice(0, 300)).slice(0, 10),
-                ...(out.visitorSummary ? { visitorSummary: String(out.visitorSummary).slice(0, 1200) } : {}),
+                ...(out.visitorSummary ? { visitorSummary: String(out.visitorSummary).replace(/\r\n/g, '\n').slice(0, 2000) } : {}),
                 summarizedAt: new Date(),
                 summarizedMessageCount: messages.length
             }
