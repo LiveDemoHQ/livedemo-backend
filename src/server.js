@@ -244,6 +244,7 @@ import * as fs from 'fs'
 // import fsp from 'fs/promises.js'
 import {getModels, setupDB} from './models/index.js'
 import ensureAgentVectorIndex from './helpers/agent/ensureAgentVectorIndex.js'
+import startAgentSchedulers from './helpers/agent/schedulers.js'
 
 import ResponseCodes from './constants/ResponseCodes.js'
 import * as https from 'https'
@@ -282,6 +283,7 @@ async function setupWorkers() {
     videoWorker.on('error', err => console.log('[monq] video worker error', err.message))
     worker.start()
     videoWorker.start()
+    startAgentSchedulers(Models)
 
     console.log('Story consumer started')
     console.log('Video consumer started')
