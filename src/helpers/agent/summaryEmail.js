@@ -118,10 +118,16 @@ export function buildMime({ from, to, subject, html, text, unsubscribeUrl }) {
     ].join('\r\n')
 }
 
+const capitalize = value => {
+    const s = String(value || '').trim()
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : s
+}
+
 export function summaryVars({ agent, session, lead, demos, origin = ENV.SERVER_URL }) {
     const name = String((lead && lead.data && lead.data.name) || session.visitorName || '').trim()
+    const first = name.split(/\s+/)[0]
     return {
-        firstName: name.split(/\s+/)[0] || 'there',
+        firstName: first ? capitalize(first) : 'there',
         name,
         agentName: agent.name || 'our demo agent',
         summary: session.visitorSummary || session.summary || '',

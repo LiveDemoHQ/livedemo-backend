@@ -42,4 +42,7 @@ assert.throws(() => normalizeSummarySettings({ summaryEmail: { subject: 'a\nb' }
 assert.deepStrictEqual(normalizeSummarySettings({ summaryEmail: { enabled: 'yes', subject: ' S ', body: 'B\r\n' } }).summaryEmail, { enabled: false, subject: 'S', body: 'B' })
 
 assert.ok(/\/agents\/a1$/.test(summaryVars({ agent: { _id: 'a1' }, session: {}, demos: [] }).agentLink), 'agentLink points at the shared agent page')
+assert.strictEqual(summaryVars({ agent: {}, session: { visitorName: 'hari' }, demos: [] }).firstName, 'Hari')
+assert.strictEqual(summaryVars({ agent: {}, session: { visitorName: 'Hari Kumar' }, demos: [] }).firstName, 'Hari')
+assert.strictEqual(summaryVars({ agent: {}, session: {}, demos: [] }).firstName, 'there')
 console.log('summaryEmail.check OK')
