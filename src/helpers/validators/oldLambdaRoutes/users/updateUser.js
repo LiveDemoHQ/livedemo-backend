@@ -5,6 +5,7 @@ function validateBody(body) {
 
 
   let schema = Joi.object().keys({
+    name: Joi.string().trim().min(1).max(120).optional(),
     timezone: Joi.string().optional(),
     onboarding: Joi.object().keys({
       goals: Joi.array()

@@ -122,6 +122,45 @@ function pickRid(req) {
         || undefined
 }
 
+// High-volume / noisy routes: compact one-line access logs
+export function shouldLogOnOneLine(req) {
+
+    const routePath = req.route && req.route.path
+    if (routePath === '/' || routePath === '/healthz' || routePath === '/readyz') {
+
+        return true
+    }
+
+    if (routePath === '/workspaces/:workspaceId/stories/:storyId/sessions') {
+
+        return true
+    }
+
+    if (routePath === '/workspaces/:workspaceId/stories/:storyId/sessions/:sessionId/events') {
+
+        return true
+    }
+
+    const path = req.path || ''
+
+    if (path === '/' || path === '/healthz' || path === '/readyz') {
+
+        return true
+    }
+
+    if (/^\/workspaces\/[^/]+\/stories\/[^/]+\/sessions\/?$/.test(path)) {
+
+        return true
+    }
+
+    if (/^\/workspaces\/[^/]+\/stories\/[^/]+\/sessions\/[^/]+\/events\/?$/.test(path)) {
+
+        return true
+    }
+
+    return false
+}
+
 function buildAccessData(req, res, ms) {
 
     const status = res.statusCode
@@ -175,7 +214,8 @@ export default function httpAccessLog(req, res, next) {
         const data = buildAccessData(req, res, ms)
         const payload = {
             eventName: 'HTTP_REQUEST',
-            data
+            data,
+            onOneLine: shouldLogOnOneLine(req)
         }
 
         if (data.status >= 500) {

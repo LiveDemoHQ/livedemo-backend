@@ -43,12 +43,18 @@ const handler = function (req, res) {
       return getUserByAccessToken(authToken, Models.User, Models.AuthToken)
     })
     .then((userData) => {
+      const newName = requestBody.name
       const newTimezone = requestBody.timezone
       const newOnboardingGoals = requestBody.onboarding?.goals
       const newIsSubscribed = requestBody.emailConfig?.isSubscribed
       let hasUpdates = false
 
       let updateObj = {}
+
+      if (typeof newName === 'string' && newName.trim()) {
+        updateObj.name = newName.trim()
+        hasUpdates = true
+      }
 
       if (newTimezone) {
         updateObj.timezone = newTimezone

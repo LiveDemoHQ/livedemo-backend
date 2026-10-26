@@ -19,7 +19,11 @@ function enqueueDemoCompletionEvent(storyId, sessionId, sessionEventId) {
       if (err) {
         reject(err)
       }
-      logger.info('Enqueued completion-event:', { eventName: 'ENQUEUED_COMPLETION_EVENT', data: { detail: job.data } })
+      logger.info('Enqueued completion-event:', {
+          eventName: 'ENQUEUED_COMPLETION_EVENT',
+          onOneLine: true,
+          data: { detail: job.data }
+      })
       resolve()
     })
   })
@@ -168,7 +172,10 @@ const handler = function (req, res) {
       res.send('')
     })
     .catch((error) => {
-      logger.error(error, { eventName: 'POST_STORY_SESSION_EVENTS_FAILED' })
+      logger.error(error, {
+          eventName: 'POST_STORY_SESSION_EVENTS_FAILED',
+          onOneLine: true
+      })
 
       let resultResponse
       if (error.resultResponse) {

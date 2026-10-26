@@ -12,6 +12,7 @@ const formatMessage = printf((info) => {
         stack,
         eventName,
         data,
+        onOneLine = false,
         ...meta
     } = info
 
@@ -30,7 +31,8 @@ const formatMessage = printf((info) => {
         base.stack = stack || new Error().stack
     }
 
-    return JSON.stringify(base, null, 2)
+    // onOneLine: true → compact single-line JSON; default false → pretty-printed
+    return onOneLine ? JSON.stringify(base) : JSON.stringify(base, null, 2)
 })
 
 const winstonLogger = winston.createLogger({

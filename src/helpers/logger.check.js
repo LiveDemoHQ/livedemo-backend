@@ -5,7 +5,8 @@
 import assert from 'assert'
 import {
     summarizeAuthorization,
-    truncateReqBody
+    truncateReqBody,
+    shouldLogOnOneLine
 } from '../middlewares/httpAccessLog.js'
 import logger from './logger.js'
 
@@ -48,5 +49,35 @@ try {
 }
 assert.ok(errorOut.includes('"stack"'), 'error log must include stack')
 assert.ok(errorOut.includes('Error'), 'stack must look like Error().stack')
+
+let oneLineOut = ''
+const origStdout = process.stdout.write
+process.stdout.write = (chunk) => {
+
+    oneLineOut += String(chunk)
+    return true
+}
+try {
+
+    logger.info('one line', { eventName: 'HTTP_REQUEST', onOneLine: true, data: { path: '/' } })
+} finally {
+
+    process.stdout.write = origStdout
+}
+assert.ok(!oneLineOut.includes('\n  '), 'onOneLine must not pretty-print')
+assert.ok(oneLineOut.includes('"eventName":"HTTP_REQUEST"'), 'onOneLine must still be JSON')
+assert.ok(!oneLineOut.includes('"onOneLine"'), 'onOneLine flag must not appear in output')
+
+assert.equal(shouldLogOnOneLine({ path: '/', route: { path: '/' } }), true)
+assert.equal(shouldLogOnOneLine({ path: '/readyz', route: { path: '/readyz' } }), true)
+assert.equal(shouldLogOnOneLine({
+    path: '/workspaces/w/stories/s/sessions',
+    route: { path: '/workspaces/:workspaceId/stories/:storyId/sessions' }
+}), true)
+assert.equal(shouldLogOnOneLine({
+    path: '/workspaces/w/stories/s/sessions/x/events',
+    route: { path: '/workspaces/:workspaceId/stories/:storyId/sessions/:sessionId/events' }
+}), true)
+assert.equal(shouldLogOnOneLine({ path: '/api/stories' }), false)
 
 logger.info('logger.check.js: ok', { eventName: 'LOGGER' })

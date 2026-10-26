@@ -19,7 +19,11 @@ function enqueueDemoVisitEvent(storyId, sessionId) {
       if (err) {
         reject(err)
       }
-      logger.info('Enqueued demo-visit-event:', { eventName: 'ENQUEUED_DEMO_VISIT_EVENT', data: { detail: job.data } })
+      logger.info('Enqueued demo-visit-event:', {
+          eventName: 'ENQUEUED_DEMO_VISIT_EVENT',
+          onOneLine: true,
+          data: { detail: job.data }
+      })
       resolve()
     })
   })
@@ -123,7 +127,11 @@ const handler = function (req, res) {
         .then(() => sessionDoc)
         .catch((err) => {
           // Log error but don't fail the request if enqueueing fails
-          logger.error('Failed to enqueue demo-visit-event:', { eventName: 'FAILED_TO_ENQUEUE_DEMO_VISIT_EVENT_FAILED', err: err })
+          logger.error('Failed to enqueue demo-visit-event:', {
+              eventName: 'FAILED_TO_ENQUEUE_DEMO_VISIT_EVENT_FAILED',
+              onOneLine: true,
+              err: err
+          })
           return sessionDoc
         })
     })
@@ -145,7 +153,10 @@ const handler = function (req, res) {
       res.send(JSON.stringify(sessionDoc || { recordingDisabled: true }))
     })
     .catch((error) => {
-      logger.error(error, { eventName: 'POST_STORY_SESSION_FAILED' })
+      logger.error(error, {
+          eventName: 'POST_STORY_SESSION_FAILED',
+          onOneLine: true
+      })
 
       let resultResponse
       if (error.resultResponse) {
