@@ -4,6 +4,8 @@ import crypto from 'crypto'
 import ENV from '../../envServer.js'
 import { livekitToken, buildSessionBody, findStockAvatar, STOCK_AVATARS, AVATAR_IDENTITY, hasVideoTrack, clipBytes, MIN_CLIP_BYTES, clipStatus, CLIP_STALE_MS } from './lemonslice.js'
 
+import logger from '../logger.js'
+
 ENV.LIVEKIT_API_KEY = 'APIkey'
 ENV.LIVEKIT_API_SECRET = 'secret'
 ENV.LIVEKIT_URL = 'wss://example.livekit.cloud'
@@ -66,4 +68,4 @@ assert.strictEqual(clipStatus({ videoUrl: '', clipStatus: 'pending', updatedAt: 
 assert.strictEqual(clipStatus({ videoUrl: '', clipStatus: 'pending', updatedAt: new Date(now - CLIP_STALE_MS - 1) }, now), 'failed', 'a dead worker never spins forever')
 assert.strictEqual(clipStatus({ videoUrl: '', clipStatus: 'failed' }, now), 'failed')
 
-console.log('lemonslice.check ok')
+logger.info('lemonslice.check ok', { eventName: 'LEMONSLICE_CHECK_OK' })

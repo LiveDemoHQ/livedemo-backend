@@ -4,6 +4,8 @@ import postAutoRecordingsEventsValidator
 import ResponseCodes from '../constants/ResponseCodes.js'
 import DemoLimits from '../constants/DemoLimits.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
     let {Models, conn} = req.mongo
 
@@ -105,7 +107,7 @@ const handler = function (req, res) {
             res.send('')
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'POST_AUTO_RECORDINGS_EVENTS_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

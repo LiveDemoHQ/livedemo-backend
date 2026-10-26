@@ -8,6 +8,8 @@ import { sendError, httpError, CORS_HEADERS } from '../helpers/agent/http.js'
 import rateLimit, { clientIp } from '../helpers/agent/rateLimit.js'
 import ENV from '../envServer.js'
 
+import logger from '../helpers/logger.js'
+
 // user + assistant messages, so ~50 visitor turns
 const MAX_MESSAGES_PER_SESSION = 100
 
@@ -88,7 +90,7 @@ const handler = async function (req, res) {
     res.end()
   } catch (error) {
     if (headersSent) {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_AGENT_CHAT_FAILED' })
       res.write(`event: error\ndata: ${JSON.stringify({ message: 'Something went wrong' })}\n\n`)
       res.end()
     } else {

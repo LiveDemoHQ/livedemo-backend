@@ -4,6 +4,8 @@ import unsubscribeValidator from '../helpers/validators/oldLambdaRoutes/users/un
 import LambdaRateLimiter from 'lambda-rate-limiter'
 import { unsubscribeSubscriber } from '../helpers/sequenzy/sequenzyClient.js'
 
+import logger from '../helpers/logger.js'
+
 const corsHeaders = {
   'Access-Control-Max-Age': 600,
   'Access-Control-Allow-Origin': '*',
@@ -86,7 +88,7 @@ const handler = function (req, res) {
       }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_USERS_UNSUBSCRIBE_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

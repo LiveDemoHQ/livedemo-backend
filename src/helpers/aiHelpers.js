@@ -3,6 +3,8 @@ import ENV from '../envServer.js'
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js'
 import { GoogleGenAI } from '@google/genai'
 
+import logger from './logger.js'
+
 const openai = new OpenAI({
     apiKey: ENV.OPENAI_API_KEY,
 })
@@ -194,7 +196,7 @@ async function embedPdfDocument(pdfBase64, options = {}) {
         } catch (err) {
             if (!isRateLimitError(err) || attempt === EMBED_MAX_RETRIES) throw err
             const delay = Math.min(60000, 2000 * (2 ** attempt))
-            console.log(`embedPdf 429, retry ${attempt + 1}/${EMBED_MAX_RETRIES} in ${delay}ms`)
+            logger.info(`embedPdf 429, retry ${attempt + 1}/${EMBED_MAX_RETRIES} in ${delay}ms`, { eventName: 'AI_HELPERS' })
             await sleep(delay)
         }
     }
@@ -213,7 +215,7 @@ async function embedText(text, options = {}) {
         } catch (err) {
             if (!isRateLimitError(err) || attempt === EMBED_MAX_RETRIES) throw err
             const delay = Math.min(60000, 2000 * (2 ** attempt))
-            console.log(`embedText 429, retry ${attempt + 1}/${EMBED_MAX_RETRIES} in ${delay}ms`)
+            logger.info(`embedText 429, retry ${attempt + 1}/${EMBED_MAX_RETRIES} in ${delay}ms`, { eventName: 'AI_HELPERS' })
             await sleep(delay)
         }
     }
@@ -233,7 +235,7 @@ async function embedBatchWithRetry(texts, options = {}) {
             if (!isRateLimitError(err) || attempt === EMBED_MAX_RETRIES) {
                 // If batch not supported on this endpoint/model, fallback to sequential
                 if (/batch|multiple|supports one content/i.test(String(err?.message || ''))) {
-                    console.log('Batch embedding not supported by endpoint, falling back to sequential')
+                    logger.info('Batch embedding not supported by endpoint, falling back to sequential', { eventName: 'AI_HELPERS' })
                     const sequential = []
                     for (const text of texts) {
                         sequential.push(await embedText(text, options))
@@ -243,7 +245,7 @@ async function embedBatchWithRetry(texts, options = {}) {
                 throw err
             }
             const delay = Math.min(60000, 2000 * (2 ** attempt))
-            console.log(`embedBatch 429, retry ${attempt + 1}/${EMBED_MAX_RETRIES} in ${delay}ms`)
+            logger.info(`embedBatch 429, retry ${attempt + 1}/${EMBED_MAX_RETRIES} in ${delay}ms`, { eventName: 'AI_HELPERS' })
             await sleep(delay)
         }
     }
@@ -275,13 +277,13 @@ function query3_5(message) {
         temperature: 0.5,
     })
         .then(response => {
-            console.log(response.choices[0].message.content)
+            logger.error(response.choices[0].message.content, { eventName: 'AI_HELPERS_FAILED' })
 
             return response.choices[0].message.content
         })
         .catch(err => {
 
-            console.log(err)
+            logger.error(err, { eventName: 'AI_HELPERS_FAILED' })
             throw err
         })
 }
@@ -306,7 +308,7 @@ function textToSpeech(type, text) {
         })
         .catch(err => {
 
-            console.log(err)
+            logger.error(err, { eventName: 'AI_HELPERS_FAILED' })
         })
 }
 
@@ -357,7 +359,7 @@ async function elTextToSpeech(voiceId, text, { outputFormat } = {}) {
         })
         .catch(err => {
 
-            console.log(err)
+            logger.error(err, { eventName: 'AI_HELPERS_FAILED' })
         })
 }
 
@@ -401,7 +403,7 @@ async function elGetVoices(collectionId) {
         })
         .catch(err => {
 
-            console.log(err)
+            logger.error(err, { eventName: 'AI_HELPERS_FAILED' })
         })
 }
 

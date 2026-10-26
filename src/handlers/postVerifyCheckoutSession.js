@@ -20,9 +20,11 @@ import {
   syncUserStripeCustomerId,
 } from '../helpers/paymentHelpers.js'
 import {
+
   linkSubscriptionToCustomer,
   upsertSubscriptionCustomer,
 } from '../helpers/subscriptionCustomerHelpers.js'
+import logger from '../helpers/logger.js'
 
 const CORS_HEADERS = {
   'Access-Control-Max-Age': 600,
@@ -166,7 +168,7 @@ const handler = async function (req, res) {
           defaultPaymentMethod = setupIntent.payment_method
         }
       } catch (e) {
-        console.warn('postVerifyCheckoutSession: could not retrieve setup intent payment method', e.message)
+        logger.error('postVerifyCheckoutSession: could not retrieve setup intent payment method', { eventName: 'POST_VERIFY_CHECKOUT_SESSION_FAILED', err: e.message })
       }
     }
     const paymentMethodId = typeof defaultPaymentMethod === 'string'
@@ -301,7 +303,7 @@ const handler = async function (req, res) {
       alreadyProcessed: false
     })
   } catch (err) {
-    console.error('postVerifyCheckoutSession error:', err)
+    logger.error('postVerifyCheckoutSession error:', { eventName: 'POSTVERIFYCHECKOUTSESSION_ERROR', err: err })
     res.status(ResponseCodes['500_INTERNAL_SERVER_ERROR']).json({
       error: true,
       message: err.message

@@ -11,6 +11,8 @@ import * as parse5 from 'parse5'
 import { httpError } from '../helpers/rrwebScreenGuards.js'
 import { stringifyRrwebEvents } from '../helpers/rrwebEventNames.js'
 
+import logger from '../helpers/logger.js'
+
 const SCREENDOC_ENCODING = 'utf-8'
 const RRWEB_FULL_SNAPSHOT = 2
 
@@ -76,7 +78,7 @@ function handler(req, res){
       res.send(JSON.stringify(newScreen))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_SCREENS_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

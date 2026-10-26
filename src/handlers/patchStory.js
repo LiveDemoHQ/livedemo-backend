@@ -10,6 +10,8 @@ import mongoose from 'mongoose';
 const { ObjectId } = mongoose.Types;
 import short from 'short-uuid'
 
+import logger from '../helpers/logger.js'
+
 const handler = function(req, res){
   let {Models, conn} = req.mongo
 
@@ -53,7 +55,7 @@ const handler = function(req, res){
       }).lean()
     })
     .then((updatedStory) => {
-      console.log('Story updated - ' + updatedStory._id.toString(16))
+      logger.info('Story updated - ' + updatedStory._id.toString(16), { eventName: 'PATCH_STORY' })
 
       const resultResponse = {
         statusCode: ResponseCodes['200_OK'],
@@ -73,7 +75,7 @@ const handler = function(req, res){
       }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'PATCH_STORY_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

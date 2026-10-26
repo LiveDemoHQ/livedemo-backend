@@ -6,6 +6,8 @@ import { captureStoryPreImage, recordRevision } from '../helpers/storyRevisions.
 import { planSandboxScreens, anchorFromClick, newSandbox } from '../helpers/sandbox/sandbox.js'
 import { pickClickMeta, pickThumbnail, createRrwebScreenDoc } from './processStoryDemoDom.js'
 
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types
 
 // Sandbox recording -> screens with capture links, pushed as one flow.
@@ -15,7 +17,7 @@ async function processSandboxDom(sharedConfig, params, callback) {
     const { Models } = sharedConfig
     const { storyDemoId } = params
 
-    console.log(`Started - processSandboxDom - ${storyDemoId}`)
+    logger.info(`Started - processSandboxDom - ${storyDemoId}`, { eventName: 'PROCESS_SANDBOX_DOM' })
 
     return Models.Story.findOne({ _id: storyDemoId })
         .lean()
@@ -126,11 +128,11 @@ async function processSandboxDom(sharedConfig, params, callback) {
 
             await Models.Workspace.updateOne({ _id: capture.workspaceId }, { $addToSet: { 'library.pages': { $each: ids } } })
 
-            console.log(`Finished - processSandboxDom - ${storyDemoId} screens=${ids.length} target=${targetId || storyDemoId}`)
+            logger.info(`Finished - processSandboxDom - ${storyDemoId} screens=${ids.length} target=${targetId || storyDemoId}`, { eventName: 'PROCESS_SANDBOX_DOM' })
             callback(null, { storyDemoId, sandboxId: String(targetId || storyDemoId), screenCount: ids.length })
         })
         .catch((err) => {
-            console.log(`Failed - processSandboxDom - ${storyDemoId}`, err)
+            logger.error(`Failed - processSandboxDom - ${storyDemoId}`, { eventName: 'PROCESS_SANDBOX_DOM_FAILED', err: err })
             return Models.Story.updateOne({ _id: storyDemoId }, { $set: { status: StoryStatuses.FAILED } })
                 .catch(() => null)
                 .then(() => callback(err))

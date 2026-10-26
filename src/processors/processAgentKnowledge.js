@@ -3,6 +3,8 @@ import aiHelpers from '../helpers/aiHelpers.js'
 import { chunkText, storyToChunks, stripHtml } from '../helpers/agent/agentKnowledge.js'
 import { contentHash, crawlSite, renderOne } from '../helpers/agent/siteCrawler.js'
 
+import logger from '../helpers/logger.js'
+
 // monq job: indexAgentKnowledge { agentId, sourceId? }
 // extract → chunk → embed → deleteMany-then-insertMany chunks → status ready.
 // sourceId null = reindex every source of the agent (Demos-tab save, revert).
@@ -46,7 +48,7 @@ async function indexSite(Models, agent, source) {
     text,
     metadata: { title: p.title || source.title, url: p.url },
   })))
-  console.log(`indexAgentKnowledge site ${source._id}: ${pages.length} pages, ${changed.length} changed, ${entries.length} chunks to embed`)
+  logger.info(`indexAgentKnowledge site ${source._id}: ${pages.length} pages, ${changed.length} changed, ${entries.length} chunks to embed`, { eventName: 'PROCESS_AGENT_KNOWLEDGE' })
   const embeddings = entries.length ? await aiHelpers.embedTexts(entries.map(e => e.text), { taskType: 'RETRIEVAL_DOCUMENT' }) : []
 
   const replaceUrls = [...changed.map(p => p.url), ...staleUrls]
@@ -118,7 +120,7 @@ async function indexOneSource(Models, agent, source) {
           pdfNative: true,
         },
       }]
-      console.log(`indexAgentKnowledge native PDF embed (${source.pageCount} pages) for source ${source._id}`)
+      logger.info(`indexAgentKnowledge native PDF embed (${source.pageCount} pages) for source ${source._id}`, { eventName: 'PROCESS_AGENT_KNOWLEDGE' })
       embeddings = [await aiHelpers.embedPdfDocument(source.fileBase64)]
     } else {
       const text = await extractSourceText(Models, source)
@@ -131,7 +133,7 @@ async function indexOneSource(Models, agent, source) {
     if (!embeddings.length) {
       const texts = chunkEntries.map(e => e.text)
       if (texts.length) {
-        console.log(`indexAgentKnowledge embedding ${texts.length} chunks for source ${source._id}`)
+        logger.info(`indexAgentKnowledge embedding ${texts.length} chunks for source ${source._id}`, { eventName: 'PROCESS_AGENT_KNOWLEDGE' })
       }
       embeddings = texts.length ? await aiHelpers.embedTexts(texts, {
         taskType: 'RETRIEVAL_DOCUMENT',
@@ -151,7 +153,7 @@ async function indexOneSource(Models, agent, source) {
       { $set: { status: 'ready', chunkCount: docs.length, ...(source.type === 'url' ? { lastCrawledAt: new Date() } : {}) } }
     )
   } catch (err) {
-    console.log('indexAgentKnowledge source failed', source._id.toString(), err)
+    logger.error('indexAgentKnowledge source failed', { eventName: 'INDEXAGENTKNOWLEDGE_SOURCE_FAILED', err: err })
     await Models.AgentKnowledgeSource.updateOne(
       { _id: source._id },
       { $set: { status: 'error', errorMessage: err.message || 'Indexing failed' } }
@@ -182,7 +184,7 @@ function processAgentKnowledge(sharedConfig, params, callback) {
       callback(null, { agentId, sourceId })
     })
     .catch((err) => {
-      console.log('processAgentKnowledge failed', err)
+      logger.error('processAgentKnowledge failed', { eventName: 'PROCESSAGENTKNOWLEDGE_FAILED', err: err })
       callback(err)
     })
 }

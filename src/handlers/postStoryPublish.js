@@ -5,6 +5,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import ENV from '../envServer.js'
 const { STORY_REQUESTS_FOLDER } = ENV
 import mongoose from 'mongoose';
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types;
 
 
@@ -82,7 +84,7 @@ const handler = function (req, res) {
 
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_STORY_PUBLISH_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

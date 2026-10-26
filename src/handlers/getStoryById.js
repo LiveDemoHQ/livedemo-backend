@@ -2,6 +2,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { getChecklistContext } from '../helpers/checklist/checklist.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -85,7 +87,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify(responsePayload))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'GET_STORY_BY_ID_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

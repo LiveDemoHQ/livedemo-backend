@@ -3,6 +3,8 @@ import readline from 'readline';
 import {google} from 'googleapis';
 import ENV from '../../../envServer.js'
 
+import logger from '../../logger.js'
+
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/gmail.insert'];
 // The file token.json stores the user's access and refresh tokens, and is
@@ -63,7 +65,7 @@ function getNewToken(oAuth2Client ) {
       access_type: 'offline',
       scope: SCOPES,
     });
-    console.log('Authorize this app by visiting this url:', authUrl);
+    logger.info('Authorize this app by visiting this url:', { eventName: 'AUTHORIZE_THIS_APP_BY_VISITING_THIS_URL', data: { detail: authUrl } });
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
@@ -75,17 +77,17 @@ function getNewToken(oAuth2Client ) {
 
         oAuth2Client.getToken(code, (err, token) => {
         if (err) {
-          console.error(err)
+          logger.error(err, { eventName: 'GENERATE_TOKEN_JSON_FAILED' })
           reject(err);
         }
         oAuth2Client.setCredentials(token);
         // Store the token to disk for later program executions
         fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
           if (err) {
-            console.error(err)
+            logger.error(err, { eventName: 'GENERATE_TOKEN_JSON_FAILED' })
             reject(err);
           }
-          console.log('Token stored to', TOKEN_PATH);
+          logger.info('Token stored to', { eventName: 'TOKEN_STORED_TO', data: { detail: TOKEN_PATH } });
         });
 
         resolve(oAuth2Client);
@@ -106,15 +108,15 @@ function listLabels(auth) {
   gmail.users.labels.list({
     userId: 'me',
   }, (err, res) => {
-    if (err) return console.log('The API returned an error: ' + err);
+    if (err) return logger.info('The API returned an error: ' + err, { eventName: 'GENERATE_TOKEN_JSON' });
     const labels = res.data.labels;
     if (labels.length) {
-      console.log('Labels:');
+      logger.info('Labels:', { eventName: 'LABELS' });
       labels.forEach((label) => {
-        console.log(`- ${label.name}`);
+        logger.info(`- ${label.name}`, { eventName: 'GENERATE_TOKEN_JSON' });
       });
     } else {
-      console.log('No labels found.');
+      logger.info('No labels found.', { eventName: 'NO_LABELS_FOUND' });
     }
   });
 }

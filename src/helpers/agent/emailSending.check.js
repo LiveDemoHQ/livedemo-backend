@@ -2,6 +2,7 @@
 // Workspace-supplied SMTP settings are the trust boundary: validated hosts/addresses, secret never exposed.
 import assert from 'assert'
 import {
+
     encryptSecret,
     decryptSecret,
     normalizeEmailSettings,
@@ -9,6 +10,7 @@ import {
     senderFor,
     deliver
 } from './emailSending.js'
+import logger from '../logger.js'
 
 const enc = encryptSecret('p@ss')
 assert.notStrictEqual(enc, encryptSecret('p@ss'), 'random iv')
@@ -50,4 +52,4 @@ assert.strictEqual(senderFor(saved, 'Bot').email, 'sales@acme.io')
 await assert.rejects(() => deliver({ mode: 'disabled' }, { to: 'a@b.co', mime: '' }))
 await assert.rejects(() => deliver({ mode: 'smtp', smtp: { ...saved.smtp, host: '127.0.0.1' } }, { to: 'a@b.co', mime: '' }), /public/)
 
-console.log('emailSending.check OK')
+logger.info('emailSending.check OK', { eventName: 'EMAILSENDING_CHECK_OK' })

@@ -10,6 +10,8 @@ import { sendEmail } from '../helpers/emails/emailsSender.js'
 import Templates from '../helpers/emails/templates/index.js'
 import { syncSignupSubscriber } from '../helpers/sequenzy/sequenzyClient.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models } = req.mongo
 
@@ -111,7 +113,7 @@ const handler = function (req, res) {
           unsubscribeToken: updatedUser.emailConfig?.unsubscribeToken || '',
         }, [updatedUser.email], Models)
           .catch((err) => {
-            console.log('Welcome email send error:', err)
+            logger.error('Welcome email send error:', { eventName: 'WELCOME_EMAIL_SEND_ERROR', err: err })
           })
           .then(() => updatedUser)
       }
@@ -146,7 +148,7 @@ const handler = function (req, res) {
       })
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_USERS_CHECK_EMAIL_VERIFY_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

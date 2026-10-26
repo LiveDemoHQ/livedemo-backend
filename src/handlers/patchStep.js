@@ -2,6 +2,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import patchStepValidator from '../helpers/validators/stories/screens/steps/patchStepValidator.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 
+import logger from '../helpers/logger.js'
+
 function sanitizeEmbedHtml(raw) {
   if (!raw) return raw
   return Buffer.from(raw, 'utf8').toString('base64')
@@ -256,7 +258,7 @@ const handler = function (req, res) {
 
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'PATCH_STEP_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

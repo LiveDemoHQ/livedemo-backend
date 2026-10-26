@@ -4,6 +4,8 @@ import { createRequire } from 'module'
 import selfsigned from 'selfsigned'
 import { normalizeCert, samlFor, spValues, ssoEmail } from './sso.js'
 
+import logger from './logger.js'
+
 const require = createRequire(createRequire(import.meta.url).resolve('@node-saml/node-saml'))
 const { SignedXml } = require('xml-crypto')
 
@@ -97,5 +99,5 @@ await assert.rejects(samlFor(Models, workspace).validatePostResponseAsync(b64(ta
 store.clear()
 await assert.rejects(samlFor(Models, workspace).validatePostResponseAsync(b64(samlResponse('_unknown', 'user@acme.com'))))
 
-console.log('sso.check ok')
+logger.info('sso.check ok', { eventName: 'SSO_CHECK_OK' })
 process.exit(0)

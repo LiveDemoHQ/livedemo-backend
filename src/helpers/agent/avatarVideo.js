@@ -3,6 +3,8 @@ import { stockAvatarVideoUrl } from './anam.js'
 import { findAvatar as findLemonSliceAvatar, recordAvatarClip } from './lemonslice.js'
 import { workspaceApiKey } from './providerKeys.js'
 
+import logger from '../logger.js'
+
 const MAX_BYTES = 20 * 1024 * 1024
 const CDN_BASE = 'https://livedemo-cdn.s3.us-east-1.amazonaws.com'
 const copied = {}
@@ -30,7 +32,7 @@ export default async function avatarVideoUrl(Models, workspaceId, provider, avat
     copied[name] = upload.Location
     return upload.Location
   } catch (err) {
-    console.log('[avatarVideo] copy failed', name, err.message)
+    logger.error('[avatarVideo] copy failed', { eventName: 'COPY_FAILED', err: err.message })
     return ''
   }
 }
@@ -39,10 +41,10 @@ export default async function avatarVideoUrl(Models, workspaceId, provider, avat
 // a failure sets clipStatus 'failed' and the editor offers Retry.
 export async function recordLemonSliceClip(Models, avatarId) {
   const doc = await Models.LemonSliceAvatar.findById(avatarId).lean()
-  if (!doc) return console.log('[avatarVideo] recordLemonSliceClip skipped, avatar not found', avatarId)
-  if (doc.videoUrl) return console.log('[avatarVideo] recordLemonSliceClip skipped, clip exists', avatarId)
+  if (!doc) return logger.info('[avatarVideo] recordLemonSliceClip skipped, avatar not found', { eventName: 'RECORDLEMONSLICECLIP_SKIPPED_AVATAR_NOT_FOUND', data: { detail: avatarId } })
+  if (doc.videoUrl) return logger.info('[avatarVideo] recordLemonSliceClip skipped, clip exists', { eventName: 'RECORDLEMONSLICECLIP_SKIPPED_CLIP_EXISTS', data: { detail: avatarId } })
 
-  console.log('[avatarVideo] recordLemonSliceClip start', avatarId, 'workspace', String(doc.workspaceId))
+  logger.info('[avatarVideo] recordLemonSliceClip start', { eventName: 'RECORDLEMONSLICECLIP_START', data: { detail: [avatarId, 'workspace', String(doc.workspaceId)] } })
   const key = `screen-videos/avatar-lemonslice-${avatarId}.mp4`
   try {
     const apiKey = await workspaceApiKey(Models, doc.workspaceId, 'lemonslice')
@@ -60,5 +62,5 @@ export async function recordLemonSliceClip(Models, avatarId) {
     { workspaceId: doc.workspaceId, avatarProvider: 'lemonslice', lemonsliceAvatarId: String(doc._id) },
     { $set: { avatarVideoUrl: videoUrl } }
   )
-  console.log('[avatarVideo] recordLemonSliceClip done', avatarId, videoUrl, 'agents updated', agents.modifiedCount)
+  logger.info('[avatarVideo] recordLemonSliceClip done', { eventName: 'RECORDLEMONSLICECLIP_DONE', data: { detail: [avatarId, videoUrl, 'agents updated', agents.modifiedCount] } })
 }

@@ -7,6 +7,8 @@ import { CORS_HEADERS } from '../helpers/agent/http.js'
 import { hashToken } from '../helpers/authHelpers.js'
 import { newApiToken } from './apiKeys.js'
 
+import logger from '../helpers/logger.js'
+
 // OAuth 2.1 authorization server for the MCP connectors (Claude.ai, ChatGPT, ...):
 //   GET  /.well-known/oauth-authorization-server   RFC 8414 metadata
 //   POST /oauth/register                           RFC 7591 dynamic client registration (public clients)
@@ -94,7 +96,7 @@ const register = (req, res) => {
         }))
         .catch(error => {
 
-            console.log(error)
+            logger.error(error, { eventName: 'OAUTH_FAILED' })
             oauthError(res, 'server_error', 'Could not register client', 500)
         })
 }
@@ -132,7 +134,7 @@ const authorize = (req, res) => {
         })
         .catch(error => {
 
-            console.log(error)
+            logger.error(error, { eventName: 'OAUTH_FAILED' })
             res.status(500).send('Authorization failed')
         })
 }
@@ -165,7 +167,7 @@ const decision = (req, res) => {
         })
         .catch(error => {
 
-            console.log(error)
+            logger.error(error, { eventName: 'OAUTH_FAILED' })
             if (error.resultResponse) return oauthError(res, 'access_denied', 'Sign in first', 401)
             oauthError(res, 'server_error', 'Authorization failed', 500)
         })
@@ -217,7 +219,7 @@ const token = (req, res) => {
             })
             .catch(error => {
 
-                console.log(error)
+                logger.error(error, { eventName: 'OAUTH_FAILED' })
                 oauthError(res, 'server_error', 'Token exchange failed', 500)
             })
     }
@@ -237,7 +239,7 @@ const token = (req, res) => {
             })
             .catch(error => {
 
-                console.log(error)
+                logger.error(error, { eventName: 'OAUTH_FAILED' })
                 oauthError(res, 'server_error', 'Token refresh failed', 500)
             })
     }

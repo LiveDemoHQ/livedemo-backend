@@ -21,6 +21,8 @@ import {
 } from '../helpers/migrateDemos.js'
 import { syncMigrateLead } from '../helpers/sequenzy/sequenzyClient.js'
 
+import logger from '../helpers/logger.js'
+
 // Clone a public Storylane / Arcade / Navattic / Supademo demo (livedemo-ai-api/clone_demos_tech_design.md).
 // Public (landing page):
 // POST /migratedemos                                  { email, url, browserSessionId? } -> { _id, status }
@@ -131,7 +133,7 @@ const postMigrateDemo = wrap(async (req, res) => {
     // the job is idempotent: a completed link just emails this requester (landing) / claims (app)
     await enqueueProcessMigrateDemo(doc._id).catch((err) => {
 
-        console.error('[migrateDemos] enqueue failed', doc._id, err)
+        logger.error('[migrateDemos] enqueue failed', { eventName: 'ENQUEUE_FAILED', err: err })
         if (doc.status !== 'completed') {
 
             throw err

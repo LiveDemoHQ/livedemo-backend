@@ -2,6 +2,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import limiter from '../helpers/rateLimiter.js'
 import { buildGoogleLoginLink } from '../helpers/googleAuthLinkHelpers.js'
 
+import logger from '../helpers/logger.js'
+
 function corsHeaders() {
   return {
     'Access-Control-Max-Age': 600,
@@ -46,7 +48,7 @@ const handler = function (req, res) {
       res.json({ link: loginLink })
     })
     .catch((err) => {
-      console.log(err)
+      logger.error(err, { eventName: 'POST_USERS_AUTH_GOOGLE_LINK_FAILED' })
 
       let resultResponse
       if (err.resultResponse) {

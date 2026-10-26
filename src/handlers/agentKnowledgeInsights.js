@@ -5,6 +5,8 @@ import retrieve from '../helpers/agent/retrieve.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 
+import logger from '../helpers/logger.js'
+
 // Editor-only knowledge tooling:
 //   GET  /workspaces/:workspaceId/agents/:agentId/knowledge/:sourceId/preview  what the agent actually reads
 //   GET  /workspaces/:workspaceId/agents/:agentId/knowledge-gaps?days=7        unanswered questions, grouped
@@ -123,7 +125,7 @@ const gaps = wrap(async (req, res) => {
         }).filter(g => g.count)
     } catch (err) {
         // ponytail: Gemini down -> exact-match grouping; good enough to not lose the report
-        console.log('knowledge gaps grouping failed', err.message)
+        logger.error('knowledge gaps grouping failed', { eventName: 'KNOWLEDGE_GAPS_GROUPING_FAILED', err: err.message })
         const exact = new Map()
         questions.forEach((item) => {
             const key = item.q.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim()

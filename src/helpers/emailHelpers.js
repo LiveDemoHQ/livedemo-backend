@@ -4,6 +4,8 @@ import { sendEmail } from './emails/emailsSender.js'
 import Templates from './emails/templates/index.js'
 import { EmailVerificationCodeStatuses } from '../models/EmailVerificationCode.js'
 
+import logger from './logger.js'
+
 function generateSixDigitCode() {
   return String(crypto.randomInt(100000, 1000000))
 }
@@ -39,7 +41,7 @@ export async function createAndSendEmailVerificationCode(userDoc, Models) {
     code,
   }, [userDoc.email], Models)
     .catch((err) => {
-      console.log('Email verification send error:', err)
+      logger.error('Email verification send error:', { eventName: 'EMAIL_VERIFICATION_SEND_ERROR', err: err })
     })
 
   return verificationDoc

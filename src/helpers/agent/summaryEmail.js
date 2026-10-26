@@ -3,6 +3,8 @@ import ENV from '../../envServer.js'
 import { emailSettingsOf, senderFor, deliver } from './emailSending.js'
 import { recapUrl } from '../workspaceEvents.js'
 
+import logger from '../logger.js'
+
 // Session summary email to the visitor. Templates are plain text with {{placeholders}};
 // a line whose placeholders are all empty is dropped, so "Demos: {{demos}}" vanishes when none were watched.
 
@@ -181,7 +183,7 @@ export async function sendSummaryEmail(Models, { agent, session, lead }) {
         const messageId = await deliver(settings, { to, mime: buildMime({ from, to, ...rendered, unsubscribeUrl }) })
         return await Models.AgentEmail.create({ ...doc, status: 'sent', messageId })
     } catch (err) {
-        console.log('Summary email failed', err.message)
+        logger.error('Summary email failed', { eventName: 'SUMMARY_EMAIL_FAILED', err: err.message })
         return await Models.AgentEmail.create({ ...doc, status: 'failed', error: String(err.message || err).slice(0, 500) })
     }
 }

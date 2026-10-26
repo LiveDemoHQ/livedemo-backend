@@ -2,6 +2,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import postRemoveUserValidator from '../helpers/validators/oldLambdaRoutes/workspaces/postRemoveUser.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
   let workspaceId = req.params.workspaceId
@@ -144,7 +146,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify(workspaceDoc))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_WORKSPACE_REMOVE_USER_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

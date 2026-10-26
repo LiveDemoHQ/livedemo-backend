@@ -6,6 +6,8 @@ import mongoose from 'mongoose';
 const { ObjectId } = mongoose.Types;
 import fsp from 'fs/promises'
 
+import logger from '../helpers/logger.js'
+
 const {STORY_REQUESTS_FOLDER} = ENV
 
 
@@ -225,7 +227,7 @@ const handler = function (req, res) {
             res.send(JSON.stringify(screenDoc))
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'POST_SCREEN_COPY_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

@@ -3,6 +3,8 @@
 import assert from 'assert'
 import { sealKey, resolveKey, publicKeyStatus, isValidKeyFormat, canUseCustomKeys } from './providerKeys.js'
 
+import logger from '../logger.js'
+
 const KEY = 'sk_live_abcdefghijklmnop1234'
 const ws = (type, id = 'ws1') => ({
     _id: id,
@@ -29,4 +31,4 @@ assert.ok(!isValidKeyFormat('has space in the middle 12345'))
 assert.ok(!isValidKeyFormat('newline\r\ninjected-key-123456'))
 assert.ok(canUseCustomKeys({ type: 'growth' }) && !canUseCustomKeys({ type: 'pro' }) && !canUseCustomKeys(null))
 
-console.log('providerKeys.check OK')
+logger.info('providerKeys.check OK', { eventName: 'PROVIDERKEYS_CHECK_OK' })

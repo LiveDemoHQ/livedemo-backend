@@ -7,6 +7,8 @@ import monq from 'monq'
 import ENV from '../envServer.js'
 import { emitDemoEvent } from '../helpers/workspaceEvents.js'
 
+import logger from '../helpers/logger.js'
+
 function enqueueDemoCompletionEvent(storyId, sessionId, sessionEventId) {
   const client = monq(ENV.DB_URI || 'mongodb://localhost:27017/livedemo_app')
   const queue = client.queue('demoActivityEvents', { collection: 'jobs-monq' })
@@ -17,7 +19,7 @@ function enqueueDemoCompletionEvent(storyId, sessionId, sessionEventId) {
       if (err) {
         reject(err)
       }
-      console.log('Enqueued completion-event:', job.data)
+      logger.info('Enqueued completion-event:', { eventName: 'ENQUEUED_COMPLETION_EVENT', data: { detail: job.data } })
       resolve()
     })
   })
@@ -166,7 +168,7 @@ const handler = function (req, res) {
       res.send('')
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_STORY_SESSION_EVENTS_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

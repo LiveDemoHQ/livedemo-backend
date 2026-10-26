@@ -2,6 +2,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { normalizeSubscriptionCustomer } from '../helpers/subscriptionCustomerHelpers.js'
 
+import logger from '../helpers/logger.js'
+
 const CORS_HEADERS = {
   'Access-Control-Max-Age': 600,
   'Access-Control-Allow-Origin': '*',
@@ -31,7 +33,7 @@ const handler = async function (req, res) {
         : null,
     })
   } catch (err) {
-    console.error('getSubscriptionCustomer error:', err)
+    logger.error('getSubscriptionCustomer error:', { eventName: 'GETSUBSCRIPTIONCUSTOMER_ERROR', err: err })
     res.status(ResponseCodes['500_INTERNAL_SERVER_ERROR']).json({
       error: true,
       message: err.message,

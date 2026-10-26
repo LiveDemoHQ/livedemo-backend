@@ -5,6 +5,8 @@ import axios from 'axios'
 import monq from 'monq'
 import startAgentSchedulers from './helpers/agent/schedulers.js'
 
+import logger from './helpers/logger.js'
+
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 
 function writeStream(stream, encoding = "utf8") {
@@ -36,10 +38,10 @@ async function setupWorkers() {
 
   const worker = client.worker(processorsConfig.allQueueNames, processorsConfig.workerConfig)
   // An 'error' event without a listener crashes the process; monq reconnects on its own
-  worker.on('error', err => console.log('[monq] worker error', err.message))
+  worker.on('error', err => logger.error('[monq] worker error', { eventName: 'WORKER_ERROR', err: err.message }))
   worker.start()
   startAgentSchedulers(Models)
-  console.log("Story consumer started")
+  logger.info("Story consumer started", { eventName: 'STORY_CONSUMER_STARTED' })
 }
 
 export default setupWorkers

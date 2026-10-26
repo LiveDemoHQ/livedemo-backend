@@ -4,6 +4,8 @@ import ResponseCodes from '../../constants/ResponseCodes.js'
 import { httpError } from './http.js'
 import { workspaceApiKey } from './providerKeys.js'
 
+import logger from '../logger.js'
+
 // LemonSlice = face only. It joins a LiveKit room, lip-syncs the ElevenLabs PCM
 // the browser streams to it (topic lk.audio_stream) and publishes audio + video
 // on behalf of the visitor. LIVEKIT_URL must be public: LemonSlice's servers join it.
@@ -105,9 +107,9 @@ export async function createAvatarVariant(imageUrl, apiKey) {
     })
     const body = await res.json().catch(() => ({}))
     if (res.ok && body[AVATAR_VARIANT]) return body[AVATAR_VARIANT]
-    console.log('[lemonslice] avatar-variants unavailable', res.status, JSON.stringify(body).slice(0, 300))
+    logger.info('[lemonslice] avatar-variants unavailable', { eventName: 'AVATAR_VARIANTS_UNAVAILABLE', data: { detail: [res.status, JSON.stringify(body).slice(0, 300)] } })
   } catch (err) {
-    console.log('[lemonslice] avatar-variants network error', err.message)
+    logger.error('[lemonslice] avatar-variants network error', { eventName: 'AVATAR_VARIANTS_NETWORK_ERROR', err: err.message })
   }
   return null
 }
@@ -158,7 +160,7 @@ export function assertConfigured(apiKey) {
     !ENV.LIVEKIT_API_SECRET && 'LIVEKIT_API_SECRET'
   ].filter(Boolean)
   if (missing.length) {
-    console.log('[lemonslice] not configured, missing:', missing.join(', '))
+    logger.info('[lemonslice] not configured, missing:', { eventName: 'NOT_CONFIGURED_MISSING', data: { detail: missing.join(', ') } })
     httpError(ResponseCodes['503_SERVICE_UNAVAILABLE'], 'Avatar service is not configured')
   }
 }
@@ -200,13 +202,13 @@ async function postSession(body, context, apiKey) {
       body: JSON.stringify(body),
     })
   } catch (err) {
-    console.log('[lemonslice] network error', context, err.message)
+    logger.error('[lemonslice] network error', { eventName: 'NETWORK_ERROR', err: err.message })
     httpError(ResponseCodes['503_SERVICE_UNAVAILABLE'], 'Avatar service unavailable')
   }
 
   if (!res.ok) {
     const text = (await res.text().catch(() => '')).slice(0, 500)
-    console.log('[lemonslice] session failed', res.status, `${Date.now() - startedAt}ms`, context, text)
+    logger.error('[lemonslice] session failed', { eventName: 'SESSION_FAILED', data: { detail: [res.status, `${Date.now() - startedAt}ms`, context, text] } })
     if (res.status === 429) httpError(ResponseCodes['429_TOO_MANY_REQUESTS'], 'Avatar service is busy, try again shortly')
     if (res.status === 422) httpError(ResponseCodes['400_BAD_REQUEST'], 'LemonSlice rejected this image, try another photo')
     httpError(ResponseCodes['503_SERVICE_UNAVAILABLE'], 'Avatar service unavailable')
@@ -220,10 +222,10 @@ async function postSession(body, context, apiKey) {
 export async function reframeWithSession(imageUrl, apiKey) {
   const room = `ld-avatar-prep-${crypto.randomBytes(8).toString('hex')}`
   const avatarToken = livekitToken({ identity: AVATAR_IDENTITY, room, kind: 'agent', attributes: { 'lk.publish_on_behalf': 'nobody' } })
-  console.log('[lemonslice] reframe session start', room)
+  logger.info('[lemonslice] reframe session start', { eventName: 'REFRAME_SESSION_START', data: { detail: room } })
   const session = await postSession(buildSessionBody({ imageUrl, custom: true, reframed: false }, avatarToken), { prep: room }, apiKey)
   terminateSession(session, apiKey)
-  console.log('[lemonslice] reframe session done', room, session.edited_image_url ? 'edited image returned' : 'no edited image')
+  logger.info('[lemonslice] reframe session done', { eventName: 'REFRAME_SESSION_DONE', data: { detail: [room, session.edited_image_url ? 'edited image returned' : 'no edited image'] } })
   return session.edited_image_url || null
 }
 
@@ -233,7 +235,7 @@ export function terminateSession(session, apiKey) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
     body: JSON.stringify({ event: 'terminate' }),
-  }).catch(err => console.log('[lemonslice] terminate failed', err.message))
+  }).catch(err => logger.error('[lemonslice] terminate failed', { eventName: 'TERMINATE_FAILED', err: err.message }))
 }
 
 const CLIP_SECONDS = 6
@@ -307,7 +309,7 @@ export async function recordAvatarClip(avatar, key, apiKey) {
   const room = `ld-avatar-clip-${crypto.randomBytes(8).toString('hex')}`
   const avatarToken = livekitToken({ identity: AVATAR_IDENTITY, room, kind: 'agent', attributes: { 'lk.publish_on_behalf': RECORDER_IDENTITY } })
   const startedAt = Date.now()
-  const log = (...args) => console.log('[lemonslice] clip', room, `${Date.now() - startedAt}ms`, ...args)
+  const log = (...args) => logger.info('[lemonslice] clip', { eventName: 'CLIP', data: { detail: [room, `${Date.now() - startedAt}ms`, ...args] } })
   log('start', { avatarId: avatar && avatar.id, reframed: avatar && avatar.reframed, key })
   // LemonSlice only renders while the participant it speaks for is in the room;
   // egress alone doesn't count, so the clip came out black

@@ -2,6 +2,7 @@
 // Visitor emails and workspace-written templates are the trust boundary: no header injection, no raw HTML.
 import assert from 'assert'
 import {
+
     fillTemplate,
     renderSummaryEmail,
     buildMime,
@@ -9,6 +10,7 @@ import {
     isValidEmail,
     summaryVars
 } from './summaryEmail.js'
+import logger from '../logger.js'
 
 assert.strictEqual(fillTemplate('Hi {{firstName}}\nDemos: {{demos}}\nBye', { firstName: 'Ana', demos: '' }), 'Hi Ana\nBye', 'line with only empty placeholders is dropped')
 assert.strictEqual(fillTemplate('A\n\n{{x}}\n\nB', {}), 'A\n\nB', 'no stacked blank lines')
@@ -60,4 +62,4 @@ assert.ok(/\/agents\/a1$/.test(summaryVars({ agent: { _id: 'a1' }, session: {}, 
 assert.strictEqual(summaryVars({ agent: {}, session: { visitorName: 'hari' }, demos: [] }).firstName, 'Hari')
 assert.strictEqual(summaryVars({ agent: {}, session: { visitorName: 'Hari Kumar' }, demos: [] }).firstName, 'Hari')
 assert.strictEqual(summaryVars({ agent: {}, session: {}, demos: [] }).firstName, 'there')
-console.log('summaryEmail.check OK')
+logger.info('summaryEmail.check OK', { eventName: 'SUMMARYEMAIL_CHECK_OK' })

@@ -2,6 +2,8 @@
 import assert from 'assert'
 import { getPostAuthRedirectPath, shouldRedirectToOnboarding } from './emailHelpers.js'
 
+import logger from './logger.js'
+
 const user = (overrides = {}) => ({
     _id: 'u1',
     emailVerified: true,
@@ -63,4 +65,4 @@ assert.equal(
     '/'
 )
 
-console.log('emailHelpers.check.js: ok')
+logger.info('emailHelpers.check.js: ok', { eventName: 'EMAILHELPERS_CHECK_JS_OK' })

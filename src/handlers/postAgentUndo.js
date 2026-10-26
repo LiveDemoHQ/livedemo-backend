@@ -3,6 +3,8 @@ import { undoOnce, historyCounts } from '../helpers/agentRevisions.js'
 import enqueueIndexAgentKnowledge from '../helpers/agent/enqueueIndexJob.js'
 import { sendJson, sendError } from '../helpers/agent/http.js'
 
+import logger from '../helpers/logger.js'
+
 // POST /workspaces/:workspaceId/agents/:agentId/undo — copy of postStoryUndo
 const handler = async function (req, res) {
   const { Models } = req.mongo
@@ -17,7 +19,7 @@ const handler = async function (req, res) {
 
     if (rev) {
       // Chunks are not snapshotted — rebuild them for the restored sources
-      enqueueIndexAgentKnowledge(agentId).catch(err => console.log('enqueue reindex failed', err))
+      enqueueIndexAgentKnowledge(agentId).catch(err => logger.error('enqueue reindex failed', { eventName: 'ENQUEUE_REINDEX_FAILED', err: err }))
     }
 
     sendJson(res, { undone: rev ? rev.actionLabel : null, ...counts })

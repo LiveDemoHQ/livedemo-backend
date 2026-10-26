@@ -11,6 +11,8 @@ import { writeField } from '../helpers/agent/qualification.js'
 import { emitSafe, recapUrl, sessionPayload } from '../helpers/workspaceEvents.js'
 import isAnalyticsExcludedIp from '../helpers/isAnalyticsExcludedIp.js'
 
+import logger from '../helpers/logger.js'
+
 const CHANNELS = ['link', 'oembed', 'embed']
 const TRIGGERS = ['bubble', 'pill', 'pill_mic', 'preview', 'chip', 'button', 'api', 'smartbar', 'auto']
 const EMBED_CAPTURED_VIA = ['embed_pill', 'embed_identify']
@@ -98,7 +100,7 @@ const handler = async function (req, res) {
           timezone: data.timezone,
         }
       } catch (err) {
-        console.log('getClientIpData failed', err.message)
+        logger.error('getClientIpData failed', { eventName: 'GETCLIENTIPDATA_FAILED', err: err.message })
       }
     }
 

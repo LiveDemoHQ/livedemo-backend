@@ -1,5 +1,7 @@
 import ResponseCodes from '../../constants/ResponseCodes.js'
 
+import logger from '../logger.js'
+
 // One tiny response helper for every agent handler instead of duplicating the
 // 40-line CORS/catch boilerplate 25 times. Same headers as the story handlers.
 export const CORS_HEADERS = {
@@ -16,7 +18,7 @@ export function sendJson(res, payload, statusCode = ResponseCodes['200_OK']) {
 }
 
 export function sendError(res, error) {
-  console.log(error)
+  logger.error(error, { eventName: 'HTTP_FAILED' })
 
   const resultResponse = error.resultResponse || {
     statusCode: ResponseCodes['500_INTERNAL_SERVER_ERROR'],

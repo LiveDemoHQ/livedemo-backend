@@ -6,6 +6,8 @@ import path from 'path'
 import short from 'short-uuid'
 
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -39,7 +41,7 @@ const handler = function (req, res) {
 
         return helpers.uploadScreenImage(fileBuffer, mimeType, imageName)
           .then((uploadResult) => {
-            console.log(uploadResult)
+            logger.info(uploadResult, { eventName: 'POST_SCREEN_UPLOAD' })
             imageUrl = uploadResult.Location
 
             return imageUrl
@@ -117,7 +119,7 @@ const handler = function (req, res) {
       res.send('')
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_SCREEN_UPLOAD_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

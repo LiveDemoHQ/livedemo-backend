@@ -1,6 +1,8 @@
 import { SESClient, SendTemplatedEmailCommand, SendRawEmailCommand } from '@aws-sdk/client-ses'
 import ENV from '../../envServer.js'
 
+import logger from '../logger.js'
+
 const sesClient = new SESClient({
   region: 'us-east-1',
   credentials: {
@@ -29,14 +31,14 @@ export function sendEmail(emailTemplate, templateProps, toAddresses, Models) {
       TemplateData: JSON.stringify(transformedProps)
     }
 
-    console.log('SES_ACCESS_KEY_ID: ' + ENV.SES_ACCESS_KEY_ID)
-    console.log('SES_SECRET_ACCESS_KEY: ' + ENV.SES_SECRET_ACCESS_KEY)
+    logger.info('ses access key present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
+    logger.info('ses secret present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
 
     try {
       const command = new SendTemplatedEmailCommand(params)
       const data = await sesClient.send(command)
 
-      console.log(data.MessageId)
+      logger.info(data.MessageId, { eventName: 'EMAILS_SENDER' })
 
       const emailDoc = await new Models.Email({
         type: emailTemplate.data.TemplateName,
@@ -48,7 +50,7 @@ export function sendEmail(emailTemplate, templateProps, toAddresses, Models) {
 
       resolve(emailDoc)
     } catch (err) {
-      console.error(err, err.stack)
+      logger.error(err, { eventName: 'EMAILS_SENDER_FAILED', err: err.stack })
       reject(err)
     }
 

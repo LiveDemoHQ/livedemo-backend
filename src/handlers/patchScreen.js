@@ -6,6 +6,8 @@ import { httpError, wouldBreakRrwebChainOrder } from '../helpers/rrwebScreenGuar
 import ENV from '../envServer.js'
 const { STORY_REQUESTS_FOLDER } = ENV
 import mongoose from 'mongoose';
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types;
 
 
@@ -107,7 +109,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify(screenDoc))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'PATCH_SCREEN_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

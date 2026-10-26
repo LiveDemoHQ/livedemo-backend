@@ -7,6 +7,8 @@ import short from 'short-uuid'
 import postUploadScreenshotValidator from '../helpers/validators/workspaces/library/postUploadScreenshotValidator.js'
 
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -47,7 +49,7 @@ const handler = function (req, res) {
 
             return helpers.uploadImage(base64Screenshot, imageName)
               .then((uploadResult) => {
-                console.log(uploadResult)
+                logger.info(uploadResult, { eventName: 'POST_WORKSPACE_LIBRARY_UPLOAD_SCREENSHOT' })
                 imageUrl = uploadResult.Location
 
                 return imageUrl
@@ -87,7 +89,7 @@ const handler = function (req, res) {
 
         return helpers.uploadImage(base64Screenshot, imageName)
           .then((uploadResult) => {
-            console.log(uploadResult)
+            logger.info(uploadResult, { eventName: 'POST_WORKSPACE_LIBRARY_UPLOAD_SCREENSHOT' })
             imageUrl = uploadResult.Location
 
             return imageUrl
@@ -131,7 +133,7 @@ const handler = function (req, res) {
       res.send('')
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_WORKSPACE_LIBRARY_UPLOAD_SCREENSHOT_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

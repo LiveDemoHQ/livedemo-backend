@@ -6,6 +6,8 @@ import StoryStatuses from '../constants/StoryStatuses.js'
 import ScreenTypes from '../constants/ScreenTypes.js'
 import short from 'short-uuid'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
     let {Models, conn} = req.mongo
 
@@ -78,7 +80,7 @@ const handler = function (req, res) {
                                     }
                                 }
                             } catch (error) {
-                                console.error(`Failed to retrieve/upload image for step ${index}:`, error)
+                                logger.error(`Failed to retrieve/upload image for step ${index}:`, { eventName: 'POST_DEMO_SUGGESTIONS_GENERATE_LIVE_DEMO_FAILED', err: error })
                                 // Continue without image if retrieval fails
                             }
                         }
@@ -180,7 +182,7 @@ const handler = function (req, res) {
             res.send(JSON.stringify(newStoryDoc))
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'POST_DEMO_SUGGESTIONS_GENERATE_LIVE_DEMO_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

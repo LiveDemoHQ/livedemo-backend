@@ -2,6 +2,8 @@
 import assert from 'assert'
 import validateFeedback, { validateUninstallFeedback } from './feedbackBody.js'
 
+import logger from '../logger.js'
+
 const ok = validateFeedback({ message: '  the popup froze  ' })
 assert.strictEqual(ok.error, undefined)
 assert.strictEqual(ok.value.message, 'the popup froze')
@@ -41,4 +43,4 @@ assert.ok(missingReason.error)
 const badReason = validateUninstallFeedback({ reason: 'spam' })
 assert.ok(badReason.error)
 
-console.log('feedbackBody ok')
+logger.info('feedbackBody ok', { eventName: 'FEEDBACKBODY_OK' })

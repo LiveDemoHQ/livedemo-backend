@@ -1,6 +1,8 @@
 import Stripe from 'stripe'
 import ENV from '../envServer.js'
 
+import logger from './logger.js'
+
 export const FOUNDING_PROMO_CODE = 'FOUNDING50'
 export const FOUNDING_PROMO_MAX_DEFAULT = 5
 
@@ -95,7 +97,7 @@ export async function getFoundingPromoStatus(Models) {
     }
   } catch (err) {
 
-    console.warn('[foundingPromo] Stripe lookup failed:', err && err.message)
+    logger.error('[foundingPromo] Stripe lookup failed:', { eventName: 'STRIPE_LOOKUP_FAILED', data: { detail: err && err.message } })
   }
 
   const fromMongo = await readMongo(Models)

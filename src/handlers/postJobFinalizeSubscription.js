@@ -6,6 +6,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import { triggerPostChargeInternal } from '../helpers/paymentHelpers.js'
 import { getPrimarySubscriptionWorkspaceId, getSubscriptionWorkspaceIds } from '../helpers/subscriptionHelpers.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
   let requestBody = req.body
@@ -79,7 +81,7 @@ const handler = function (req, res) {
             return { chargeDoc, subDoc, userDoc }
           })
           .catch((err) => {
-            console.error('Error triggering postChargeInternal:', err)
+            logger.error('Error triggering postChargeInternal:', { eventName: 'ERROR_TRIGGERING_POSTCHARGEINTERNAL_FAILED', err: err })
             // Continue even if chargeInternal fails
             return { chargeDoc, subDoc, userDoc }
           })
@@ -135,7 +137,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify({}))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_JOB_FINALIZE_SUBSCRIPTION_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

@@ -5,6 +5,8 @@ import enqueueIndexAgentKnowledge from '../agent/enqueueIndexJob.js'
 import { normalizeItems } from '../showcase/normalizeShowcase.js'
 import { MAX_OWN_CLONE_STORIES } from './own.js'
 
+import logger from '../logger.js'
+
 // Copies for one "Make it yours" claim (OWNABLE_DEMOS_TECH_DESIGN.md §5). One ctx per claim, so a story
 // reached from a showcase item, an agent and a checklist is copied once.
 
@@ -206,7 +208,7 @@ export async function cloneAgentForUser(sourceAgentId, ctx, { includeKnowledge =
         ...await createDemoSources(Models, newAgent)
     ]
     await Models.AiDemoAgent.updateOne({ _id: newAgent._id }, { $set: { knowledgeSourceIds: sourceIds } })
-    enqueueIndexAgentKnowledge(newAgent._id).catch(err => console.log('[cloneAgentForUser] enqueue reindex failed', err))
+    enqueueIndexAgentKnowledge(newAgent._id).catch(err => logger.error('[cloneAgentForUser] enqueue reindex failed', { eventName: 'ENQUEUE_REINDEX_FAILED', err: err }))
     return newAgent._id
 }
 
@@ -332,7 +334,7 @@ export async function cloneForClaim(kind, sourceId, ctx, source) {
         await finishStoryGraph(ctx)
         return clonedId
     } catch (err) {
-        await rollbackClaim(ctx).catch(rollbackErr => console.error('[cloneForClaim] rollback failed', rollbackErr))
+        await rollbackClaim(ctx).catch(rollbackErr => logger.error('[cloneForClaim] rollback failed', { eventName: 'ROLLBACK_FAILED', data: { detail: rollbackErr } }))
         throw err
     }
 }

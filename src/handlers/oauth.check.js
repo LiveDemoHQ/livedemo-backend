@@ -5,6 +5,8 @@ import { isValidRedirectUri, pkceMatches } from './oauth.js'
 import { newApiToken } from './apiKeys.js'
 import { API_TOKEN_RE } from '../helpers/authHelpers.js'
 
+import logger from '../helpers/logger.js'
+
 assert.ok(isValidRedirectUri('https://claude.ai/api/mcp/auth_callback'))
 assert.ok(isValidRedirectUri('http://localhost:6274/oauth/callback'))
 assert.ok(isValidRedirectUri('http://127.0.0.1:33418/cb'))
@@ -25,5 +27,5 @@ assert.ok(API_TOKEN_RE.test(newApiToken('oat')))
 assert.ok(!API_TOKEN_RE.test('ld_ort_abcdefghijklmnopqrstuvwxyz'))
 assert.ok(!API_TOKEN_RE.test(crypto.randomBytes(32).toString('hex')))
 
-console.log('oauth.check ok')
+logger.info('oauth.check ok', { eventName: 'OAUTH_CHECK_OK' })
 process.exit(0)

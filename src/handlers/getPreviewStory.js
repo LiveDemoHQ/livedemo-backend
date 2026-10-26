@@ -2,6 +2,8 @@ import helpers, {default as livedemoHelpers} from '../helpers/livedemoHelpers.js
 import ResponseCodes from '../constants/ResponseCodes.js'
 import * as sanitezeLib from '@braintree/sanitize-url'
 
+import logger from '../helpers/logger.js'
+
 const sanitize = sanitezeLib.sanitizeUrl
 
 const handler = function (req, res) {
@@ -102,7 +104,7 @@ const handler = function (req, res) {
             res.send(JSON.stringify(foundStory))
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'GET_PREVIEW_STORY_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

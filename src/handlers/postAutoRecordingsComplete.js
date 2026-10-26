@@ -3,6 +3,8 @@ import AutoRecordingStatuses from '../constants/AutoRecordingStatuses.js'
 import liveDemoHelpers from '../helpers/livedemoHelpers.js'
 import flixHelpers from "../helpers/flixHelpers.js";
 
+import logger from '../helpers/logger.js'
+
 function getAutoRecordingById(Models, autoRecordingId) {
     return Models.AutoRecording({_id: autoRecordingId}).lean()
 }
@@ -95,7 +97,7 @@ const handler = function (req, res) {
             res.send(JSON.stringify(autoRecordingDoc))
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'POST_AUTO_RECORDINGS_COMPLETE_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

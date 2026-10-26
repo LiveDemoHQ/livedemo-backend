@@ -3,6 +3,8 @@
 import assert from 'assert'
 import { importedChunks } from './postAgentKnowledge.js'
 
+import logger from '../helpers/logger.js'
+
 const embedding = Array.from({ length: 768 }, (_, i) => i / 768)
 const chunk = { text: 'hello', embedding, metadata: { title: 'Doc', url: 'https://a.com', demoId: 'x' } }
 
@@ -13,4 +15,4 @@ assert.throws(() => importedChunks([{ ...chunk, embedding: [...embedding.slice(1
 assert.throws(() => importedChunks([]), /chunks must be/)
 assert.throws(() => importedChunks('{nope'), /chunks must be JSON/)
 
-console.log('postAgentKnowledge.check ok')
+logger.info('postAgentKnowledge.check ok', { eventName: 'POSTAGENTKNOWLEDGE_CHECK_OK' })

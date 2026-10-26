@@ -9,6 +9,8 @@ import { httpError } from '../helpers/rrwebScreenGuards.js'
 import { stringifyRrwebEvents } from '../helpers/rrwebEventNames.js'
 import postUploadPageValidator from '../helpers/validators/workspaces/library/postUploadPageValidator.js'
 
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types
 const SCREENDOC_ENCODING = 'utf-8'
 const RRWEB_FULL_SNAPSHOT = 2
@@ -131,7 +133,7 @@ const handler = function (req, res) {
       res.send('')
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_WORKSPACE_LIBRARY_UPLOAD_PAGE_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

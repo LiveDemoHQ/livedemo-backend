@@ -2,6 +2,8 @@ import ENV from '../../envServer.js'
 import aiHelpers from '../aiHelpers.js'
 import { cosineSim } from './agentKnowledge.js'
 
+import logger from '../logger.js'
+
 let vectorSearchWarned = false
 
 async function cosineRank(Models, { agent, queryVector, enabledSourceIds, limit, sourceType }) {
@@ -79,11 +81,7 @@ export default async function retrieve(Models, { agent, queryText, limit = MIXED
       if (!isSearchNotEnabled(err)) throw err
       if (!vectorSearchWarned) {
         vectorSearchWarned = true
-        console.log(
-          '$vectorSearch unavailable (mongot not running). Falling back to Node cosine rank. '
-          + 'Set VECTOR_SEARCH=off to silence, or install mongot: '
-          + 'https://www.mongodb.com/docs/search/self-managed/current/installation/linux/'
-        )
+        logger.info('$vectorSearch unavailable (mongot not running). Falling back to Node cosine rank. ' + 'Set VECTOR_SEARCH=off to silence, or install mongot: ' + 'https://www.mongodb.com/docs/search/self-managed/current/installation/linux/', { eventName: 'RETRIEVE' })
       }
       ranked = await cosineRank(Models, rankArgs)
     }

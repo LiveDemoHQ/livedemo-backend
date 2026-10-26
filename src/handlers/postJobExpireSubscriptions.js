@@ -2,6 +2,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import validateExpireSubscriptionsValidator from '../helpers/validators/oldLambdaRoutes/jobs/validateExpireSubscriptions.js'
 import helpers from '../helpers/livedemoHelpers.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
   let requestBody = req.body
@@ -32,7 +34,7 @@ const handler = function (req, res) {
     .then(() => {
       const { subscriptions } = requestBody
 
-      console.log('subscriptions:', subscriptions)
+      logger.info('subscriptions:', { eventName: 'SUBSCRIPTIONS', data: { detail: subscriptions } })
 
       // Update all subscriptions to expired
       return Models.Subscription.updateMany(
@@ -56,7 +58,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify({}))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_JOB_EXPIRE_SUBSCRIPTIONS_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

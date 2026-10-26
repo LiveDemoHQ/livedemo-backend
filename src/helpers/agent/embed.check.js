@@ -2,6 +2,7 @@
 // allowedDomains feed a CSP header and postMessage origin checks, so the normalizer is the trust boundary.
 import assert from 'assert'
 import {
+
     normalizeDomain,
     allowedOrigin,
     frameAncestors,
@@ -9,6 +10,7 @@ import {
     resolveShowBranding,
     resolvePreviewImage
 } from './embed.js'
+import logger from '../logger.js'
 
 assert.strictEqual(normalizeDomain('https://www.Acme.com:443/pricing?x=1'), 'www.acme.com')
 assert.strictEqual(normalizeDomain('*.acme.com'), '*.acme.com')
@@ -75,4 +77,4 @@ assert.strictEqual(await resolvePreviewImage({}, { defaultDemoId: 'd1', embed: {
 assert.strictEqual(await resolvePreviewImage({}, { embed: { preview: { source: 'custom', imageUrl: 'https://s3/c.png' } } }, demos), 'https://s3/c.png')
 assert.strictEqual(await resolvePreviewImage({}, { embed: { preview: { source: 'none' } } }, demos), '')
 
-console.log('embed.check OK')
+logger.info('embed.check OK', { eventName: 'EMBED_CHECK_OK' })

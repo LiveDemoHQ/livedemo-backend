@@ -3,6 +3,8 @@ import patchZoomSpanValidator from '../helpers/validators/stories/screens/zoomSp
 import ResponseCodes from '../constants/ResponseCodes.js'
 import ScreenTypes from "../constants/ScreenTypes.js";
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
     let {Models, conn} = req.mongo
 
@@ -102,7 +104,7 @@ const handler = function (req, res) {
                         updateObj[newKey] = updateObj[key]
                         delete updateObj[key]
                     })
-                    console.log(updateObj)
+                    logger.info(updateObj, { eventName: 'PATCH_ZOOM_SPAN' })
                     return Models.Screen_Screenshot.findOneAndUpdate({
                         _id: screenId,
                     }, {$set: updateObj}, {
@@ -149,7 +151,7 @@ const handler = function (req, res) {
 
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'PATCH_ZOOM_SPAN_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

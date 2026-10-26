@@ -1,6 +1,8 @@
 import assert from 'assert'
 import { parseOEmbedUrl } from './parseOEmbedUrl.js'
 
+import logger from '../logger.js'
+
 const api = 'http://localhost.mine:3005'
 const app = 'http://localhost.mine:5000'
 const origins = [api, app]
@@ -29,4 +31,4 @@ assert.strictEqual(parseOEmbedUrl('https://evil.example/workspaces/ws/stories/st
 assert.strictEqual(parseOEmbedUrl('', origins), null)
 assert.strictEqual(parseOEmbedUrl('not-a-url', origins), null)
 
-console.log('parseOEmbedUrl.check.js: all assertions passed')
+logger.info('parseOEmbedUrl.check.js: all assertions passed', { eventName: 'PARSEOEMBEDURL_CHECK_JS_ALL_ASSERTIONS_PASSED' })

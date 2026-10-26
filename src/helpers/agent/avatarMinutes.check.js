@@ -6,6 +6,7 @@ import { sealKey } from './providerKeys.js'
 import { avatarLimitsFor } from '../subscriptionHelpers.js'
 import AvatarUsageSchema from '../../models/AvatarUsage.js'
 import {
+
     periodOf,
     heartbeatDelta,
     remainingSeconds,
@@ -16,6 +17,7 @@ import {
     claimSlot,
     STALE_MS
 } from './avatarMinutes.js'
+import logger from '../logger.js'
 
 assert.ok(process.env.AVATAR_MINUTES_ENFORCED, 'set AVATAR_MINUTES_ENFORCED=true')
 
@@ -101,7 +103,7 @@ async function slotChecks() {
             serverSelectionTimeoutMS: 2000
         }).asPromise()
     } catch (err) {
-        console.log('slot checks skipped, no local mongo:', err.message)
+        logger.error('slot checks skipped, no local mongo:', { eventName: 'SLOT_CHECKS_SKIPPED_NO_LOCAL_MONGO_FAILED', err: err.message })
         return
     }
 
@@ -161,8 +163,8 @@ async function slotChecks() {
 
     await conn.dropDatabase()
     await conn.close()
-    console.log('slot checks passed')
+    logger.info('slot checks passed', { eventName: 'SLOT_CHECKS_PASSED' })
 }
 
 await slotChecks()
-console.log('avatarMinutes.check passed')
+logger.info('avatarMinutes.check passed', { eventName: 'AVATARMINUTES_CHECK_PASSED' })

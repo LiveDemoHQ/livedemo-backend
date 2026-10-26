@@ -14,6 +14,8 @@ import monq from 'monq'
 import Mux from '@mux/mux-node'
 import he from 'he'
 
+import logger from './logger.js'
+
 const mux = new Mux({
   tokenId: ENV.MUX_TOKEN_ID,
   tokenSecret: ENV.MUX_TOKEN_SECRET
@@ -242,7 +244,7 @@ function uploadMuxVideo(videoData) {
     })
     .then((uploadedAssetInfo) => {
 
-      console.log(uploadedAssetInfo)
+      logger.info(uploadedAssetInfo, { eventName: 'FLIX_HELPERS' })
 
       return uploadedAssetInfo
     })
@@ -258,8 +260,8 @@ function uploadStoryVideo(videoName, buff) {
     }
   })
 
-  console.log('AWS_ACCESS_KEY_ID ' + ENV.AWS_ACCESS_KEY_ID)
-  console.log('AWS_SECRET_ACCESS_KEY ' + ENV.AWS_SECRET_ACCESS_KEY)
+  logger.info('aws access key present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
+  logger.info('aws secret present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
 
   let uploadParams = {
     Bucket: 'livedemo-cdn',
@@ -279,11 +281,11 @@ function uploadStoryVideo(videoName, buff) {
 
       const uploadResult = await upload.done()
 
-      console.log('successfully uploaded the story video!')
+      logger.info('successfully uploaded the story video!', { eventName: 'SUCCESSFULLY_UPLOADED_THE_STORY_VIDEO' })
       resolve(uploadResult)
     } catch (error) {
-      console.log(error)
-      console.log('Error uploading data: ', error)
+      logger.error(error, { eventName: 'FLIX_HELPERS_FAILED' })
+      logger.error('Error uploading data: ', { eventName: 'ERROR_UPLOADING_DATA_FAILED', err: error })
       reject(error)
     }
   })
@@ -298,8 +300,8 @@ function uploadStoryGif(gifName, buff) {
     }
   })
 
-  console.log('AWS_ACCESS_KEY_ID ' + ENV.AWS_ACCESS_KEY_ID)
-  console.log('AWS_SECRET_ACCESS_KEY ' + ENV.AWS_SECRET_ACCESS_KEY)
+  logger.info('aws access key present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
+  logger.info('aws secret present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
 
   let uploadParams = {
     Bucket: 'livedemo-cdn',
@@ -319,11 +321,11 @@ function uploadStoryGif(gifName, buff) {
 
       const uploadResult = await upload.done()
 
-      console.log('successfully uploaded the story gif!')
+      logger.info('successfully uploaded the story gif!', { eventName: 'SUCCESSFULLY_UPLOADED_THE_STORY_GIF' })
       resolve(uploadResult)
     } catch (error) {
-      console.log(error)
-      console.log('Error uploading data: ', error)
+      logger.error(error, { eventName: 'FLIX_HELPERS_FAILED' })
+      logger.error('Error uploading data: ', { eventName: 'ERROR_UPLOADING_DATA_FAILED', err: error })
       reject(error)
     }
   })
@@ -353,12 +355,12 @@ function uploadStoryVideoFromStream(videoName) {
 
         uploadResult = await s3Bucket.upload(data).promise()
 
-        console.log('successfully uploaded the story video!')
+        logger.info('successfully uploaded the story video!', { eventName: 'SUCCESSFULLY_UPLOADED_THE_STORY_VIDEO' })
         resolve(uploadResult)
       } catch (error) {
 
-        console.log(error)
-        console.log('Error uploading data: ', uploadResult)
+        logger.error(error, { eventName: 'FLIX_HELPERS_FAILED' })
+        logger.error('Error uploading data: ', { eventName: 'ERROR_UPLOADING_DATA_FAILED', data: { detail: uploadResult } })
         reject(err)
       }
     })
@@ -374,8 +376,8 @@ function uploadVideo(videoData, videoName) {
     }
   })
 
-  console.log('AWS_ACCESS_KEY_ID ' + ENV.AWS_ACCESS_KEY_ID)
-  console.log('AWS_SECRET_ACCESS_KEY ' + ENV.AWS_SECRET_ACCESS_KEY)
+  logger.info('aws access key present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
+  logger.info('aws secret present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
 
 
   let buf = Buffer.from(videoData.replace(/^data:video\/\w+;base64,/, ''), 'base64')
@@ -397,11 +399,11 @@ function uploadVideo(videoData, videoName) {
 
       const uploadResult = await upload.done()
 
-      console.log('successfully uploaded the video!')
+      logger.info('successfully uploaded the video!', { eventName: 'SUCCESSFULLY_UPLOADED_THE_VIDEO' })
       resolve(uploadResult)
     } catch (error) {
-      console.log(error)
-      console.log('Error uploading data: ', error)
+      logger.error(error, { eventName: 'FLIX_HELPERS_FAILED' })
+      logger.error('Error uploading data: ', { eventName: 'ERROR_UPLOADING_DATA_FAILED', err: error })
       reject(error)
     }
   })
@@ -418,8 +420,8 @@ function uploadImage(imageData, imageName) {
     }
   })
 
-  console.log('AWS_ACCESS_KEY_ID ' + ENV.AWS_ACCESS_KEY_ID)
-  console.log('AWS_SECRET_ACCESS_KEY ' + ENV.AWS_SECRET_ACCESS_KEY)
+  logger.info('aws access key present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
+  logger.info('aws secret present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
 
 
   let buf = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64')
@@ -441,11 +443,11 @@ function uploadImage(imageData, imageName) {
 
       const uploadResult = await upload.done()
 
-      console.log('successfully uploaded the image!')
+      logger.info('successfully uploaded the image!', { eventName: 'SUCCESSFULLY_UPLOADED_THE_IMAGE' })
       resolve(uploadResult)
     } catch (error) {
-      console.log(error)
-      console.log('Error uploading data: ', error)
+      logger.error(error, { eventName: 'FLIX_HELPERS_FAILED' })
+      logger.error('Error uploading data: ', { eventName: 'ERROR_UPLOADING_DATA_FAILED', err: error })
       reject(error)
     }
   })
@@ -644,7 +646,7 @@ function getRenderEvents(capturedEvents, videoStartMs, videoEndMs, screenshots) 
     }
   })
 
-  console.log(renderEvents)
+  logger.info(renderEvents, { eventName: 'FLIX_HELPERS' })
   return renderEvents
 }
 
@@ -681,7 +683,7 @@ function enqueueProcessStoryDemo(storyDemoId) {
       if (err) {
         reject(err)
       }
-      console.log('Enqueued:', job.data)
+      logger.info('Enqueued:', { eventName: 'ENQUEUED', data: { detail: job.data } })
       resolve()
     })
 
@@ -699,7 +701,7 @@ function enqueueProcessStoryDemoDom(storyDemoId) {
       if (err) {
         reject(err)
       }
-      console.log('Enqueued:', job.data)
+      logger.info('Enqueued:', { eventName: 'ENQUEUED', data: { detail: job.data } })
       resolve()
     })
 
@@ -716,7 +718,7 @@ function enqueueProcessSandboxDom(storyDemoId) {
       if (err) {
         return reject(err)
       }
-      console.log('Enqueued:', job.data)
+      logger.info('Enqueued:', { eventName: 'ENQUEUED', data: { detail: job.data } })
       resolve()
     })
   })
@@ -732,7 +734,7 @@ function enqueueProcessAutoRecording(autoRecordingId) {
       if (err) {
         reject(err)
       }
-      console.log('Enqueued:', job.data)
+      logger.info('Enqueued:', { eventName: 'ENQUEUED', data: { detail: job.data } })
       resolve()
     })
   })
@@ -748,7 +750,7 @@ function enqueueProcessStoryDemoVideo(storyDemoId, userEmail) {
       if (err) {
         reject(err)
       }
-      console.log('Enqueued:', job.data)
+      logger.info('Enqueued:', { eventName: 'ENQUEUED', data: { detail: job.data } })
       resolve()
     })
 
@@ -781,11 +783,11 @@ function uploadImageBuffer(buffer, imageName, contentType = 'image/jpeg', extens
 
       const uploadResult = await upload.done()
 
-      console.log('successfully uploaded the image buffer!')
+      logger.info('successfully uploaded the image buffer!', { eventName: 'SUCCESSFULLY_UPLOADED_THE_IMAGE_BUFFER' })
       resolve(uploadResult)
     } catch (error) {
-      console.log(error)
-      console.log('Error uploading image buffer: ', error)
+      logger.error(error, { eventName: 'FLIX_HELPERS_FAILED' })
+      logger.error('Error uploading image buffer: ', { eventName: 'ERROR_UPLOADING_IMAGE_BUFFER_FAILED', err: error })
       reject(error)
     }
   })

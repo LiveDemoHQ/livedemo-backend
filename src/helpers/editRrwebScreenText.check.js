@@ -1,11 +1,13 @@
 import assert from 'assert'
 import {
+
   updateTextInSnapshot,
   applyAttrsToSnapshot,
   mergeStyleString,
   findFirstTextNodeId,
   upsertTextMutationAt,
 } from './editRrwebScreenText.js'
+import logger from './logger.js'
 
 const snap = [{
   type: 2,
@@ -64,4 +66,4 @@ const textMut = applied.find((ev) => ev.data && ev.data.texts && ev.data.texts.s
 assert.ok(textMut, 'delta text mutation must be at toTimeMs so seek applies it')
 assert.ok(!deltaEvents.some((ev) => ev.timestamp > 200 && ev.data && ev.data.texts && ev.data.texts.length), 'must not append after toTimeMs')
 
-console.log('editRrwebScreenText.check ok')
+logger.info('editRrwebScreenText.check ok', { eventName: 'EDITRRWEBSCREENTEXT_CHECK_OK' })

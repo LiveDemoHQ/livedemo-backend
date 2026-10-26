@@ -1,6 +1,8 @@
 import ResponseCodes from '../constants/ResponseCodes.js'
 import LambdaRateLimiter from 'lambda-rate-limiter'
 
+import logger from '../helpers/logger.js'
+
 const CORS_HEADERS = {
     'Access-Control-Max-Age': 600,
     'Access-Control-Allow-Origin': '*',
@@ -109,7 +111,7 @@ const handler = async function (req, res) {
         .catch((error) => {
             if (error.handled) return
 
-            console.error('[getTutorialsSearch]', error)
+            logger.error('[getTutorialsSearch]', { eventName: 'GET_TUTORIALS_SEARCH_FAILED', err: error })
 
             res.set(CORS_HEADERS)
             res.status(ResponseCodes['500_INTERNAL_SERVER_ERROR'])

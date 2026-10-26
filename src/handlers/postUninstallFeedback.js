@@ -1,6 +1,8 @@
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { validateUninstallFeedback } from '../helpers/validators/feedbackBody.js'
 
+import logger from '../helpers/logger.js'
+
 const corsHeaders = {
   'Access-Control-Max-Age': 600,
   'Access-Control-Allow-Origin': '*',
@@ -36,7 +38,7 @@ const handler = function (req, res) {
       }))
     })
     .catch((err) => {
-      console.log(err)
+      logger.error(err, { eventName: 'POST_UNINSTALL_FEEDBACK_FAILED' })
       res.set(corsHeaders)
       res.status(ResponseCodes['500_INTERNAL_SERVER_ERROR'])
       res.send(JSON.stringify({ error: 'Failed to save feedback' }))

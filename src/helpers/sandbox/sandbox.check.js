@@ -3,6 +3,8 @@ import assert from 'assert/strict'
 import mongoose from 'mongoose'
 import { planSandboxScreens, anchorFromClick, normalizeLink, normalizeFlows, remapSandbox } from './sandbox.js'
 
+import logger from '../logger.js'
+
 const ev = (timestamp, extra = {}) => ({ timestamp, type: 3, data: { source: 0 }, ...extra })
 const base = (ts, href) => [{ timestamp: ts, type: 4, data: { href } }, { timestamp: ts + 1, type: 2, data: {} }]
 const delta = (ts, text) => ({ events: [ev(ts)], fromTimeMs: ts, toTimeMs: ts + 50, clickTimestamp: ts, clickX: 100, clickY: 50, targetText: `"${text}"` })
@@ -81,4 +83,4 @@ assert.equal(fields.sandboxLinks[0]._id, undefined)
 assert.equal(fields.sandboxDuplicateOf, b2)
 assert.deepEqual(screenFields({ steps: [] }), {}, 'guided-shaped screens get no sandbox keys')
 
-console.log('sandbox.check.js: all good')
+logger.info('sandbox.check.js: all good', { eventName: 'SANDBOX_CHECK_JS_ALL_GOOD' })

@@ -2,6 +2,8 @@ import ENV from '../../envServer.js'
 import WorkspaceTypes from '../../constants/WorkspaceTypes.js'
 import { seal, open } from '../secretBox.js'
 
+import logger from '../logger.js'
+
 // Growth workspaces can bring their own Anam / LemonSlice API keys; billed avatar calls then use them.
 // Stored encrypted on Workspace.providerKeys (select: false), bound to the workspace id. Never returned.
 
@@ -40,7 +42,7 @@ export function resolveKeyInfo(workspace, provider) {
         try {
             return { apiKey: open(entry.enc, purpose(provider), String(workspace._id)), ownKey: true }
         } catch (err) {
-            console.log(`[providerKeys] ${provider} key for workspace ${workspace._id} could not be decrypted, using the default`)
+            logger.info(`[providerKeys] ${provider} key for workspace ${workspace._id} could not be decrypted, using the default`, { eventName: 'PROVIDER_KEYS' })
         }
     }
     return { apiKey: PROVIDERS[provider].defaultKey(), ownKey: false }

@@ -8,6 +8,8 @@ import mongoose from 'mongoose';
 const { ObjectId } = mongoose.Types;
 import livedemoHelpers from "../helpers/livedemoHelpers.js";
 
+import logger from '../helpers/logger.js'
+
 const {STORY_REQUESTS_FOLDER} = ENV
 
 
@@ -96,7 +98,7 @@ Rephrase them to be numbered, consequential and coherent like a  guide `
                 })
         })
         .then((stepsByScreenArray) => {
-            console.log(stepsByScreenArray)
+            logger.info(stepsByScreenArray, { eventName: 'POST_STORY_AITEXT' })
 
             let updateOps = []
             stepsByScreenArray.forEach((step) => {
@@ -124,7 +126,7 @@ Rephrase them to be numbered, consequential and coherent like a  guide `
             return Models.Screen.bulkWrite(updateOps)
         })
         .then(result => {
-            console.log(result)
+            logger.info(result, { eventName: 'POST_STORY_AITEXT' })
         })
         .then(() => {
 
@@ -147,7 +149,7 @@ Rephrase them to be numbered, consequential and coherent like a  guide `
             res.send(resultResponse.body)
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'POST_STORY_AITEXT_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

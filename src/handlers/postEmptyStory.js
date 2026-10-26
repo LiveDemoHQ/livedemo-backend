@@ -11,6 +11,8 @@ const { ObjectId } = mongoose.Types;
 import short from 'short-uuid'
 import stringify from 'stream-json-stringify'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -76,7 +78,7 @@ const handler = function (req, res) {
 
     })
     .then((newStory) => {
-      console.log('Story created')
+      logger.info('Story created', { eventName: 'STORY_CREATED' })
 
       const resultResponse = {
         statusCode: ResponseCodes['200_OK'],
@@ -96,7 +98,7 @@ const handler = function (req, res) {
       }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_EMPTY_STORY_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

@@ -6,6 +6,8 @@ import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import { assertPublicUrl } from '../helpers/agent/publicUrl.js'
 import { MAX_PAGES_CAP } from '../helpers/agent/siteCrawler.js'
 
+import logger from '../helpers/logger.js'
+
 // PATCH /workspaces/:workspaceId/agents/:agentId/knowledge/:sourceId
 // title / rawText / enabled. Content edits re-enqueue indexing.
 const handler = async function (req, res) {
@@ -54,7 +56,7 @@ const handler = async function (req, res) {
 
     if (updates.status === 'pending') {
       enqueueIndexAgentKnowledge(agentId, sourceId)
-        .catch(err => console.log('enqueue indexAgentKnowledge failed', err))
+        .catch(err => logger.error('enqueue indexAgentKnowledge failed', { eventName: 'ENQUEUE_INDEXAGENTKNOWLEDGE_FAILED', err: err }))
     }
 
     sendJson(res, source)

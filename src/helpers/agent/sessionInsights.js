@@ -5,6 +5,8 @@ import { emitSafe, sessionPayload } from '../workspaceEvents.js'
 import { agentSessionNoteHtml, createHubspotNote, getHubspotAccessToken, upsertHubspotContact } from '../hubspot.js'
 import { sendSummaryEmail } from './summaryEmail.js'
 
+import logger from '../logger.js'
+
 // summarizeAgentSession job body. Mid-session runs (final: false) only refresh
 // summary/topics so long chats keep context past HISTORY_LIMIT. The final run
 // also fires session.ended + the HubSpot contact/note, exactly once per session.
@@ -126,9 +128,9 @@ export default async function summarizeAgentSession(Models, { sessionId, final }
     const data = sessionPayload({ session: claimed, agent, lead })
     if (messages.length) emitSafe(Models, agent.workspaceId, 'session.ended', data)
     await syncHubspot(Models, { agent, session: claimed, data })
-        .catch(err => console.log('HubSpot agent sync failed', err.response?.data || err.message))
+        .catch(err => logger.error('HubSpot agent sync failed', { eventName: 'HUBSPOT_AGENT_SYNC_FAILED', data: { detail: err.response?.data || err.message } }))
     if (messages.length) {
         await sendSummaryEmail(Models, { agent, session: claimed, lead })
-            .catch(err => console.log('Summary email failed', err.message))
+            .catch(err => logger.error('Summary email failed', { eventName: 'SUMMARY_EMAIL_FAILED', err: err.message }))
     }
 }

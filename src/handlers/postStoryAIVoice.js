@@ -14,6 +14,8 @@ import short from 'short-uuid'
 
 import * as parse5 from 'parse5'
 
+import logger from '../helpers/logger.js'
+
 const {STORY_REQUESTS_FOLDER} = ENV
 
 function deserializeToTextRecursive(parsedFragment, currentString) {
@@ -199,7 +201,7 @@ const handler = function (req, res) {
             return Models.Screen.bulkWrite(updateOps)
         })
         .then(result => {
-            console.log(result)
+            logger.info(result, { eventName: 'POST_STORY_AIVOICE' })
         })
         .then(() => {
 
@@ -222,7 +224,7 @@ const handler = function (req, res) {
             res.send(resultResponse.body)
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'POST_STORY_AIVOICE_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

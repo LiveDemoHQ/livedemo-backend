@@ -5,6 +5,8 @@ import { editRrwebScreenNode } from '../helpers/editRrwebScreenText.js'
 import short from 'short-uuid'
 import ENV from '../envServer.js'
 
+import logger from '../helpers/logger.js'
+
 function extFromMime(mime) {
   if (mime === 'image/jpeg') return '.jpg'
   if (mime === 'image/gif') return '.gif'
@@ -224,7 +226,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify({}))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_SCREEN_EDIT_TEXT_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

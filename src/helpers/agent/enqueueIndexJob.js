@@ -1,6 +1,8 @@
 import monq from 'monq'
 import ENV from '../../envServer.js'
 
+import logger from '../logger.js'
+
 // Same enqueue pattern as postStorySession.js. sourceId optional — omitted
 // means "reindex every source of this agent".
 export default function enqueueIndexAgentKnowledge(agentId, sourceId = null) {
@@ -15,7 +17,7 @@ export default function enqueueIndexAgentKnowledge(agentId, sourceId = null) {
       if (err) {
         return reject(err)
       }
-      console.log('Enqueued indexAgentKnowledge:', job.data)
+      logger.info('Enqueued indexAgentKnowledge:', { eventName: 'ENQUEUED_INDEXAGENTKNOWLEDGE', data: { detail: job.data } })
       resolve()
     })
   })

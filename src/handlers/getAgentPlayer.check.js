@@ -4,6 +4,8 @@
 import assert from 'assert'
 import handler from './getAgentPlayer.js'
 
+import logger from '../helpers/logger.js'
+
 const agentDoc = {
   _id: 'agent1',
   name: 'Evil</script><script>alert(1)</script>',
@@ -82,4 +84,4 @@ const open = await renderEmbed({ enabled: true, allowedDomains: [] }, 'https://a
 assert.ok(open.headers['Content-Security-Policy'].includes('frame-ancestors *;'), 'empty allowedDomains = frame-ancestors *')
 assert.strictEqual(open.cfg.embed.host, 'https://anyone.dev')
 
-console.log('getAgentPlayer.check OK')
+logger.info('getAgentPlayer.check OK', { eventName: 'GETAGENTPLAYER_CHECK_OK' })

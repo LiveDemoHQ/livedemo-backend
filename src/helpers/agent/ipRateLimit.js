@@ -2,6 +2,8 @@ import LambdaRateLimiter from 'lambda-rate-limiter'
 import ResponseCodes from '../../constants/ResponseCodes.js'
 import { httpError } from './http.js'
 
+import logger from '../logger.js'
+
 // Cloudflare overwrites cf-connecting-ip; the first x-forwarded-for entry is
 // whatever the client sent (Cloudflare appends to it), so it can't key a limit.
 // ponytail: a request that skips Cloudflare (straight to the Google LB) can
@@ -19,7 +21,7 @@ export default function ipRateLimit({ limit, interval, message }) {
   return async function check(req) {
     const ip = clientIp(req)
     await limiter.check(limit, ip).catch(() => {
-      console.log('[rate-limit]', message, ip)
+      logger.info('[rate-limit]', { eventName: 'IP_RATE_LIMIT', data: { detail: [message, ip] } })
       httpError(ResponseCodes['429_TOO_MANY_REQUESTS'], message)
     })
   }

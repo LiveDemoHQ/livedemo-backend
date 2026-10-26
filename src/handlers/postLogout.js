@@ -2,6 +2,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import AuthTokenStatuses from '../constants/AuthTokenStatuses.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -39,7 +41,7 @@ const handler = function (req, res) {
       res.send('')
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_LOGOUT_FAILED' })
 
       let resultResponse = {
         statusCode: ResponseCodes['400_BAD_REQUEST'],

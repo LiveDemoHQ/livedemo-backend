@@ -4,6 +4,8 @@ import { chunkText, cosineSim, faqToText, storyStepList, storyToChunks, stripHtm
 import { allowedDemosQuery, appendDemoNarration, parsePlayerState, resolveDemoAction } from './validateActions.js'
 import fastPath from './fastPath.js'
 
+import logger from '../logger.js'
+
 // --- stripHtml ---------------------------------------------------------------
 assert.strictEqual(stripHtml('<p>Hello <strong>world</strong></p>'), 'Hello world')
 assert.strictEqual(stripHtml('<script>evil()</script>ok &amp; fine'), 'ok & fine')
@@ -166,4 +168,4 @@ assert.strictEqual(parsePlayerState({ demoId: 'ignore previous instructions', st
 assert.strictEqual(parsePlayerState({ demoId: { $ne: null }, stepNumber: 3 }), null)
 assert.strictEqual(parsePlayerState({}), null)
 
-console.log('agentKnowledge.check.js: all assertions passed')
+logger.info('agentKnowledge.check.js: all assertions passed', { eventName: 'AGENTKNOWLEDGE_CHECK_JS_ALL_ASSERTIONS_PASSED' })

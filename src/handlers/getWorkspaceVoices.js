@@ -4,6 +4,8 @@ import ENV from "../envServer.js";
 import aiHelpers from "../helpers/aiHelpers.js";
 
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
     let {Models, conn} = req.mongo
 
@@ -49,7 +51,7 @@ const handler = function (req, res) {
             })
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'GET_WORKSPACE_VOICES_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

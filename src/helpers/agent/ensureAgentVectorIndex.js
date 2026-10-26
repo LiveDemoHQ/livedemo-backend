@@ -1,5 +1,7 @@
 import ENV from '../../envServer.js'
 
+import logger from '../logger.js'
+
 const INDEX_NAME = 'agent_chunks_vector'
 const EMBED_DIMS = 768 // gemini-embedding-2 — keep in sync with aiHelpers.js
 
@@ -14,13 +16,13 @@ export default async function ensureAgentVectorIndex(conn) {
   try {
     for await (const idx of collection.listSearchIndexes()) {
       if (idx.name === INDEX_NAME) {
-        console.log(`vector index ${INDEX_NAME} already on ${collectionName}`)
+        logger.info(`vector index ${INDEX_NAME} already on ${collectionName}`, { eventName: 'ENSURE_AGENT_VECTOR_INDEX' })
         return
       }
     }
   } catch (err) {
-    console.log(`listSearchIndexes failed (${collectionName}): ${err.message}`)
-    console.log('mongot running? mongod needs searchIndexManagementHostAndPort + mongotHost')
+    logger.error(`listSearchIndexes failed (${collectionName}): ${err.message}`, { eventName: 'ENSURE_AGENT_VECTOR_INDEX_FAILED' })
+    logger.info('mongot running? mongod needs searchIndexManagementHostAndPort + mongotHost', { eventName: 'ENSURE_AGENT_VECTOR_INDEX' })
     return
   }
 
@@ -43,9 +45,9 @@ export default async function ensureAgentVectorIndex(conn) {
     } else {
       await conn.db.command({ createSearchIndexes: collectionName, indexes: [indexDef] })
     }
-    console.log(`created vector index ${INDEX_NAME} on ${collectionName}`)
+    logger.info(`created vector index ${INDEX_NAME} on ${collectionName}`, { eventName: 'ENSURE_AGENT_VECTOR_INDEX' })
   } catch (err) {
     if (/already exists|duplicate/i.test(err.message)) return
-    console.log(`ensureAgentVectorIndex failed: ${err.message}`)
+    logger.error(`ensureAgentVectorIndex failed: ${err.message}`, { eventName: 'ENSURE_AGENT_VECTOR_INDEX_FAILED' })
   }
 }

@@ -6,6 +6,8 @@ import StoryTypes from '../constants/StoryTypes.js'
 import flixHelpers from '../helpers/flixHelpers.js'
 import he from 'he'
 
+import logger from '../helpers/logger.js'
+
 const MIN_VIDEO_DURATION_SEC_FOR_END_ZOOM = 2
 const END_ZOOM_DURATION_SEC = 1.5
 const END_ZOOM_MIN_BOX_RATIO = 0.65
@@ -101,7 +103,7 @@ async function processStoryDemo(sharedConfig, params, callback) {
     const { Models, axios } = sharedConfig
     const { storyDemoId } = params
 
-    console.log(`Started - processStoryDemo - ${storyDemoId}`)
+    logger.info(`Started - processStoryDemo - ${storyDemoId}`, { eventName: 'PROCESS_STORY_DEMO' })
 
     return Models.Story.findOne({ _id: storyDemoId })
         .lean()
@@ -199,7 +201,7 @@ async function processStoryDemo(sharedConfig, params, callback) {
                     return flixHelpers.createMuxClips(videoAssetId, renderEvents)
                         .then((assets) => {
 
-                            console.log(assets)
+                            logger.info(assets, { eventName: 'PROCESS_STORY_DEMO' })
                             videos = assets.reduce((accum, asset) => {
                                 accum[asset.videoId] = asset
 
@@ -328,12 +330,12 @@ async function processStoryDemo(sharedConfig, params, callback) {
 
         })
         .then(() => {
-            console.log('processStoryDemo completed - end')
+            logger.info('processStoryDemo completed - end', { eventName: 'PROCESSSTORYDEMO_COMPLETED_END' })
             callback(null, { storyDemoId })
         })
         .catch(err => {
-            console.log('processStoryDemo failed - end')
-            console.log(err)
+            logger.error('processStoryDemo failed - end', { eventName: 'PROCESSSTORYDEMO_FAILED_END_FAILED' })
+            logger.error(err, { eventName: 'PROCESS_STORY_DEMO_FAILED' })
 
             let endPromise = Promise.resolve()
 

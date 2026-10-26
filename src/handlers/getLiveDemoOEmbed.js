@@ -22,6 +22,8 @@ import { parseCustomDomainUrl } from '../middlewares/customDomain.js'
 import { CORS_HEADERS, httpError } from '../helpers/agent/http.js'
 import thumbnailForScreen from '../helpers/agent/thumbnailForScreen.js'
 
+import logger from '../helpers/logger.js'
+
 const DEFAULT_AGENT_WIDTH = 1024
 const DEFAULT_AGENT_HEIGHT = 640
 
@@ -190,7 +192,7 @@ const handler = function (req, res) {
       })
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'GET_LIVE_DEMO_OEMBED_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

@@ -14,6 +14,8 @@ const { ObjectId } = mongoose.Types;
 import short from 'short-uuid'
 import stringify from 'stream-json-stringify'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -49,7 +51,7 @@ const handler = function (req, res) {
             return flixHelpers.uploadMuxVideo(base64Video)
               .then((videoUploadRes) => {
 
-                console.log(videoUploadRes)
+                logger.info(videoUploadRes, { eventName: 'POST_WORKSPACE_LIBRARY_UPLOAD_VIDEO' })
 
                 // videoAssetId = videoUploadRes.id
                 return new Models.Screen_Video({
@@ -83,7 +85,7 @@ const handler = function (req, res) {
         return flixHelpers.uploadMuxVideo(base64Video)
           .then((videoUploadRes) => {
 
-            console.log(videoUploadRes)
+            logger.info(videoUploadRes, { eventName: 'POST_WORKSPACE_LIBRARY_UPLOAD_VIDEO' })
 
             // videoAssetId = videoUploadRes.id
             return new Models.Screen_Video({
@@ -122,7 +124,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify(screenVideoDoc))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_WORKSPACE_LIBRARY_UPLOAD_VIDEO_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

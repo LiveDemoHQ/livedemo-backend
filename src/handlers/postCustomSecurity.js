@@ -2,6 +2,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import postCustomSecurityValidator from '../helpers/validators/stories/custom/postCustomSecurityValidator.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 
+import logger from '../helpers/logger.js'
+
 const VALID_CSP_DIRECTIVES = [
   'default-src', 'script-src', 'style-src', 'img-src', 'connect-src',
   'font-src', 'frame-src', 'media-src', 'object-src', 'manifest-src',
@@ -135,7 +137,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify(newStoryDoc.custom.security))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_CUSTOM_SECURITY_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

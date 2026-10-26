@@ -4,6 +4,8 @@ import Templates from './templates/index.js'
 
 import { SESClient, TestRenderTemplateCommand } from '@aws-sdk/client-ses'
 import ENV from '../../envServer.js'
+import logger from '../logger.js'
+
 const AWS_VARS = ENV.AWS
 
 const sesClient = new SESClient({
@@ -28,13 +30,13 @@ function renderTemplateExamples() {
     sesClient.send(command).then((data) => {
       fs.writeFile(`./renderedTemplateExamples/${template.data.TemplateName}.eml`, data.RenderedTemplate, 'utf8', function (err, res) {
         if(err){
-          console.log(`Could not save the rendered tempalte - ${template.data.TemplateName}`)
+          logger.info(`Could not save the rendered tempalte - ${template.data.TemplateName}`, { eventName: 'RENDER_TEMPLATE_EXAMPLES' })
         } else {
-          console.log(`Template saved successfully - ${template.data.TemplateName}`)
+          logger.info(`Template saved successfully - ${template.data.TemplateName}`, { eventName: 'RENDER_TEMPLATE_EXAMPLES' })
         }
       })
     }).catch((err) => {
-      console.log(err, err.stack)
+      logger.error(err, { eventName: 'RENDER_TEMPLATE_EXAMPLES_FAILED', err: err.stack })
     })
 
   }
@@ -56,15 +58,15 @@ function renderTemplateExample(template) {
 
       fs.writeFile(`./renderedTemplateExamples/${template.data.TemplateName}.eml`, data.RenderedTemplate, 'utf8', function (err, res) {
         if(err){
-          console.log(`Could not save the rendered tempalte - ${template.data.TemplateName}`)
+          logger.info(`Could not save the rendered tempalte - ${template.data.TemplateName}`, { eventName: 'RENDER_TEMPLATE_EXAMPLES' })
           reject()
         } else {
-          console.log(`Template saved successfully - ${template.data.TemplateName}`)
+          logger.info(`Template saved successfully - ${template.data.TemplateName}`, { eventName: 'RENDER_TEMPLATE_EXAMPLES' })
           resolve()
         }
       })
     } catch (err) {
-      console.log(err, err.stack)
+      logger.error(err, { eventName: 'RENDER_TEMPLATE_EXAMPLES_FAILED', err: err.stack })
       reject()
     }
   })

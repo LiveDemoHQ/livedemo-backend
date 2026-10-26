@@ -3,6 +3,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import updateUserValidator from '../helpers/validators/oldLambdaRoutes/users/updateUser.js'
 import { getUserByAccessToken } from '../helpers/authHelpers.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -98,7 +100,7 @@ const handler = function (req, res) {
       }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'PATCH_USERS_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

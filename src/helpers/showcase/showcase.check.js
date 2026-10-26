@@ -5,6 +5,8 @@ import normalizeShowcase, { videoEmbed } from './normalizeShowcase.js'
 import { resolveItems } from './showcase.js'
 import playerHandler from '../../handlers/getShowcasePlayer.js'
 
+import logger from '../logger.js'
+
 const WS = 'aaaaaaaaaaaaaaaaaaaaaaaa'
 const STORY = 'bbbbbbbbbbbbbbbbbbbbbbbb'
 const DRAFT = 'cccccccccccccccccccccccc'
@@ -111,4 +113,4 @@ res = fakeRes()
 await playerHandler(req({ embed: '1', host: 'https://acme.com' }), res)
 assert.ok(res.headers['Content-Security-Policy'].includes('frame-ancestors') && res.headers['Content-Security-Policy'].includes('https://acme.com'))
 
-console.log('showcase.check.js: all good')
+logger.info('showcase.check.js: all good', { eventName: 'SHOWCASE_CHECK_JS_ALL_GOOD' })

@@ -1,6 +1,8 @@
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { getFoundingPromoStatus } from '../helpers/foundingPromo.js'
 
+import logger from '../helpers/logger.js'
+
 const CORS_HEADERS = {
   'Access-Control-Max-Age': 600,
   'Access-Control-Allow-Origin': '*',
@@ -24,7 +26,7 @@ const handler = async function (req, res) {
     return res.status(ResponseCodes['200_OK']).json(status)
   } catch (err) {
 
-    console.error('[getFoundingPromo]', err)
+    logger.error('[getFoundingPromo]', { eventName: 'GET_FOUNDING_PROMO_FAILED', err: err })
     return res.status(ResponseCodes['500_INTERNAL_SERVER_ERROR']).json({
       error: true,
       message: 'Could not load founding promo status'

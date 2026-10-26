@@ -8,6 +8,8 @@ import {pipeline, Readable} from 'stream'
 import * as fs from 'fs'
 import ResponseCodes from '../constants/ResponseCodes.js'
 
+import logger from './logger.js'
+
 function writeToSystem(filePath, content, encoding) {
 
     return new Promise((resolve, reject) => {
@@ -30,11 +32,11 @@ function writeToSystem(filePath, content, encoding) {
 
                 if (err) {
 
-                    console.error('Pipeline failed', err)
+                    logger.error('Pipeline failed', { eventName: 'PIPELINE_FAILED', err: err })
                     reject(err)
                 } else {
 
-                    console.log('Pipeline succeeded')
+                    logger.info('Pipeline succeeded', { eventName: 'PIPELINE_SUCCEEDED' })
                     resolve(filePath)
 
                 }
@@ -84,11 +86,11 @@ function writeToSystemFromStream(filePath, contentStream, encoding) {
 
                 if (err) {
 
-                    console.error('Pipeline failed', err)
+                    logger.error('Pipeline failed', { eventName: 'PIPELINE_FAILED', err: err })
                     reject(err)
                 } else {
 
-                    console.log('Pipeline succeeded')
+                    logger.info('Pipeline succeeded', { eventName: 'PIPELINE_SUCCEEDED' })
                     resolve(filePath)
 
                 }
@@ -181,14 +183,14 @@ async function saveRequestsToFileSystem(dir, shouldRewriteFiles, requestFileName
                 return fsp.writeFile(`${dir}/manifest.json`, JSON.stringify(newFileNames, null, 2))
             })
             .catch((err) => {
-                console.log('manifest.json created')
+                logger.info('manifest.json created', { eventName: 'MANIFEST_JSON_CREATED' })
 
                 return fsp.writeFile(`${dir}/manifest.json`, JSON.stringify(requestFileNames, null, 2))
             })
 
 
     } catch (error) {
-        console.error(error)
+        logger.error(error, { eventName: 'LIVEDEMO_HELPERS_FAILED' })
     }
 
     let promiseChain = Promise.resolve()
@@ -234,7 +236,7 @@ async function saveToFilesystem(dir, shouldRewriteFiles, requestFileNames, reque
                 return fsp.writeFile(`${dir}/manifest.json`, JSON.stringify(newFileNames, null, 2))
             })
             .catch((err) => {
-                console.log('does not exist')
+                logger.info('does not exist', { eventName: 'DOES_NOT_EXIST' })
 
                 return fsp.writeFile(`${dir}/manifest.json`, JSON.stringify(requestFileNames, null, 2))
             })
@@ -262,7 +264,7 @@ async function saveToFilesystem(dir, shouldRewriteFiles, requestFileNames, reque
 
 
     } catch (error) {
-        console.error(error)
+        logger.error(error, { eventName: 'LIVEDEMO_HELPERS_FAILED' })
     }
 
     let promiseChain = Promise.resolve()
@@ -413,8 +415,8 @@ function uploadImage(imageData, imageName) {
         }
     })
 
-    console.log('AWS_ACCESS_KEY_ID ' + ENV.AWS_ACCESS_KEY_ID)
-    console.log('AWS_SECRET_ACCESS_KEY ' + ENV.AWS_SECRET_ACCESS_KEY)
+    logger.info('aws access key present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
+    logger.info('aws secret present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
 
 
     let buf = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64')
@@ -436,11 +438,11 @@ function uploadImage(imageData, imageName) {
 
             const uploadResult = await upload.done()
 
-            console.log('successfully uploaded the image!')
+            logger.info('successfully uploaded the image!', { eventName: 'SUCCESSFULLY_UPLOADED_THE_IMAGE' })
             resolve(uploadResult)
         } catch (error) {
-            console.log(error)
-            console.log('Error uploading data: ', error)
+            logger.error(error, { eventName: 'LIVEDEMO_HELPERS_FAILED' })
+            logger.error('Error uploading data: ', { eventName: 'ERROR_UPLOADING_DATA_FAILED', err: error })
             reject(error)
         }
     })
@@ -457,8 +459,8 @@ function uploadBufferImage(imageBuff, mimeType, imageName) {
         }
     })
 
-    console.log('AWS_ACCESS_KEY_ID ' + ENV.AWS_ACCESS_KEY_ID)
-    console.log('AWS_SECRET_ACCESS_KEY ' + ENV.AWS_SECRET_ACCESS_KEY)
+    logger.info('aws access key present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
+    logger.info('aws secret present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
 
 
     let uploadParams = {
@@ -478,11 +480,11 @@ function uploadBufferImage(imageBuff, mimeType, imageName) {
 
             const uploadResult = await upload.done()
 
-            console.log('successfully uploaded the image!')
+            logger.info('successfully uploaded the image!', { eventName: 'SUCCESSFULLY_UPLOADED_THE_IMAGE' })
             resolve(uploadResult)
         } catch (error) {
-            console.log(error)
-            console.log('Error uploading data: ', error)
+            logger.error(error, { eventName: 'LIVEDEMO_HELPERS_FAILED' })
+            logger.error('Error uploading data: ', { eventName: 'ERROR_UPLOADING_DATA_FAILED', err: error })
             reject(error)
         }
     })
@@ -499,8 +501,8 @@ function uploadBufferBackgroundAudio(audioBuff, mimeType, audioName) {
         }
     })
 
-    console.log('AWS_ACCESS_KEY_ID ' + ENV.AWS_ACCESS_KEY_ID)
-    console.log('AWS_SECRET_ACCESS_KEY ' + ENV.AWS_SECRET_ACCESS_KEY)
+    logger.info('aws access key present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
+    logger.info('aws secret present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
 
 
     let uploadParams = {
@@ -520,11 +522,11 @@ function uploadBufferBackgroundAudio(audioBuff, mimeType, audioName) {
 
             const uploadResult = await upload.done()
 
-            console.log('successfully uploaded the image!')
+            logger.info('successfully uploaded the image!', { eventName: 'SUCCESSFULLY_UPLOADED_THE_IMAGE' })
             resolve(uploadResult)
         } catch (error) {
-            console.log(error)
-            console.log('Error uploading data: ', error)
+            logger.error(error, { eventName: 'LIVEDEMO_HELPERS_FAILED' })
+            logger.error('Error uploading data: ', { eventName: 'ERROR_UPLOADING_DATA_FAILED', err: error })
             reject(error)
         }
     })
@@ -541,8 +543,8 @@ function uploadScreenImage(imageBuff, mimeType, imageName) {
         }
     })
 
-    console.log('AWS_ACCESS_KEY_ID ' + ENV.AWS_ACCESS_KEY_ID)
-    console.log('AWS_SECRET_ACCESS_KEY ' + ENV.AWS_SECRET_ACCESS_KEY)
+    logger.info('aws access key present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
+    logger.info('aws secret present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
 
 
     let uploadParams = {
@@ -562,11 +564,11 @@ function uploadScreenImage(imageBuff, mimeType, imageName) {
 
             const uploadResult = await upload.done()
 
-            console.log('successfully uploaded the image!')
+            logger.info('successfully uploaded the image!', { eventName: 'SUCCESSFULLY_UPLOADED_THE_IMAGE' })
             resolve(uploadResult)
         } catch (error) {
-            console.log(error)
-            console.log('Error uploading data: ', error)
+            logger.error(error, { eventName: 'LIVEDEMO_HELPERS_FAILED' })
+            logger.error('Error uploading data: ', { eventName: 'ERROR_UPLOADING_DATA_FAILED', err: error })
             reject(error)
         }
     })
@@ -581,8 +583,8 @@ function uploadScreenVideo(videoBuff, mimeType, videoName) {
         }
     })
 
-    console.log('AWS_ACCESS_KEY_ID ' + ENV.AWS_ACCESS_KEY_ID)
-    console.log('AWS_SECRET_ACCESS_KEY ' + ENV.AWS_SECRET_ACCESS_KEY)
+    logger.info('aws access key present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
+    logger.info('aws secret present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
 
 
     let uploadParams = {
@@ -602,11 +604,11 @@ function uploadScreenVideo(videoBuff, mimeType, videoName) {
 
             const uploadResult = await upload.done()
 
-            console.log('successfully uploaded the image!')
+            logger.info('successfully uploaded the image!', { eventName: 'SUCCESSFULLY_UPLOADED_THE_IMAGE' })
             resolve(uploadResult)
         } catch (error) {
-            console.log(error)
-            console.log('Error uploading data: ', error)
+            logger.error(error, { eventName: 'LIVEDEMO_HELPERS_FAILED' })
+            logger.error('Error uploading data: ', { eventName: 'ERROR_UPLOADING_DATA_FAILED', err: error })
             reject(error)
         }
     })
@@ -634,8 +636,8 @@ function uploadStepAudio(audioBuff, mimeType, audioName) {
         }
     })
 
-    console.log('AWS_ACCESS_KEY_ID ' + ENV.AWS_ACCESS_KEY_ID)
-    console.log('AWS_SECRET_ACCESS_KEY ' + ENV.AWS_SECRET_ACCESS_KEY)
+    logger.info('aws access key present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
+    logger.info('aws secret present (redacted)', { eventName: 'AWS_CREDENTIALS_CHECK' })
 
 
     let uploadParams = {
@@ -655,11 +657,11 @@ function uploadStepAudio(audioBuff, mimeType, audioName) {
 
             const uploadResult = await upload.done()
 
-            console.log('successfully uploaded the image!')
+            logger.info('successfully uploaded the image!', { eventName: 'SUCCESSFULLY_UPLOADED_THE_IMAGE' })
             resolve(uploadResult)
         } catch (error) {
-            console.log(error)
-            console.log('Error uploading data: ', error)
+            logger.error(error, { eventName: 'LIVEDEMO_HELPERS_FAILED' })
+            logger.error('Error uploading data: ', { eventName: 'ERROR_UPLOADING_DATA_FAILED', err: error })
             reject(error)
         }
     })
@@ -931,7 +933,7 @@ async function refreshHubspotToken(hubspotToken, Models) {
         updatedTokenData
     )
 
-    console.log('HubSpot token refreshed successfully for token ID:', hubspotToken._id)
+    logger.info('HubSpot token refreshed successfully for token ID:', { eventName: 'HUBSPOT_TOKEN_REFRESHED_SUCCESSFULLY_FOR_TOKEN_ID', data: { detail: hubspotToken._id } })
 
     return {
         accessToken: tokenRes.access_token,

@@ -2,6 +2,8 @@ import summarizeAgentSession from '../helpers/agent/sessionInsights.js'
 import { deliverWebhook } from '../helpers/workspaceEvents.js'
 import { recordLemonSliceClip } from '../helpers/agent/avatarVideo.js'
 
+import logger from '../helpers/logger.js'
+
 // monq jobs for the sales pipeline:
 //   summarizeAgentSession { sessionId, final } — summary/topics/intent/unanswered (+ session.ended, HubSpot when final)
 //   deliverWebhook { hookId, event }            — one signed POST / Slack message; throws → monq retries
@@ -22,7 +24,7 @@ function processAgentSession(sharedConfig, params, callback) {
         })
         .then(() => callback(null, {}))
         .catch((err) => {
-            console.log('processAgentSession failed', JSON.stringify(params), err.message)
+            logger.error('processAgentSession failed', { eventName: 'PROCESSAGENTSESSION_FAILED', err: err.message })
             callback(err)
         })
 }

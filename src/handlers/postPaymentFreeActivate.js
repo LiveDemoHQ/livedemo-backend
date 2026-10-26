@@ -10,10 +10,12 @@ import {
   linkSubscriptionToCustomer,
 } from '../helpers/subscriptionCustomerHelpers.js'
 import {
+
   enablePaidPlanUserFeatureFlags,
   setActiveUserSubscription,
   avatarLimitsFor,
 } from '../helpers/subscriptionHelpers.js'
+import logger from '../helpers/logger.js'
 
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
@@ -143,7 +145,7 @@ const handler = function (req, res) {
       }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_PAYMENT_FREE_ACTIVATE_FAILED' })
 
       const resultResponse = {
         statusCode: ResponseCodes['500_INTERNAL_SERVER_ERROR'],

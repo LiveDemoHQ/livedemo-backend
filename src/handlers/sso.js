@@ -9,6 +9,7 @@ import WorkspaceTypes from '../constants/WorkspaceTypes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import { syncSignupSubscriber } from '../helpers/sequenzy/sequenzyClient.js'
 import {
+
     findSsoWorkspace,
     normalizeCert,
     profileName,
@@ -16,6 +17,7 @@ import {
     spValues,
     ssoEmail
 } from '../helpers/sso.js'
+import logger from '../helpers/logger.js'
 
 // Settings (workspace admin, Growth):
 //   GET    /workspaces/:workspaceId/sso                     config + SP values to paste into the IdP
@@ -178,7 +180,7 @@ const metadata = (req, res) => {
         })
         .catch(error => {
 
-            console.log(error)
+            logger.error(error, { eventName: 'SSO_FAILED' })
             res.status(500).send('')
         })
 }
@@ -203,7 +205,7 @@ const login = (req, res) => {
         .then(url => res.redirect(url))
         .catch(error => {
 
-            console.log('[sso] login failed', error.message)
+            logger.error('[sso] login failed', { eventName: 'LOGIN_FAILED', err: error.message })
             loginFailed(res, error.message)
         })
 }
@@ -238,7 +240,7 @@ const acs = (req, res) => {
         })
         .catch(error => {
 
-            console.log('[sso] acs failed', error.message)
+            logger.error('[sso] acs failed', { eventName: 'ACS_FAILED', err: error.message })
             loginFailed(res, /domain/.test(error.message) ? error.message : 'Single sign-on failed. Ask your admin to check the SSO setup.')
         })
 }

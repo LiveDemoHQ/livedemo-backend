@@ -2,6 +2,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import moment from 'moment'
 
+import logger from '../helpers/logger.js'
+
 const VIEW_TYPES = {
   '48H': '48H',
   '7D': '7D',
@@ -75,7 +77,7 @@ const handler = function (req, res) {
       res.send(leadDocs)
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'GET_WORKSPACE_LEADS_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

@@ -6,6 +6,8 @@ import SubscriptionTypes from '../constants/SubscriptionTypes.js'
 import SubscriptionTypesExpireDates from '../constants/SubscriptionTypesExpireDates.js'
 import { setActiveUserSubscription, enablePaidPlanUserFeatureFlags, avatarLimitsFor } from '../helpers/subscriptionHelpers.js'
 
+import logger from '../helpers/logger.js'
+
 const PRODUCT_TO_SUBSCRIPTION_TYPE = {
   'prod_UXbDm4HqbawhNo': SubscriptionTypes.PRO_MONTHLY,
   'prod_UXbDRK1gGrfWEh': SubscriptionTypes.PRO_ANNUALLY,
@@ -44,20 +46,20 @@ async function handleSubscriptionCreated(stripeSubscription, Models) {
       ? stripeSubscription.customer
       : stripeSubscription.customer?.id
 
-  console.log(`[webhook] subscription.created — stripeSubscriptionId=${stripeSubscriptionId} stripeCustomerId=${stripeCustomerId} status=${stripeSubscription.status}`)
+  logger.info(`[webhook] subscription.created — stripeSubscriptionId=${stripeSubscriptionId} stripeCustomerId=${stripeCustomerId} status=${stripeSubscription.status}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 
   if (!stripeCustomerId) {
-    console.warn(`[webhook] subscription.created — no customer on subscription, skipping`)
+    logger.error(`[webhook] subscription.created — no customer on subscription, skipping`, { eventName: 'POST_PAYMENTS_WEBHOOK_FAILED' })
     return
   }
 
   const user = await Models.User.findOne({ stripeCustomerId }).lean()
   if (!user) {
-    console.warn(`[webhook] subscription.created — no user found for stripeCustomerId=${stripeCustomerId}, skipping`)
+    logger.error(`[webhook] subscription.created — no user found for stripeCustomerId=${stripeCustomerId}, skipping`, { eventName: 'POST_PAYMENTS_WEBHOOK_FAILED' })
     return
   }
 
-  console.log(`[webhook] subscription.created — found user _id=${user._id}, syncing stripeCustomerId`)
+  logger.info(`[webhook] subscription.created — found user _id=${user._id}, syncing stripeCustomerId`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
   await syncUserStripeCustomerId(user._id, stripeCustomerId, Models)
 
   // If a SubscriptionCustomer exists for this user but lacks a stripeSubscriptionId, link it
@@ -67,16 +69,16 @@ async function handleSubscriptionCreated(stripeSubscription, Models) {
   }).lean()
 
   if (subscriptionCustomer) {
-    console.log(`[webhook] subscription.created — linking stripeSubscriptionId to SubscriptionCustomer _id=${subscriptionCustomer._id}`)
+    logger.info(`[webhook] subscription.created — linking stripeSubscriptionId to SubscriptionCustomer _id=${subscriptionCustomer._id}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
     await Models.SubscriptionCustomer.findOneAndUpdate(
       { _id: subscriptionCustomer._id },
       { $set: { stripeSubscriptionId } }
     )
   } else {
-    console.log(`[webhook] subscription.created — no unlinked SubscriptionCustomer found for user _id=${user._id}, nothing to link`)
+    logger.info(`[webhook] subscription.created — no unlinked SubscriptionCustomer found for user _id=${user._id}, nothing to link`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
   }
 
-  console.log(`[webhook] subscription.created — done`)
+  logger.info(`[webhook] subscription.created — done`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 }
 
 // Statuses where the subscription is fully active and in good standing
@@ -91,18 +93,18 @@ async function handleSubscriptionUpdated(stripeSubscription, Models) {
   const status = stripeSubscription.status
   const cancelAtPeriodEnd = stripeSubscription.cancel_at_period_end === true
 
-  console.log(`[webhook] subscription.updated — stripeSubscriptionId=${stripeSubscriptionId} status=${status} cancel_at_period_end=${cancelAtPeriodEnd}`)
+  logger.info(`[webhook] subscription.updated — stripeSubscriptionId=${stripeSubscriptionId} status=${status} cancel_at_period_end=${cancelAtPeriodEnd}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 
   const subscriptionCustomer = await Models.SubscriptionCustomer.findOne({
     stripeSubscriptionId,
   }).lean()
 
   if (!subscriptionCustomer) {
-    console.warn(`[webhook] subscription.updated — no SubscriptionCustomer found for stripeSubscriptionId=${stripeSubscriptionId}, skipping`)
+    logger.error(`[webhook] subscription.updated — no SubscriptionCustomer found for stripeSubscriptionId=${stripeSubscriptionId}, skipping`, { eventName: 'POST_PAYMENTS_WEBHOOK_FAILED' })
     return
   }
 
-  console.log(`[webhook] subscription.updated — found SubscriptionCustomer _id=${subscriptionCustomer._id} userId=${subscriptionCustomer.userId}`)
+  logger.info(`[webhook] subscription.updated — found SubscriptionCustomer _id=${subscriptionCustomer._id} userId=${subscriptionCustomer.userId}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 
   // Detect plan change from items (upgrade / downgrade)
   const priceItem = stripeSubscription.items?.data?.[0]
@@ -113,7 +115,7 @@ async function handleSubscriptionUpdated(stripeSubscription, Models) {
 
   const newSubscriptionType = productId ? PRODUCT_TO_SUBSCRIPTION_TYPE[productId] : null
 
-  console.log(`[webhook] subscription.updated — productId=${productId} resolvedType=${newSubscriptionType || 'unknown'}`)
+  logger.info(`[webhook] subscription.updated — productId=${productId} resolvedType=${newSubscriptionType || 'unknown'}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 
   const existingSubscription = await Models.Subscription.findOne({
     subscriptionCustomerId: subscriptionCustomer._id,
@@ -122,7 +124,7 @@ async function handleSubscriptionUpdated(stripeSubscription, Models) {
   if (ACTIVE_STATUSES.has(status) && !cancelAtPeriodEnd) {
     // Fully active — apply plan change if type resolved, deactivate other subs
     if (newSubscriptionType && existingSubscription?.type && newSubscriptionType !== existingSubscription.type) {
-      console.log(`[webhook] subscription.updated — plan change detected: ${existingSubscription.type} → ${newSubscriptionType}`)
+      logger.info(`[webhook] subscription.updated — plan change detected: ${existingSubscription.type} → ${newSubscriptionType}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
     }
 
     // Reset avatar limits only when the plan type changes, so a hand-edited
@@ -142,7 +144,7 @@ async function handleSubscriptionUpdated(stripeSubscription, Models) {
       ...(avatarLimits || {}),
     }
 
-    console.log(`[webhook] subscription.updated — applying active update`, update)
+    logger.info(`[webhook] subscription.updated — applying active update`, { eventName: 'POST_PAYMENTS_WEBHOOK', data: { detail: update } })
 
     const updatedSub = await Models.Subscription.findOneAndUpdate(
       { subscriptionCustomerId: subscriptionCustomer._id },
@@ -152,14 +154,14 @@ async function handleSubscriptionUpdated(stripeSubscription, Models) {
 
     if (updatedSub && subscriptionCustomer.userId) {
       await setActiveUserSubscription(Models, subscriptionCustomer.userId, updatedSub._id)
-      console.log(`[webhook] subscription.updated — deactivated other subscriptions for userId=${subscriptionCustomer.userId}`)
+      logger.info(`[webhook] subscription.updated — deactivated other subscriptions for userId=${subscriptionCustomer.userId}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
       await enablePaidPlanUserFeatureFlags(Models, subscriptionCustomer.userId, updatedSub.type)
-      console.log(`[webhook] subscription.updated — feature flags ensured for userId=${subscriptionCustomer.userId}`)
+      logger.info(`[webhook] subscription.updated — feature flags ensured for userId=${subscriptionCustomer.userId}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
     }
   } else if (ACTIVE_STATUSES.has(status) && cancelAtPeriodEnd) {
     // Still running but scheduled to cancel at period end
     const update = { active: true, expired: false, cancelAtPeriodEnd: true }
-    console.log(`[webhook] subscription.updated — applying cancel-at-period-end update`, update)
+    logger.info(`[webhook] subscription.updated — applying cancel-at-period-end update`, { eventName: 'POST_PAYMENTS_WEBHOOK', data: { detail: update } })
     await Models.Subscription.findOneAndUpdate(
       { subscriptionCustomerId: subscriptionCustomer._id },
       { $set: update }
@@ -167,7 +169,7 @@ async function handleSubscriptionUpdated(stripeSubscription, Models) {
   } else if (PAYMENT_ISSUE_STATUSES.has(status)) {
     // Payment failed — mark inactive but not expired (recoverable)
     const update = { active: false, expired: false, cancelAtPeriodEnd: false }
-    console.log(`[webhook] subscription.updated — payment issue status=${status}, disabling subscription`, update)
+    logger.info(`[webhook] subscription.updated — payment issue status=${status}, disabling subscription`, { eventName: 'POST_PAYMENTS_WEBHOOK', data: { detail: update } })
     await Models.Subscription.findOneAndUpdate(
       { subscriptionCustomerId: subscriptionCustomer._id },
       { $set: update }
@@ -175,46 +177,46 @@ async function handleSubscriptionUpdated(stripeSubscription, Models) {
   } else {
     // status === 'canceled' or 'incomplete_expired' — fully inactive
     const update = { active: false, expired: true, cancelAtPeriodEnd: false }
-    console.log(`[webhook] subscription.updated — terminal status=${status}, expiring subscription`, update)
+    logger.info(`[webhook] subscription.updated — terminal status=${status}, expiring subscription`, { eventName: 'POST_PAYMENTS_WEBHOOK', data: { detail: update } })
     await Models.Subscription.findOneAndUpdate(
       { subscriptionCustomerId: subscriptionCustomer._id },
       { $set: update }
     )
   }
 
-  console.log(`[webhook] subscription.updated — done`)
+  logger.info(`[webhook] subscription.updated — done`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 }
 
 async function handleSubscriptionDeleted(stripeSubscription, Models) {
   const stripeSubscriptionId =
     typeof stripeSubscription === 'string' ? stripeSubscription : stripeSubscription.id
 
-  console.log(`[webhook] subscription.deleted — stripeSubscriptionId=${stripeSubscriptionId}`)
+  logger.info(`[webhook] subscription.deleted — stripeSubscriptionId=${stripeSubscriptionId}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 
   const subscriptionCustomer = await Models.SubscriptionCustomer.findOne({
     stripeSubscriptionId,
   }).lean()
 
   if (!subscriptionCustomer) {
-    console.warn(`[webhook] subscription.deleted — no SubscriptionCustomer found for stripeSubscriptionId=${stripeSubscriptionId}, skipping`)
+    logger.error(`[webhook] subscription.deleted — no SubscriptionCustomer found for stripeSubscriptionId=${stripeSubscriptionId}, skipping`, { eventName: 'POST_PAYMENTS_WEBHOOK_FAILED' })
     return
   }
 
-  console.log(`[webhook] subscription.deleted — found SubscriptionCustomer _id=${subscriptionCustomer._id}, marking expired`)
+  logger.info(`[webhook] subscription.deleted — found SubscriptionCustomer _id=${subscriptionCustomer._id}, marking expired`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 
   await Models.Subscription.findOneAndUpdate(
     { subscriptionCustomerId: subscriptionCustomer._id },
     { $set: { active: false, expired: true, cancelAtPeriodEnd: false } }
   )
 
-  console.log(`[webhook] subscription.deleted — done`)
+  logger.info(`[webhook] subscription.deleted — done`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 }
 
 async function handleInvoicePaid(invoice, Models) {
-  console.log(`[webhook] invoice.paid — invoiceId=${invoice.id} customer=${invoice.customer} amount_paid=${invoice.amount_paid}`)
+  logger.info(`[webhook] invoice.paid — invoiceId=${invoice.id} customer=${invoice.customer} amount_paid=${invoice.amount_paid}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 
   if (!invoice.customer) {
-    console.warn(`[webhook] invoice.paid — no customer on invoice, skipping`)
+    logger.error(`[webhook] invoice.paid — no customer on invoice, skipping`, { eventName: 'POST_PAYMENTS_WEBHOOK_FAILED' })
     return
   }
 
@@ -223,31 +225,31 @@ async function handleInvoicePaid(invoice, Models) {
 
   const user = await Models.User.findOne({ stripeCustomerId }).lean()
   if (!user) {
-    console.warn(`[webhook] invoice.paid — no user found for stripeCustomerId=${stripeCustomerId}, skipping`)
+    logger.error(`[webhook] invoice.paid — no user found for stripeCustomerId=${stripeCustomerId}, skipping`, { eventName: 'POST_PAYMENTS_WEBHOOK_FAILED' })
     return
   }
 
-  console.log(`[webhook] invoice.paid — found user _id=${user._id}, syncing stripeCustomerId`)
+  logger.info(`[webhook] invoice.paid — found user _id=${user._id}, syncing stripeCustomerId`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 
   await syncUserStripeCustomerId(user._id, stripeCustomerId, Models)
 
-  console.log(`[webhook] invoice.paid — done`)
+  logger.info(`[webhook] invoice.paid — done`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 }
 
 async function handleCustomerUpdated(customer, Models) {
   const stripeCustomerId =
     typeof customer === 'string' ? customer : customer.id
 
-  console.log(`[webhook] customer.updated — stripeCustomerId=${stripeCustomerId}`)
+  logger.info(`[webhook] customer.updated — stripeCustomerId=${stripeCustomerId}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 
   if (!stripeCustomerId) {
-    console.warn(`[webhook] customer.updated — no stripeCustomerId, skipping`)
+    logger.error(`[webhook] customer.updated — no stripeCustomerId, skipping`, { eventName: 'POST_PAYMENTS_WEBHOOK_FAILED' })
     return
   }
 
   await syncUserStripeCustomerId(null, stripeCustomerId, Models)
 
-  console.log(`[webhook] customer.updated — done`)
+  logger.info(`[webhook] customer.updated — done`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 }
 
 const handler = async function (req, res) {
@@ -257,7 +259,7 @@ const handler = async function (req, res) {
   const sig = req.headers['stripe-signature']
   const webhookSecret = ENV.STRIPE_WEBHOOK_SECRET
 
-  console.log(`[webhook] incoming request — sig=${sig ? 'present' : 'missing'} webhookSecret=${webhookSecret ? 'set' : 'NOT SET'}`)
+  logger.info(`[webhook] incoming request — sig=${sig ? 'present' : 'missing'} webhookSecret=${webhookSecret ? 'set' : 'NOT SET'}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 
   let event
 
@@ -267,24 +269,24 @@ const handler = async function (req, res) {
     if (webhookSecret && sig) {
       const rawBody = req.body
       event = stripeInstance.webhooks.constructEvent(rawBody, sig, webhookSecret)
-      console.log(`[webhook] signature verified — eventId=${event.id} type=${event.type}`)
+      logger.info(`[webhook] signature verified — eventId=${event.id} type=${event.type}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
     } else {
       const payload =
         Buffer.isBuffer(req.body) || typeof req.body === 'string'
           ? JSON.parse(req.body.toString())
           : req.body
       event = payload
-      console.warn(`[webhook] STRIPE_WEBHOOK_SECRET not set — skipping signature verification, type=${event.type}`)
+      logger.error(`[webhook] STRIPE_WEBHOOK_SECRET not set — skipping signature verification, type=${event.type}`, { eventName: 'POST_PAYMENTS_WEBHOOK_FAILED' })
     }
   } catch (err) {
-    console.error(`[webhook] signature verification failed — ${err.message}`)
+    logger.error(`[webhook] signature verification failed — ${err.message}`, { eventName: 'POST_PAYMENTS_WEBHOOK_FAILED' })
     return res.status(ResponseCodes['400_BAD_REQUEST']).json({
       error: true,
       message: `Webhook Error: ${err.message}`,
     })
   }
 
-  console.log(`[webhook] processing event type=${event.type} id=${event.id}`)
+  logger.info(`[webhook] processing event type=${event.type} id=${event.id}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
 
   try {
     switch (event.type) {
@@ -309,22 +311,22 @@ const handler = async function (req, res) {
         break
       }
       case 'payment_method.attached':
-        console.log(`[webhook] payment_method.attached — paymentMethodId=${event.data.object.id} customer=${event.data.object.customer}`)
+        logger.info(`[webhook] payment_method.attached — paymentMethodId=${event.data.object.id} customer=${event.data.object.customer}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
         break
       case 'payment_method.detached':
-        console.log(`[webhook] payment_method.detached — paymentMethodId=${event.data.object.id}`)
+        logger.info(`[webhook] payment_method.detached — paymentMethodId=${event.data.object.id}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
         break
       case 'billing_portal.session.created':
-        console.log(`[webhook] billing_portal.session.created — customer=${event.data.object.customer}`)
+        logger.info(`[webhook] billing_portal.session.created — customer=${event.data.object.customer}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
         break
       default:
-        console.log(`[webhook] unhandled event type=${event.type} id=${event.id}`)
+        logger.info(`[webhook] unhandled event type=${event.type} id=${event.id}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
     }
 
-    console.log(`[webhook] event processed successfully type=${event.type} id=${event.id}`)
+    logger.info(`[webhook] event processed successfully type=${event.type} id=${event.id}`, { eventName: 'POST_PAYMENTS_WEBHOOK' })
     res.status(ResponseCodes['200_OK']).json({ received: true })
   } catch (err) {
-    console.error(`[webhook] processing error type=${event.type} id=${event.id} — ${err.message}`, err)
+    logger.error(`[webhook] processing error type=${event.type} id=${event.id} — ${err.message}`, { eventName: 'POST_PAYMENTS_WEBHOOK_FAILED', err: err })
     res.status(ResponseCodes['500_INTERNAL_SERVER_ERROR']).json({
       error: true,
       message: err.message,

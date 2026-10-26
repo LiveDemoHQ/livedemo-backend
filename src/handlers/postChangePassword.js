@@ -5,6 +5,8 @@ import authUtils from '../helpers/authUtils.js'
 import AuthTokenStatuses from '../constants/AuthTokenStatuses.js'
 import { httpError } from '../helpers/agent/http.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -69,7 +71,7 @@ const handler = function (req, res) {
       }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_CHANGE_PASSWORD_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

@@ -10,6 +10,8 @@ import { getPostAuthRedirectPath } from '../helpers/emailHelpers.js'
 import { assertNotSsoEnforced } from '../helpers/sso.js'
 import axios from 'axios'
 import mongoose from 'mongoose'
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types
 
 const handler = function (req, res) {
@@ -53,7 +55,7 @@ const handler = function (req, res) {
         const isNewUser = !userObj
 
         if (userObj) {
-            console.log('user found')
+            logger.info('user found', { eventName: 'USER_FOUND' })
             // Update token data
             await Models.User.findOneAndUpdate(
                 { _id: userObj._id },
@@ -172,7 +174,7 @@ const handler = function (req, res) {
                     }, [userObj.googleProfile.email], Models)
                 }
             } catch (err) {
-                console.log('Email send error:', err)
+                logger.error('Email send error:', { eventName: 'EMAIL_SEND_ERROR', err: err })
             }
         }
 
@@ -243,7 +245,7 @@ const handler = function (req, res) {
         res.redirect(redirectUrl)
     })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'GET_USERS_AUTH_GOOGLE_CALLBACK_FAILED' })
             if (error.ssoRedirectUrl) return res.redirect(error.ssoRedirectUrl)
 
             let resultResponse

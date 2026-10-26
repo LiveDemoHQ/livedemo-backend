@@ -11,6 +11,8 @@ import {
 } from '../helpers/emailHelpers.js'
 import { assertNotSsoEnforced } from '../helpers/sso.js'
 import mongoose from 'mongoose'
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types
 
 const handler = function (req, res) {
@@ -189,7 +191,7 @@ const handler = function (req, res) {
     .then((newUserData) => {
       return createAndSendEmailVerificationCode(newUserData, Models)
         .catch((err) => {
-          console.log('Email verification code send error:', err)
+          logger.error('Email verification code send error:', { eventName: 'EMAIL_VERIFICATION_CODE_SEND_ERROR', err: err })
         })
         .then(() => newUserData)
     })
@@ -238,7 +240,7 @@ const handler = function (req, res) {
       })
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_USERS_FAILED' })
 
       let resultResponse
       let checkForDuplicateError = userValidators.handleMongoDuplicateError(error)

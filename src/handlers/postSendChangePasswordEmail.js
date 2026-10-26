@@ -5,6 +5,8 @@ import Templates from '../helpers/emails/templates/index.js'
 import ENV from '../envServer.js'
 import authUtils from '../helpers/authUtils.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -47,7 +49,7 @@ const handler = function (req, res) {
       }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_SEND_CHANGE_PASSWORD_EMAIL_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

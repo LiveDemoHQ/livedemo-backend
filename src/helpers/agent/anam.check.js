@@ -7,6 +7,8 @@ import aiHelpers from '../aiHelpers.js'
 import { avatarIsLive, createAnamSessionToken, listStockAvatars, listStockVoices, pickAvatarModel, stockAvatarVideoUrl, usesAnamVoice } from './anam.js'
 import speakAgentText, { streamAgentPcm } from './speakAgentText.js'
 
+import logger from '../logger.js'
+
 assert.strictEqual(pickAvatarModel({ activeVersion: 'cara-3', availableVersions: ['cara-3'] }), 'cara-3')
 assert.strictEqual(pickAvatarModel({ activeVersion: 'cara-4-latest', availableVersions: ['cara-4-latest', 'cara-4'] }), 'cara-4')
 assert.strictEqual(avatarIsLive({ avatarsEnabled: false, anamAvatarId: 'a' }), false)
@@ -114,5 +116,5 @@ await assert.rejects(
   'network error must surface as 503',
 )
 
-console.log('anam.check OK')
+logger.info('anam.check OK', { eventName: 'ANAM_CHECK_OK' })
 process.exit(0)

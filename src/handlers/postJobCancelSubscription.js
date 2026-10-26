@@ -2,6 +2,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import validateCancelSubscriptionValidator from '../helpers/validators/oldLambdaRoutes/jobs/validateCancelSubscription.js'
 import helpers from '../helpers/livedemoHelpers.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
   let requestBody = req.body
@@ -32,7 +34,7 @@ const handler = function (req, res) {
     .then(() => {
       const { subscriptionId } = requestBody
 
-      console.log('cancelSubscription for ' + subscriptionId)
+      logger.info('cancelSubscription for ' + subscriptionId, { eventName: 'POST_JOB_CANCEL_SUBSCRIPTION' })
 
       // Get subscription
       return Models.Subscription.findOne({ _id: subscriptionId }).lean()
@@ -85,7 +87,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify({}))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_JOB_CANCEL_SUBSCRIPTION_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

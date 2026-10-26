@@ -1,5 +1,7 @@
 import { captureAgentPreImage, recordRevision } from '../helpers/agentRevisions.js'
 
+import logger from '../helpers/logger.js'
+
 // Clone of captureStoryRevision.js for AiDemoAgent routes. Reads the agent +
 // its knowledge sources into memory before the handler runs, records the
 // pre-image on the undo stack only when the handler responded 2xx.
@@ -16,12 +18,12 @@ const captureAgentRevision = (actionLabel) =>
         res.on('finish', () => {
           if (res.statusCode >= 200 && res.statusCode < 300) {
             recordRevision(Models, { ...payload, actionLabel })
-              .catch(err => console.log('agentRevision record failed', err))
+              .catch(err => logger.error('agentRevision record failed', { eventName: 'AGENTREVISION_RECORD_FAILED', err: err }))
           }
         })
       }
     } catch (err) {
-      console.log('agentRevision capture failed', err)
+      logger.error('agentRevision capture failed', { eventName: 'AGENTREVISION_CAPTURE_FAILED', err: err })
     }
 
     next()

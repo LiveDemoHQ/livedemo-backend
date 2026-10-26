@@ -1,6 +1,8 @@
 import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 
+import logger from '../helpers/logger.js'
+
 const PAGE_SIZE = 50
 
 const handler = function (req, res) {
@@ -67,7 +69,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify(foundStories))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'GET_STORIES_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

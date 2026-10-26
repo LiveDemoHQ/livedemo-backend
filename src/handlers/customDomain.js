@@ -5,6 +5,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import WorkspaceTypes from '../constants/WorkspaceTypes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 
+import logger from '../helpers/logger.js'
+
 // GET    /workspaces/:workspaceId/custom-domain          status (members)
 // PUT    /workspaces/:workspaceId/custom-domain          { hostname } (admin, Growth) -> Cloudflare custom hostname
 // POST   /workspaces/:workspaceId/custom-domain/verify   pending -> active once Cloudflare has the cert
@@ -88,7 +90,7 @@ const put = wrap(async (req, res) => {
     }).catch(error => httpError(ResponseCodes['400_BAD_REQUEST'], `Cloudflare: ${cloudflareMessage(error)}`))
 
     const old = workspace.customDomain
-    if (old && old.cfHostnameId) await cloudflare('delete', `/${old.cfHostnameId}`).catch(error => console.log('[customDomain] delete old', cloudflareMessage(error)))
+    if (old && old.cfHostnameId) await cloudflare('delete', `/${old.cfHostnameId}`).catch(error => logger.info('[customDomain] delete old', { eventName: 'DELETE_OLD', data: { detail: cloudflareMessage(error) } }))
 
     await Models.Workspace.updateOne({ _id: workspace._id }, {
         $set: {

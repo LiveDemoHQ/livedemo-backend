@@ -9,6 +9,8 @@ import {
 } from '../helpers/rrwebEventNames.js'
 import ScreenTypes from '../constants/ScreenTypes.js'
 
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types
 const SCREENDOC_ENCODING = 'utf-8'
 
@@ -37,7 +39,7 @@ async function readRrwebEvents(filePath) {
   try {
     return decodeRrwebEvents(JSON.parse(raw))
   } catch (e) {
-    console.log('Failed to parse rrweb events at', filePath, e)
+    logger.error('Failed to parse rrweb events at', { eventName: 'FAILED_TO_PARSE_RRWEB_EVENTS_AT_FAILED', err: e })
     return []
   }
 }
@@ -231,7 +233,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify(screenDoc))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_SCREEN_BASE_MERGE_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

@@ -5,6 +5,8 @@ import StoryStatuses from '../constants/StoryStatuses.js'
 // const {STORY_REQUESTS_FOLDER} = ENV
 import mongoose from 'mongoose';
 import { httpError } from '../helpers/agent/http.js'
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types;
 
 // "Add flow to…" must target a sandbox of the same workspace
@@ -81,7 +83,7 @@ const handler = function (req, res) {
             return new Models.Story(storyFields).save()
         })
         .then((newStory) => {
-            console.log('Story created')
+            logger.info('Story created', { eventName: 'STORY_CREATED' })
 
             const resultResponse = {
                 statusCode: ResponseCodes['200_OK'],
@@ -101,7 +103,7 @@ const handler = function (req, res) {
             }))
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'POST_IN_PROGRESS_STORY_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

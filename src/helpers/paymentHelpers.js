@@ -4,6 +4,8 @@
 import postPaymentChargeInternalHandler from '../handlers/postPaymentChargeInternal.js'
 import { mapCard } from './mapper.js'
 
+import logger from './logger.js'
+
 /**
  * Persist a Stripe payment method as a user Card (or reuse existing).
  * @returns {Promise<object|null>} Saved card document
@@ -108,7 +110,7 @@ export function triggerPostChargeInternal(userId, cardId, currency, subscription
   // Call the handler directly
   return postPaymentChargeInternalHandler(mockReq, mockRes)
     .catch((err) => {
-      console.error('Error in postChargeInternal handler:', err)
+      logger.error('Error in postChargeInternal handler:', { eventName: 'ERROR_IN_POSTCHARGEINTERNAL_HANDLER_FAILED', err: err })
       throw err
     })
 }

@@ -14,6 +14,8 @@ import EventNamesEnum from '../constants/EventNamesEnum.js'
 import ENV from '../envServer.js'
 import { mapCard } from '../helpers/mapper.js'
 
+import logger from '../helpers/logger.js'
+
 // Uncomment when Stripe is configured:
 // import Stripe from 'stripe'
 // const stripe = Stripe(ENV.STRIPE_SECRET_KEY)
@@ -192,7 +194,7 @@ const handler = function (req, res) {
       }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_VERIFY_PAYMENT_CHARGE_FAILED' })
 
       const resultResponse = {
         statusCode: ResponseCodes['500_INTERNAL_SERVER_ERROR'],

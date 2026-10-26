@@ -7,6 +7,8 @@ import monq from 'monq'
 import isAnalyticsExcludedIp from '../helpers/isAnalyticsExcludedIp.js'
 import { emitDemoEvent } from '../helpers/workspaceEvents.js'
 
+import logger from '../helpers/logger.js'
+
 function enqueueDemoVisitEvent(storyId, sessionId) {
   const client = monq(ENV.DB_URI || 'mongodb://localhost:27017/livedemo_app')
   const queue = client.queue('demoActivityEvents', { collection: 'jobs-monq' })
@@ -17,7 +19,7 @@ function enqueueDemoVisitEvent(storyId, sessionId) {
       if (err) {
         reject(err)
       }
-      console.log('Enqueued demo-visit-event:', job.data)
+      logger.info('Enqueued demo-visit-event:', { eventName: 'ENQUEUED_DEMO_VISIT_EVENT', data: { detail: job.data } })
       resolve()
     })
   })
@@ -121,7 +123,7 @@ const handler = function (req, res) {
         .then(() => sessionDoc)
         .catch((err) => {
           // Log error but don't fail the request if enqueueing fails
-          console.error('Failed to enqueue demo-visit-event:', err)
+          logger.error('Failed to enqueue demo-visit-event:', { eventName: 'FAILED_TO_ENQUEUE_DEMO_VISIT_EVENT_FAILED', err: err })
           return sessionDoc
         })
     })
@@ -143,7 +145,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify(sessionDoc || { recordingDisabled: true }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_STORY_SESSION_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

@@ -1,6 +1,8 @@
 import Stripe from 'stripe'
 import ENV from '../envServer.js'
 
+import logger from './logger.js'
+
 let stripe = null
 
 function getStripe() {
@@ -36,7 +38,7 @@ export async function syncStripeSubscriptionAutoPay(stripeSubscriptionId, autoPa
     } catch (err) {
       // Ignore when collection was not paused
       if (err?.code !== 'resource_missing' && err?.param !== 'pause_collection') {
-        console.warn('syncStripeSubscriptionAutoPay resume:', err.message)
+        logger.error('syncStripeSubscriptionAutoPay resume:', { eventName: 'SYNCSTRIPESUBSCRIPTIONAUTOPAY_RESUME_FAILED', err: err.message })
       }
     }
   } else {

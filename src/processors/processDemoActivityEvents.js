@@ -9,15 +9,17 @@ import he from 'he'
 import axios from 'axios'
 import { getHubspotAccessToken, upsertHubspotContact } from '../helpers/hubspot.js'
 
+import logger from '../helpers/logger.js'
+
 function processVisitEvent(sharedConfig, storyDoc, data) {
     const { Models, axios } = sharedConfig
-    console.log('processVisitEvent - Done')
+    logger.info('processVisitEvent - Done', { eventName: 'PROCESSVISITEVENT_DONE' })
     return Promise.resolve()
 }
 
 function processCompletionEvent(sharedConfig, storyDoc, data) {
     const { Models, axios } = sharedConfig
-    console.log('processCompletionEvent - Done')
+    logger.info('processCompletionEvent - Done', { eventName: 'PROCESSCOMPLETIONEVENT_DONE' })
     return Promise.resolve()
 
 }
@@ -28,22 +30,22 @@ function processLeadCollectionEvent(sharedConfig, storyDoc, data) {
     const email = leadData?.email
 
     if (!email) {
-        console.log('No email found in lead data, skipping HubSpot contact creation')
+        logger.info('No email found in lead data, skipping HubSpot contact creation', { eventName: 'PROCESS_DEMO_ACTIVITY_EVENTS' })
         return Promise.resolve()
     }
 
     return getHubspotAccessToken(Models, workspaceId)
         .then((accessToken) => {
             if (!accessToken) {
-                console.log(`HubSpot not connected for workspace ${workspaceId}`)
+                logger.info(`HubSpot not connected for workspace ${workspaceId}`, { eventName: 'PROCESS_DEMO_ACTIVITY_EVENTS' })
                 return
             }
 
             return upsertHubspotContact(accessToken, { email, name: leadData?.name })
-                .then(contactId => console.log(`HubSpot contact ready: ${contactId}`))
+                .then(contactId => logger.info(`HubSpot contact ready: ${contactId}`, { eventName: 'PROCESS_DEMO_ACTIVITY_EVENTS' }))
         })
         // Don't fail the job on HubSpot errors
-        .catch(error => console.error('Error creating HubSpot contact:', error.response?.data || error.message))
+        .catch(error => logger.error('Error creating HubSpot contact:', { eventName: 'ERROR_CREATING_HUBSPOT_CONTACT_FAILED', data: { detail: error.response?.data || error.message } }))
 }
 
 function processDemoActivityEvents(sharedConfig, params, callback) {
@@ -98,8 +100,8 @@ function processDemoActivityEvents(sharedConfig, params, callback) {
             callback(null, { storyId, sessionId })
         })
         .catch(err => {
-            console.log('processDemoActivityEvents failed - end')
-            console.log(err)
+            logger.error('processDemoActivityEvents failed - end', { eventName: 'PROCESSDEMOACTIVITYEVENTS_FAILED_END_FAILED' })
+            logger.error(err, { eventName: 'PROCESS_DEMO_ACTIVITY_EVENTS_FAILED' })
 
             callback(err)
         })

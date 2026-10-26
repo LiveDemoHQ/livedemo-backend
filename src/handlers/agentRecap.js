@@ -9,6 +9,8 @@ import { resolveCta } from '../helpers/agent/validateActions.js'
 import { emailDomain } from '../helpers/agent/personalization.js'
 import { emitSafe, sessionPayload } from '../helpers/workspaceEvents.js'
 
+import logger from '../helpers/logger.js'
+
 // Public, shareable recap of one agent conversation: GET /recaps/:token (HTML),
 // POST /recaps/:token/viewers { email } (a forwarded viewer identifies themselves).
 // The token is an unguessable short-uuid minted with the session. Views from
@@ -131,7 +133,7 @@ const view = async function (req, res) {
                 .lean()
         ])
 
-        await recordView(Models, { session, agent, ip: clientIp(req) }).catch(err => console.log('recap view count failed', err.message))
+        await recordView(Models, { session, agent, ip: clientIp(req) }).catch(err => logger.error('recap view count failed', { eventName: 'RECAP_VIEW_COUNT_FAILED', err: err.message }))
 
         res.set({
             'Content-Type': 'text/html; charset=utf-8',
@@ -147,7 +149,7 @@ const view = async function (req, res) {
             booking: resolveCta(agent, session, 'book_meeting')
         }))
     } catch (error) {
-        console.log('recap failed', error.message)
+        logger.error('recap failed', { eventName: 'RECAP_FAILED', err: error.message })
         notFound(res)
     }
 }

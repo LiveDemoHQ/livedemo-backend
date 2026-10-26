@@ -7,6 +7,8 @@ import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import { assertPublicUrl } from '../helpers/agent/publicUrl.js'
 import { MAX_PAGES_CAP } from '../helpers/agent/siteCrawler.js'
 
+import logger from '../helpers/logger.js'
+
 // POST /workspaces/:workspaceId/agents/:agentId/knowledge
 // JSON:      { type: 'text'|'faq'|'url'|'site'|'call', title, rawText | faq: [{q,a}] | url }
 //            site: { url, maxPages?, refreshHours? } crawls the whole site (siteCrawler.js)
@@ -157,7 +159,7 @@ const handler = async function (req, res) {
 
     if (!chunks) {
       enqueueIndexAgentKnowledge(agent._id, source._id)
-        .catch(err => console.log('enqueue indexAgentKnowledge failed', err))
+        .catch(err => logger.error('enqueue indexAgentKnowledge failed', { eventName: 'ENQUEUE_INDEXAGENTKNOWLEDGE_FAILED', err: err }))
     }
 
     sendJson(res, source)

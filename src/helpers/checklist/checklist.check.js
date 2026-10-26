@@ -4,6 +4,8 @@
 import assert from 'assert'
 import { normalizeChecklist, getChecklistContext, applyProgressEvents, copyChecklist, configJson } from './checklist.js'
 
+import logger from '../logger.js'
+
 const WS = 'aaaaaaaaaaaaaaaaaaaaaaaa'
 const HOST = 'bbbbbbbbbbbbbbbbbbbbbbbb'
 const TASK = 'cccccccccccccccccccccccc'
@@ -118,4 +120,4 @@ const NEW = '999999999999999999999999'
 const copied = await copyChecklist(Models, { items: [...checklist.items, item(FOREIGN)] }, { oldStoryId: HOST, newStoryId: NEW, workspaceId: WS })
 assert.deepStrictEqual(copied.items.map(i => String(i.clickAction.storyId)), [NEW, TASK], 'self remapped, task kept, foreign dropped')
 
-console.log('checklist.check.js: all checks passed')
+logger.info('checklist.check.js: all checks passed', { eventName: 'CHECKLIST_CHECK_JS_ALL_CHECKS_PASSED' })

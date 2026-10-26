@@ -13,6 +13,8 @@ import ScreenSchema from './Screen.js'
 import Screen_PageSchema from './Screen_Page.js'
 import ScreenTypes from '../constants/ScreenTypes.js'
 
+import logger from '../helpers/logger.js'
+
 const conn = mongoose.createConnection()
 const ScreenModel = conn.model('Screen', ScreenSchema)
 const PageModel = ScreenModel.discriminator(ScreenTypes.SCREEN_PAGE, Screen_PageSchema)
@@ -43,5 +45,5 @@ assert.strictEqual(savedSpan.duration, 1.5)
 assert.strictEqual(savedSpan.offsetX, 533)
 assert.strictEqual(pageDoc.type, ScreenTypes.SCREEN_PAGE, 'discriminator key changed')
 
-console.log('OK: step zoom spans are reachable on Screen and Screen_Page')
+logger.info('OK: step zoom spans are reachable on Screen and Screen_Page', { eventName: 'OK_STEP_ZOOM_SPANS_ARE_REACHABLE_ON_SCREEN_AND_SCREEN_PAGE' })
 process.exit(0)

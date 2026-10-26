@@ -3,6 +3,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import LambdaRateLimiter from 'lambda-rate-limiter'
 import { createAndSendEmailVerificationCode } from '../helpers/emailHelpers.js'
 
+import logger from '../helpers/logger.js'
+
 const sendEmailVerifyLimiter = LambdaRateLimiter({
   interval: 30000,
   uniqueTokenPerInterval: 500,
@@ -17,7 +19,7 @@ const handler = function (req, res) {
     .then(({ authUser, authToken }) => {
       return sendEmailVerifyLimiter.check(1, authToken)
         .catch(() => {
-          console.log(`Too many send-email-verify requests - clientId=${clientId} - authToken=${authToken}`)
+          logger.info(`Too many send-email-verify requests - clientId=${clientId} - authToken=${authToken}`, { eventName: 'POST_USERS_SEND_EMAIL_VERIFY' })
 
           const failedRateLimitError = new Error('Rate limit exceeded')
           failedRateLimitError.resultResponse = {
@@ -73,7 +75,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify({ emailSent: true }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_USERS_SEND_EMAIL_VERIFY_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

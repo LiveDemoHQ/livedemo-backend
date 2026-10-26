@@ -3,6 +3,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import fsp from 'fs/promises'
 import ENV from '../envServer.js'
 
+import logger from '../helpers/logger.js'
+
 const SCREENDOC_ENCODING = 'utf-8'
 
 async function readRecording(filePath) {
@@ -118,7 +120,7 @@ const handler = function (req, res) {
       }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_STORY_DOM_RECORDING_EVENTS_FAILED' })
       let resultResponse = error.resultResponse || {
         statusCode: ResponseCodes['500_INTERNAL_SERVER_ERROR'],
         headers: {

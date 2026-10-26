@@ -4,6 +4,8 @@ import patchSubscriptionValidator from '../helpers/validators/oldLambdaRoutes/su
 import { normalizeSubscription } from '../helpers/subscriptionHelpers.js'
 import { syncStripeSubscriptionAutoPay } from '../helpers/subscriptionCustomerHelpers.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -150,7 +152,7 @@ const handler = function (req, res) {
       }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'PATCH_SUBSCRIPTION_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

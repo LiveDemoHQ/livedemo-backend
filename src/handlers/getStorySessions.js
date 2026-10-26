@@ -3,6 +3,8 @@ import postStorySessionEventsValidator from '../helpers/validators/stories/sessi
 import ResponseCodes from '../constants/ResponseCodes.js'
 import moment from 'moment'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -53,7 +55,7 @@ const handler = function (req, res) {
       res.send(sessionDocs)
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'GET_STORY_SESSIONS_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

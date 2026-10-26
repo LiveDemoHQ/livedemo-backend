@@ -1,6 +1,8 @@
 import ResponseCodes from '../constants/ResponseCodes.js'
 import findPreviewStory from '../helpers/findPreviewStory.js'
 
+import logger from '../helpers/logger.js'
+
 const CORS_HEADERS = {
     'Access-Control-Max-Age': 600,
     'Access-Control-Allow-Origin': '*',
@@ -61,7 +63,7 @@ const handler = function (req, res) {
             })
         })
         .catch((error) => {
-            console.error('[getUrlDemos]', error)
+            logger.error('[getUrlDemos]', { eventName: 'GET_URL_DEMOS_FAILED', err: error })
             res.set(CORS_HEADERS)
             res.status(ResponseCodes['500_INTERNAL_SERVER_ERROR'])
             return res.send(JSON.stringify({ error: 'Internal server error' }))

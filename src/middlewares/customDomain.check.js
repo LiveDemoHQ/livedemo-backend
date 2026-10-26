@@ -4,6 +4,8 @@ import ENV from '../envServer.js'
 import customDomain, { isOwnHost } from './customDomain.js'
 import { isValidCustomHostname } from '../handlers/customDomain.js'
 
+import logger from '../helpers/logger.js'
+
 ENV.STORIES_API = 'https://api.livedemo.ai'
 ENV.SERVER_URL = 'https://app.livedemo.ai'
 ENV.URL_COMMON_DOMAIN = 'livedemo.ai'
@@ -76,5 +78,5 @@ assert.ok(!isValidCustomHostname('acme.com'))
 assert.ok(!isValidCustomHostname('evil.livedemo.ai'))
 assert.ok(!isValidCustomHostname('demos.acme.com/x'))
 
-console.log('customDomain.check ok')
+logger.info('customDomain.check ok', { eventName: 'CUSTOMDOMAIN_CHECK_OK' })
 process.exit(0)

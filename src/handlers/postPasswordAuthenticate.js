@@ -5,6 +5,8 @@ import claimBrowserSessionForUser from '../helpers/claimBrowserSessionForUser.js
 import { getPostAuthRedirectPath } from '../helpers/emailHelpers.js'
 import { assertNotSsoEnforced } from '../helpers/sso.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -100,7 +102,7 @@ const handler = function (req, res) {
       })
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_PASSWORD_AUTHENTICATE_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

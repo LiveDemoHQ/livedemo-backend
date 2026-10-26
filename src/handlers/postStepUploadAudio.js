@@ -5,6 +5,8 @@ import short from 'short-uuid'
 import ENV from "../envServer.js";
 import AudioTypes from "../constants/AudioTypes.js";
 import mongoose from 'mongoose';
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types;
 
 
@@ -34,7 +36,7 @@ const handler = function (req, res) {
             let audioFileName = short.uuid()
             return helpers.uploadStepAudio(audioBuffer, 'audio/mpeg', `${audioFileName}.mp3`)
                 .then((uploadResult) => {
-                    console.log(uploadResult)
+                    logger.info(uploadResult, { eventName: 'POST_STEP_UPLOAD_AUDIO' })
                     audioUrl = `${ENV.LIVEDEMO_CDN_URL}/step-audios/${audioFileName}.mp3`
 
 
@@ -77,7 +79,7 @@ const handler = function (req, res) {
             res.send(JSON.stringify({screenDoc}))
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'POST_STEP_UPLOAD_AUDIO_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

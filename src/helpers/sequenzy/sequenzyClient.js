@@ -2,6 +2,8 @@ import crypto from 'crypto'
 import Sequenzy from 'sequenzy'
 import ENV from '../../envServer.js'
 
+import logger from '../logger.js'
+
 let client = null
 
 function isEnabled() {
@@ -34,7 +36,7 @@ export async function syncSignupSubscriber(userDoc, Models, { source } = {}) {
   if (source) tags.push(`source:${source}`)
 
   const userId = String(userDoc._id)
-  console.log(`[sequenzy] creating subscriber userId=${userId} email=${userDoc.email} source=${source || 'unknown'} tags=${tags.join(',')}`)
+  logger.info(`[sequenzy] creating subscriber userId=${userId} email=${userDoc.email} source=${source || 'unknown'} tags=${tags.join(',')}`, { eventName: 'SEQUENZY_CLIENT' })
 
   try {
     const response = await getClient().subscribers.create({
@@ -60,7 +62,7 @@ export async function syncSignupSubscriber(userDoc, Models, { source } = {}) {
     const created = response?.subscriber?.created
     const updated = response?.subscriber?.updated
     const skipped = response?.subscriber?.skipped
-    console.log(`[sequenzy] subscriber sync ok userId=${userId} subscriberId=${subscriberId} created=${!!created} updated=${!!updated} skipped=${!!skipped}`)
+    logger.info(`[sequenzy] subscriber sync ok userId=${userId} subscriberId=${subscriberId} created=${!!created} updated=${!!updated} skipped=${!!skipped}`, { eventName: 'SEQUENZY_CLIENT' })
 
     if (Models?.User && userDoc._id) {
       await Models.User.findOneAndUpdate(
@@ -82,7 +84,7 @@ export async function syncSignupSubscriber(userDoc, Models, { source } = {}) {
 
     return response
   } catch (err) {
-    console.log('[sequenzy] syncSignupSubscriber error:', err?.message || err)
+    logger.error('[sequenzy] syncSignupSubscriber error:', { eventName: 'SYNCSIGNUPSUBSCRIBER_ERROR', data: { detail: err?.message || err } })
     if (Models?.User && userDoc._id) {
       await Models.User.findOneAndUpdate(
         { _id: userDoc._id },
@@ -118,10 +120,10 @@ export async function syncMigrateLead(email, Models, { provider } = {}) {
       lists: [],
       duplicateStrategy: 'merge',
     })
-    console.log(`[sequenzy] migrate lead ok email=${email} provider=${provider || ''} subscriberId=${response?.subscriber?.id || ''}`)
+    logger.info(`[sequenzy] migrate lead ok email=${email} provider=${provider || ''} subscriberId=${response?.subscriber?.id || ''}`, { eventName: 'SEQUENZY_CLIENT' })
     return response
   } catch (err) {
-    console.log('[sequenzy] syncMigrateLead error:', err?.message || err)
+    logger.error('[sequenzy] syncMigrateLead error:', { eventName: 'SYNCMIGRATELEAD_ERROR', data: { detail: err?.message || err } })
     return null
   }
 }
@@ -132,7 +134,7 @@ export async function unsubscribeSubscriber(userDoc) {
   try {
     await getClient().subscribers.update(userDoc.email, { status: 'unsubscribed' })
   } catch (err) {
-    console.log('[sequenzy] unsubscribeSubscriber error:', err?.message || err)
+    logger.error('[sequenzy] unsubscribeSubscriber error:', { eventName: 'UNSUBSCRIBESUBSCRIBER_ERROR', data: { detail: err?.message || err } })
   }
 }
 

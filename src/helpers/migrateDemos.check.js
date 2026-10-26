@@ -1,6 +1,8 @@
 // Self-check for cloned-demo claims, emails and the internal routes — run: node src/helpers/migrateDemos.check.js
 import assert from 'assert'
 
+import logger from './logger.js'
+
 process.env.INTERNAL_API_KEY = 'k'
 process.env.SERVER_URL = 'https://app.test'
 const { claimMigrateDemosForUser, claimMigrateDemoRequests, sendMigrateDemoEmails, migrateDemoProvider } = await import('./migrateDemos.js')
@@ -213,5 +215,5 @@ assert.strictEqual(await call(migrateDemos.postInternalClaims, undefined, { migr
 assert.strictEqual(await call(migrateDemos.postInternalEmails, 'Internal k', { migrateDemoId: migrateDemo(6, { status: 'processing' })._id }), 409)
 assert.strictEqual(await call(migrateDemos.postInternalClaims, 'Internal k', { migrateDemoId: done._id }), 200)
 
-console.log('migrateDemos.check.js OK')
+logger.info('migrateDemos.check.js OK', { eventName: 'MIGRATEDEMOS_CHECK_JS_OK' })
 process.exit(0)

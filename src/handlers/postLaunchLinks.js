@@ -1,6 +1,8 @@
 import ResponseCodes from '../constants/ResponseCodes.js'
 import Joi from '@hapi/joi'
 
+import logger from '../helpers/logger.js'
+
 const corsHeaders = {
   'Access-Control-Max-Age': 600,
   'Access-Control-Allow-Origin': '*',
@@ -47,7 +49,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify(doc))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_LAUNCH_LINKS_FAILED' })
       const resultResponse = error.resultResponse || {
         statusCode: ResponseCodes['500_INTERNAL_SERVER_ERROR'],
         headers: corsHeaders,

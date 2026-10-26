@@ -3,6 +3,8 @@ import Templates from './templates/index.js'
 import { SESClient, CreateTemplateCommand } from '@aws-sdk/client-ses'
 import VARS from '../../envServer.js'
 
+import logger from '../logger.js'
+
 const sesClient = new SESClient({
   region: 'us-east-1',
   credentials: {
@@ -23,9 +25,9 @@ for (let i = 0; i < templateNames.length; i++) {
   })
 
   sesClient.send(command).then(
-    (data) => console.log(data)
+    (data) => logger.info(data, { eventName: 'CREATE_TEMPLATES' })
   ).catch(
-    (err) => console.log(err, err.stack)
+    (err) => logger.error(err, { eventName: 'CREATE_TEMPLATES_FAILED', err: err.stack })
   )
 
 }

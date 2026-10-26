@@ -2,6 +2,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import patchCustomVariablesValidator from '../helpers/validators/stories/custom/variables/patchCustomVariablesValidator.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import mongoose from 'mongoose';
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types;
 
 const handler = function (req, res) {
@@ -60,7 +62,7 @@ const handler = function (req, res) {
             }
         )
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'PATCH_CUSTOM_VARIABLES_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

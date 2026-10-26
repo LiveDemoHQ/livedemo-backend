@@ -2,6 +2,8 @@ import ENV from '../../envServer.js'
 import ResponseCodes from '../../constants/ResponseCodes.js'
 import { httpError } from './http.js'
 
+import logger from '../logger.js'
+
 // Anam = face (+ optionally voice). Brain is always Gemini: Anam's LLM is never
 // used. ANAM_API_KEY never leaves the server; browsers get a session token.
 const ANAM_API = 'https://api.anam.ai/v1'
@@ -13,7 +15,7 @@ const stockCache = {}
 function apiKey(override) {
   const key = override || ENV.ANAM_API_KEY
   if (!key) {
-    console.log('[anam] ANAM_API_KEY is not configured')
+    logger.info('[anam] ANAM_API_KEY is not configured', { eventName: 'ANAM_API_KEY_IS_NOT_CONFIGURED' })
     httpError(ResponseCodes['503_SERVICE_UNAVAILABLE'], 'ANAM_API_KEY is not configured')
   }
   return key
@@ -44,7 +46,7 @@ async function anamFetch(path, { apiKey: keyOverride, ...options } = {}, context
     })
   } catch (err) {
     if (err.resultResponse) throw err
-    console.log('[anam] network error', method, path, `${Date.now() - startedAt}ms`, context, err.message)
+    logger.error('[anam] network error', { eventName: 'NETWORK_ERROR', err: err.message })
     httpError(ResponseCodes['503_SERVICE_UNAVAILABLE'], 'Avatar service unavailable')
   }
 
@@ -54,11 +56,11 @@ async function anamFetch(path, { apiKey: keyOverride, ...options } = {}, context
   const ms = `${Date.now() - startedAt}ms`
 
   if (res.status === 429) {
-    console.log('[anam] RATE LIMITED', method, path, ms, context, rateLimitHeaders(res), body)
+    logger.info('[anam] RATE LIMITED', { eventName: 'RATE_LIMITED', data: { detail: [method, path, ms, context, rateLimitHeaders(res), body] } })
     httpError(ResponseCodes['429_TOO_MANY_REQUESTS'], 'Avatar service is busy, try again shortly')
   }
 
-  console.log('[anam] request failed', method, path, res.status, ms, context, body)
+  logger.error('[anam] request failed', { eventName: 'REQUEST_FAILED', data: { detail: [method, path, res.status, ms, context, body] } })
   httpError(ResponseCodes['503_SERVICE_UNAVAILABLE'], 'Avatar service unavailable')
 }
 
@@ -178,7 +180,7 @@ export async function createAnamSessionToken(agent, apiKey, maxSessionLengthSeco
     apiKey,
   }, context)
   if (!body.sessionToken) {
-    console.log('[anam] session-token response had no sessionToken', context)
+    logger.info('[anam] session-token response had no sessionToken', { eventName: 'SESSION_TOKEN_RESPONSE_HAD_NO_SESSIONTOKEN', data: { detail: context } })
     httpError(ResponseCodes['503_SERVICE_UNAVAILABLE'], 'Avatar service unavailable')
   }
   return body.sessionToken

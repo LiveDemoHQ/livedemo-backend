@@ -9,6 +9,8 @@ import { stringifyRrwebEvents } from '../helpers/rrwebEventNames.js'
 import short from 'short-uuid'
 import he from 'he'
 
+import logger from '../helpers/logger.js'
+
 const SCREENDOC_ENCODING = 'utf-8'
 
 function pickClickMeta(clickThumbnails, targetTs) {
@@ -129,7 +131,7 @@ async function uploadThumb(imageData) {
     const uploadResult = await flixHelpers.uploadImage(imageData, imageName)
     return uploadResult.Location || ''
   } catch (err) {
-    console.log('processStoryDemoDom thumbnail upload failed', err)
+    logger.error('processStoryDemoDom thumbnail upload failed', { eventName: 'PROCESSSTORYDEMODOM_THUMBNAIL_UPLOAD_FAILED', err: err })
     return ''
   }
 }
@@ -196,7 +198,7 @@ async function processStoryDemoDom(sharedConfig, params, callback) {
   const { Models } = sharedConfig
   const { storyDemoId } = params
 
-  console.log(`Started - processStoryDemoDom - ${storyDemoId}`)
+  logger.info(`Started - processStoryDemoDom - ${storyDemoId}`, { eventName: 'PROCESS_STORY_DEMO_DOM' })
 
   return Models.Story.findOne({ _id: storyDemoId })
     .lean()
@@ -398,11 +400,11 @@ async function processStoryDemoDom(sharedConfig, params, callback) {
         }
       )
 
-      console.log(`Finished - processStoryDemoDom - ${storyDemoId} screens=${screenIds.length}`)
+      logger.info(`Finished - processStoryDemoDom - ${storyDemoId} screens=${screenIds.length}`, { eventName: 'PROCESS_STORY_DEMO_DOM' })
       callback(null, { storyDemoId, screenCount: screenIds.length })
     })
     .catch((err) => {
-      console.log(`Failed - processStoryDemoDom - ${storyDemoId}`, err)
+      logger.error(`Failed - processStoryDemoDom - ${storyDemoId}`, { eventName: 'PROCESS_STORY_DEMO_DOM_FAILED', err: err })
       return Models.Story.findOneAndUpdate(
         { _id: storyDemoId },
         { $set: { status: StoryStatuses.FAILED } }

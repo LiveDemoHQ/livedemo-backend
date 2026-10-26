@@ -5,6 +5,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import fsp from 'fs/promises'
 import { decodeRrwebEvents } from '../helpers/rrwebEventNames.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -48,7 +50,7 @@ const handler = function (req, res) {
         try {
           events = decodeRrwebEvents(JSON.parse(eventsString))
         } catch (e) {
-          console.log('Failed to parse rrweb events', e)
+          logger.error('Failed to parse rrweb events', { eventName: 'FAILED_TO_PARSE_RRWEB_EVENTS_FAILED', err: e })
           events = []
         }
 
@@ -99,7 +101,7 @@ const handler = function (req, res) {
       }
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'GET_SCREEN_PREVIEW_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

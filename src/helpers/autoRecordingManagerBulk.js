@@ -8,7 +8,7 @@ if (typeof globalThis.File === 'undefined') {
     } catch (e) {
         // Fallback for older Node.js versions or when node:buffer.File is unavailable
         // Optionally you can provide a polyfill or a warning
-        console.warn('File API is not available. File uploads may fail. Please use Node.js 20 or newer.');
+        logger.error('File API is not available. File uploads may fail. Please use Node.js 20 or newer.', { eventName: 'AUTO_RECORDING_MANAGER_BULK_FAILED' });
     }
 }
 
@@ -98,6 +98,8 @@ const MouseInteractions = Object.freeze({
 
 import OpenAI from "openai"
 
+import logger from './logger.js'
+
 const model = 'gpt-5.1'
 
 const openai = new OpenAI({
@@ -155,7 +157,7 @@ async function uploadJsonToOpenAIFile(jsonObj, purpose = "user_data") {
         });
         return response;
     } catch (error) {
-        console.error('Failed to upload JSON file to OpenAI:', error);
+        logger.error('Failed to upload JSON file to OpenAI:', { eventName: 'FAILED_TO_UPLOAD_JSON_FILE_TO_OPENAI_FAILED', err: error });
         throw error;
     }
 }
@@ -198,7 +200,7 @@ class AutoRecordingManager {
 
         let uploadedFile = await uploadJsonToOpenAIFile(eventsObj, 'user_data')
 
-        console.log('uploadedFile', uploadedFile)
+        logger.info('uploadedFile', { eventName: 'UPLOADEDFILE', data: { detail: uploadedFile } })
 
 
         let finalUserMessage = `Now, based on the uploaded file events, provide the following information:
@@ -236,7 +238,7 @@ And Write in imperative mood - give direct commands to the reader instead of des
             ]
         });
 
-          console.log('response ', response.output_text)
+          logger.info('response ', { eventName: 'RESPONSE', data: { detail: response.output_text } })
 
         
         return response

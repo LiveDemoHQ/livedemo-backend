@@ -11,6 +11,8 @@ import { normalizeSummarySettings } from '../helpers/agent/summaryEmail.js'
 import { embedPatchUpdates } from '../helpers/agent/embed.js'
 import { normalizeQualification } from '../helpers/agent/qualification.js'
 
+import logger from '../helpers/logger.js'
+
 // PATCH /workspaces/:workspaceId/agents/:agentId
 // Persona fields + allowedDemoIds. Wrapped by captureAgentRevision in server.js.
 const PATCHABLE_FIELDS = [
@@ -143,7 +145,7 @@ const handler = async function (req, res) {
         await Models.AiDemoAgent.updateOne({ _id: agentId }, { $addToSet: { knowledgeSourceIds: source._id } })
       }
 
-      enqueueIndexAgentKnowledge(agentId).catch(err => console.log('enqueue reindex failed', err))
+      enqueueIndexAgentKnowledge(agentId).catch(err => logger.error('enqueue reindex failed', { eventName: 'ENQUEUE_REINDEX_FAILED', err: err }))
 
       if (agent.defaultDemoId) {
         const stillAllowed = !ids.length || ids.some(id => String(id) === String(agent.defaultDemoId))

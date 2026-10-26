@@ -6,6 +6,8 @@ import ScreenPopupTypes from '../constants/ScreenPopupTypes.js'
 import demoStepLimit from '../helpers/demoStepLimit.js'
 import mongoose from 'mongoose'
 
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types
 
 const handler = function (req, res) {
@@ -111,7 +113,7 @@ const handler = function (req, res) {
 
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'POST_STEPS_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

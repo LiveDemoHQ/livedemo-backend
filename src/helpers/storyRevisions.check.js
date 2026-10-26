@@ -6,6 +6,7 @@ import assert from 'assert'
 import mongoose from 'mongoose'
 import { setupDB, getModels } from '../models/index.js'
 import {
+
   captureScreenPreImage,
   captureStoryPreImage,
   recordRevision,
@@ -13,6 +14,7 @@ import {
   redoOnce,
   historyCounts,
 } from './storyRevisions.js'
+import logger from './logger.js'
 
 const { ObjectId } = mongoose.Types
 
@@ -109,7 +111,7 @@ async function main() {
     await redoOnce(Models, ids)
     assert.strictEqual(await Models.Screen.exists({ _id: screen._id }), null, 'redo re-deleted the screen')
 
-    console.log('storyRevisions.check: ALL OK')
+    logger.info('storyRevisions.check: ALL OK', { eventName: 'STORYREVISIONS_CHECK_ALL_OK' })
   } finally {
     await cleanup()
     await conn.close()
@@ -117,6 +119,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err)
+  logger.error(err, { eventName: 'STORY_REVISIONS_FAILED' })
   process.exit(1)
 })

@@ -2,6 +2,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import postStoryLinksValidator from '../helpers/validators/stories/postStoryLinksValidator.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import mongoose from 'mongoose';
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types;
 
 const handler = function (req, res) {
@@ -79,7 +81,7 @@ const handler = function (req, res) {
             }
         )
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'POST_STORY_LINKS_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

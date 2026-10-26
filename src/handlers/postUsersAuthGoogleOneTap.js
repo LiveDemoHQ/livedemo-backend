@@ -8,6 +8,8 @@ import { assertNotSsoEnforced } from '../helpers/sso.js'
 import claimBrowserSessionForUser from '../helpers/claimBrowserSessionForUser.js'
 import { getPostAuthRedirectPath } from '../helpers/emailHelpers.js'
 import mongoose from 'mongoose'
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types
 
 let googleAuthClient = null
@@ -169,7 +171,7 @@ const handler = function (req, res) {
           }, [email], Models)
         }
       } catch (err) {
-        console.log('Email send error:', err)
+        logger.error('Email send error:', { eventName: 'EMAIL_SEND_ERROR', err: err })
       }
     }
 
@@ -233,7 +235,7 @@ const handler = function (req, res) {
     })
   })
   .catch((error) => {
-    console.log(error)
+    logger.error(error, { eventName: 'POST_USERS_AUTH_GOOGLE_ONE_TAP_FAILED' })
 
     let resultResponse
     if (error.resultResponse) {

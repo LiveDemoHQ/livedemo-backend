@@ -8,6 +8,8 @@ import { decodeVars } from '../helpers/agent/personalization.js'
 import getAgentPlayerHandler from './getAgentPlayer.js'
 import getSandboxPreview from './getSandboxPreview.js'
 import { getChecklistContext, configJson } from '../helpers/checklist/checklist.js'
+import logger from '../helpers/logger.js'
+
 const sanitize = sanitezeLib.sanitizeUrl
 
 const handler = function (req, res) {
@@ -26,8 +28,6 @@ const handler = function (req, res) {
     let extraVars = decodeVars(req.query.vars).map(v => ({ name: v.name, value: he.encode(v.value) }))
 
     let stepIndex = 0
-
-    console.log(JSON.stringify(req.headers, null, 2))
 
     return Promise.resolve().then(async () => {
 
@@ -556,7 +556,7 @@ media-src 'self'
                 return
             }
 
-            console.log(error)
+            logger.error(error, { eventName: 'GET_STORY_PREVIEW_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

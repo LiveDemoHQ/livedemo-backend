@@ -7,6 +7,8 @@ import monq from 'monq'
 import FormFieldTypes from '../constants/FormFieldTypes.js'
 import { emitDemoEvent } from '../helpers/workspaceEvents.js'
 
+import logger from '../helpers/logger.js'
+
 const FORM_FIELD_NAME = {
   EMAIL: 'email',
   NAME: 'name',
@@ -120,7 +122,7 @@ function enqueueDemoLeadCollectionEvent(storyId, workspaceId, leadId, leadData) 
       if (err) {
         reject(err)
       }
-      console.log('Enqueued lead-collection-event:', job.data)
+      logger.info('Enqueued lead-collection-event:', { eventName: 'ENQUEUED_LEAD_COLLECTION_EVENT', data: { detail: job.data } })
       resolve()
     })
   })
@@ -182,7 +184,7 @@ const handler = function (req, res) {
         .then(() => newLeadDoc)
         .catch((err) => {
           // Log error but don't fail the request if enqueueing fails
-          console.error('Failed to enqueue lead-collection-event:', err)
+          logger.error('Failed to enqueue lead-collection-event:', { eventName: 'FAILED_TO_ENQUEUE_LEAD_COLLECTION_EVENT_FAILED', err: err })
           return newLeadDoc
         })
     })
@@ -219,7 +221,7 @@ const handler = function (req, res) {
 
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_LEADS_FORM_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

@@ -4,6 +4,8 @@ import mongoose from 'mongoose'
 import path from 'path'
 import short from 'short-uuid'
 
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types
 
 const CORS_HEADERS = {
@@ -120,7 +122,7 @@ const handler = async function (req, res) {
             res.send(JSON.stringify({ previewImageUrl }))
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'POST_STEP_PREVIEW_IMAGE_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

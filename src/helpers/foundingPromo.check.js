@@ -1,10 +1,12 @@
 import assert from 'assert'
 import {
+
   FOUNDING_PROMO_CODE,
   FOUNDING_PROMO_MAX_DEFAULT,
   getFoundingPromoStatus,
   __resetFoundingPromoCacheForTests
 } from './foundingPromo.js'
+import logger from './logger.js'
 
 async function run() {
 
@@ -29,10 +31,10 @@ async function run() {
   assert.strictEqual(status.max, FOUNDING_PROMO_MAX_DEFAULT)
   assert.strictEqual(status.remaining, 3)
   assert.strictEqual(status.source, 'mongo')
-  console.log('foundingPromo.check.js OK')
+  logger.info('foundingPromo.check.js OK', { eventName: 'FOUNDINGPROMO_CHECK_JS_OK' })
 }
 
 run().catch((err) => {
-  console.error(err)
+  logger.error(err, { eventName: 'FOUNDING_PROMO_FAILED' })
   process.exit(1)
 })

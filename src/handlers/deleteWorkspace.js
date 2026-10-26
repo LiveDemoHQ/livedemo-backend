@@ -3,6 +3,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import EventReporter from '../helpers/eventReporter.js'
 import EventNamesEnum from '../constants/EventNamesEnum.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
   let workspaceId = req.params.workspaceId
@@ -99,7 +101,7 @@ const handler = function (req, res) {
       res.send('')
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'DELETE_WORKSPACE_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

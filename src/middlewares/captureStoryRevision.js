@@ -1,5 +1,7 @@
 import { captureScreenPreImage, captureStoryPreImage, recordRevision } from '../helpers/storyRevisions.js'
 
+import logger from '../helpers/logger.js'
+
 // Captures a pre-image of what the wrapped route can touch (one Screen doc, or the
 // Story doc + screen index list) and appends it to the story's undo stack — but only
 // if the handler finished 2xx, so failed auth/validation records nothing.
@@ -25,13 +27,13 @@ const captureStoryRevision = (scope, actionLabel, { fullScreens = false } = {}) 
         res.on('finish', () => {
           if (res.statusCode >= 200 && res.statusCode < 300) {
             recordRevision(Models, { ...payload, actionLabel })
-              .catch(err => console.log('storyRevision record failed', err))
+              .catch(err => logger.error('storyRevision record failed', { eventName: 'STORYREVISION_RECORD_FAILED', err: err }))
           }
         })
       }
     } catch (err) {
       // History must never block editing
-      console.log('storyRevision capture failed', err)
+      logger.error('storyRevision capture failed', { eventName: 'STORYREVISION_CAPTURE_FAILED', err: err })
     }
 
     next()

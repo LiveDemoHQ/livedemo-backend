@@ -3,6 +3,8 @@ import { pipeline } from 'stream'
 import * as fs from 'fs'
 import { Readable } from "stream"
 
+import logger from './helpers/logger.js'
+
 function writeToSystem(filePath, content, encoding) {
 
   return new Promise((resolve, reject) => {
@@ -25,11 +27,11 @@ function writeToSystem(filePath, content, encoding) {
 
         if (err) {
 
-          console.error('Pipeline failed', err)
+          logger.error('Pipeline failed', { eventName: 'PIPELINE_FAILED', err: err })
           reject(err)
         } else {
 
-          console.log('Pipeline succeeded')
+          logger.info('Pipeline succeeded', { eventName: 'PIPELINE_SUCCEEDED' })
           resolve(filePath)
 
         }

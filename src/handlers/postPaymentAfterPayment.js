@@ -4,9 +4,11 @@ import helpers from '../helpers/livedemoHelpers.js'
 import EventReporter from '../helpers/eventReporter.js'
 import EventNamesEnum from '../constants/EventNamesEnum.js'
 import {
+
   enablePaidPlanUserFeatureFlags,
   setActiveUserSubscription,
 } from '../helpers/subscriptionHelpers.js'
+import logger from '../helpers/logger.js'
 
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
@@ -85,7 +87,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify({}))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_PAYMENT_AFTER_PAYMENT_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

@@ -5,6 +5,8 @@ import { assertConfigured, clipStatus, CLIP_STALE_MS } from '../helpers/agent/le
 import { workspaceApiKey } from '../helpers/agent/providerKeys.js'
 import enqueueJob from '../helpers/enqueueJob.js'
 
+import logger from '../helpers/logger.js'
+
 // POST /workspaces/:workspaceId/lemonslice-avatars/:avatarId/clip
 // Queues the idle-clip recording (recordLemonSliceClip). The editor polls
 // GET lemonslice-avatars until clipStatus is 'ready' or 'failed'.
@@ -37,11 +39,11 @@ const handler = async function (req, res) {
 
     await enqueueJob('agent-session', 'recordLemonSliceClip', { lemonsliceAvatarId: avatarId })
       .catch(async (err) => {
-        console.log('[lemonslice] enqueue clip failed', avatarId, err.message)
+        logger.error('[lemonslice] enqueue clip failed', { eventName: 'ENQUEUE_CLIP_FAILED', err: err.message })
         await Models.LemonSliceAvatar.updateOne({ _id: avatarId }, { $set: { clipStatus: 'failed' } })
         httpError(ResponseCodes['503_SERVICE_UNAVAILABLE'], 'Could not start the video, try again')
       })
-    console.log('[lemonslice] clip job enqueued', avatarId)
+    logger.info('[lemonslice] clip job enqueued', { eventName: 'CLIP_JOB_ENQUEUED', data: { detail: avatarId } })
 
     sendJson(res, { id: avatarId, videoUrl: '', clipStatus: clipStatus(claimed) })
   } catch (error) {

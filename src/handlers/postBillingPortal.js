@@ -4,6 +4,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import ENV from '../envServer.js'
 import { syncUserStripeCustomerId } from '../helpers/paymentHelpers.js'
 
+import logger from '../helpers/logger.js'
+
 let stripe = null
 
 function getStripe() {
@@ -53,7 +55,7 @@ const handler = async function (req, res) {
       url: session.url,
     })
   } catch (err) {
-    console.error('postBillingPortal error:', err)
+    logger.error('postBillingPortal error:', { eventName: 'POSTBILLINGPORTAL_ERROR', err: err })
     res.status(ResponseCodes['500_INTERNAL_SERVER_ERROR']).json({
       error: true,
       message: err.message,

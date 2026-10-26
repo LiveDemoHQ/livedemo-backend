@@ -3,6 +3,8 @@ import postUpdateScreenOrder from '../helpers/validators/stories/postUpdateScree
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { httpError, wouldBreakRrwebChainOrder } from '../helpers/rrwebScreenGuards.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -82,7 +84,7 @@ const handler = function (req, res) {
       res.send()
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_STORY_UPDATE_SCREEN_ORDER_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

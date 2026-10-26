@@ -3,6 +3,8 @@ import { redoOnce, historyCounts } from '../helpers/agentRevisions.js'
 import enqueueIndexAgentKnowledge from '../helpers/agent/enqueueIndexJob.js'
 import { sendJson, sendError } from '../helpers/agent/http.js'
 
+import logger from '../helpers/logger.js'
+
 // POST /workspaces/:workspaceId/agents/:agentId/redo
 const handler = async function (req, res) {
   const { Models } = req.mongo
@@ -16,7 +18,7 @@ const handler = async function (req, res) {
     const counts = await historyCounts(Models, agentId)
 
     if (rev) {
-      enqueueIndexAgentKnowledge(agentId).catch(err => console.log('enqueue reindex failed', err))
+      enqueueIndexAgentKnowledge(agentId).catch(err => logger.error('enqueue reindex failed', { eventName: 'ENQUEUE_REINDEX_FAILED', err: err }))
     }
 
     sendJson(res, { redone: rev ? rev.actionLabel : null, ...counts })

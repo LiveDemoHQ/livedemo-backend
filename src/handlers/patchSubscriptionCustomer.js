@@ -2,9 +2,11 @@ import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import patchSubscriptionCustomerValidator from '../helpers/validators/subscriptionCustomer/patchSubscriptionCustomerValidator.js'
 import {
+
   normalizeSubscriptionCustomer,
   syncStripeSubscriptionAutoPay,
 } from '../helpers/subscriptionCustomerHelpers.js'
+import logger from '../helpers/logger.js'
 
 const CORS_HEADERS = {
   'Access-Control-Max-Age': 600,
@@ -70,7 +72,7 @@ const handler = async function (req, res) {
       subscriptionCustomer: normalizeSubscriptionCustomer(updated),
     })
   } catch (err) {
-    console.error('patchSubscriptionCustomer error:', err)
+    logger.error('patchSubscriptionCustomer error:', { eventName: 'PATCHSUBSCRIPTIONCUSTOMER_ERROR', err: err })
     res.status(ResponseCodes['500_INTERNAL_SERVER_ERROR']).json({
       error: true,
       message: err.message,

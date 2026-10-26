@@ -2,6 +2,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import postCustomVariablesValidator from '../helpers/validators/stories/custom/postCustomVariablesValidator.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import mongoose from 'mongoose';
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types;
 
 const handler = function (req, res) {
@@ -48,7 +50,7 @@ const handler = function (req, res) {
         })
         .then(({updatedDoc, newVariableId}) => {
 
-                console.log(`New default variable added to StoryId - ${updatedDoc._id.toString()} - var - ${newVariableId}`)
+                logger.info(`New default variable added to StoryId - ${updatedDoc._id.toString()} - var - ${newVariableId}`, { eventName: 'POST_CUSTOM_VARIABLES' })
                 const resultResponse = {
                     statusCode: ResponseCodes['200_OK'],
                     headers: {
@@ -66,7 +68,7 @@ const handler = function (req, res) {
             }
         )
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'POST_CUSTOM_VARIABLES_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

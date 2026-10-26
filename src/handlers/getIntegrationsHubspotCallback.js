@@ -2,13 +2,15 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import ENV from '../envServer.js'
 import axios from 'axios'
 import mongoose from 'mongoose';
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types;
 
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
-  console.log('ENV')
-  console.log(JSON.stringify(ENV, null, 2))
+  logger.info('ENV', { eventName: 'ENV' })
+  logger.info(JSON.stringify(ENV, null, 2), { eventName: 'GET_INTEGRATIONS_HUBSPOT_CALLBACK' })
 
   return Promise.resolve().then(async () => {
       const HubspotCreds = ENV.OAUTH2Credentials?.HubSpot
@@ -79,7 +81,7 @@ const handler = function (req, res) {
             workspaceId = stateMatch[1]
           }
         } catch (error) {
-          console.log('Error parsing state parameter:', error)
+          logger.error('Error parsing state parameter:', { eventName: 'ERROR_PARSING_STATE_PARAMETER_FAILED', err: error })
         }
       }
 
@@ -150,7 +152,7 @@ const handler = function (req, res) {
       res.redirect(redirectUrl)
     })
     .catch((error) => {
-      console.log('HubSpot callback error:', error)
+      logger.error('HubSpot callback error:', { eventName: 'HUBSPOT_CALLBACK_ERROR', err: error })
 
       let resultResponse
       if (error.resultResponse) {

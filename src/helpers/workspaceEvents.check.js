@@ -3,6 +3,8 @@
 import assert from 'assert'
 import { analyticsEvent, demoPayload } from './workspaceEvents.js'
 
+import logger from './logger.js'
+
 const data = demoPayload({
     story: { _id: 's1', name: 'Onboarding' },
     session: { _id: 'sess1', stepsCount: 5 },
@@ -19,4 +21,4 @@ const agent = analyticsEvent({ id: 'evt_2', type: 'lead.qualified', data: { sess
 assert.strictEqual(agent.name, 'livedemo_lead_qualified')
 assert.deepStrictEqual(agent.params, { session_id: 'a1', agent_name: 'Bot', qualified: true })
 
-console.log('workspaceEvents.check: ok')
+logger.info('workspaceEvents.check: ok', { eventName: 'WORKSPACEEVENTS_CHECK_OK' })

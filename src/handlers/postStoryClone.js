@@ -2,6 +2,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { cloneStoryDemo } from '../helpers/cloneStoryDemo.js'
 
+import logger from '../helpers/logger.js'
+
 const CORS_HEADERS = {
   'Access-Control-Max-Age': 600,
   'Access-Control-Allow-Origin': '*',
@@ -69,7 +71,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify(clonedStory))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_STORY_CLONE_FAILED' })
 
       const resultResponse = error.resultResponse || {
         statusCode: ResponseCodes['500_INTERNAL_SERVER_ERROR'],

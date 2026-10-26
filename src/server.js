@@ -228,9 +228,11 @@ import sessionOnly from './middlewares/sessionOnly.js'
 import sso from './handlers/sso.js'
 import customDomainHandlers from './handlers/customDomain.js'
 import customDomain from './middlewares/customDomain.js'
+import httpAccessLog from './middlewares/httpAccessLog.js'
 import agentRecap from './handlers/agentRecap.js'
 import captureAgentRevision from './middlewares/captureAgentRevision.js'
 import agentEditorMode, { agentEditorModeOptional } from './middlewares/agentEditorMode.js'
+import logger from './helpers/logger.js'
 import showcases from './handlers/showcases.js'
 import ownClaims from './handlers/ownClaims.js'
 import migrateDemos from './handlers/migrateDemos.js'
@@ -280,14 +282,14 @@ async function setupWorkers() {
     const worker = client.worker(processorsConfig.allQueueNames, processorsConfig.workerConfig)
     const videoWorker = client.worker(processorsConfig.videoQueueNames, processorsConfig.videoWorkerConfig)
     // An 'error' event without a listener crashes the process; monq reconnects on its own
-    worker.on('error', err => console.log('[monq] worker error', err.message))
-    videoWorker.on('error', err => console.log('[monq] video worker error', err.message))
+    worker.on('error', err => logger.error('[monq] worker error', { eventName: 'WORKER_ERROR', err: err.message }))
+    videoWorker.on('error', err => logger.error('[monq] video worker error', { eventName: 'VIDEO_WORKER_ERROR', err: err.message }))
     worker.start()
     videoWorker.start()
     startAgentSchedulers(Models)
 
-    console.log('Story consumer started')
-    console.log('Video consumer started')
+    logger.info('Story consumer started', { eventName: 'STORY_CONSUMER_STARTED' })
+    logger.info('Video consumer started', { eventName: 'VIDEO_CONSUMER_STARTED' })
 
 }
 
@@ -301,6 +303,8 @@ function setupMongo(req, res, next) {
     req.mongo = { conn, Models }
     next()
 }
+
+app.use(httpAccessLog)
 
 // Story version-history capture: records a pre-image of what the route touches
 // onto the story's undo stack when the handler responds 2xx (see the middleware)
@@ -952,7 +956,10 @@ app.post('/internal/workspaces/:workspaceId/stories/import', [setupMongo], migra
 app.post('/internal/migratedemos/:migrateDemoId/emails', [setupMongo], migrateDemos.postInternalEmails)
 app.post('/internal/migratedemos/:migrateDemoId/claims', [setupMongo], migrateDemos.postInternalClaims)
 
-console.log(ENV.ENV)
+logger.info('boot', {
+    eventName: 'SERVER_STARTED',
+    data: { env: ENV.ENV }
+})
 let server
 if (ENV.ENV === 'dev1') {
     server = https.createServer(options, app)
@@ -968,7 +975,10 @@ async function setup() {
     await new Promise((resolve) => {
         const port = 3005
         server.listen(port, () => {
-            console.log('Story server started on port ', port)
+            logger.info('Story server started on port ' + port, {
+                eventName: 'SERVER_STARTED',
+                data: { port }
+            })
             resolve()
         })
     })

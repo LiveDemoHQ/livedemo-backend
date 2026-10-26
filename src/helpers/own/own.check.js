@@ -7,6 +7,8 @@ import { remapChecklistForClone } from '../checklist/checklist.js'
 import { assertSandboxIntact } from '../sandbox/sandbox.js'
 import { PAID_PLAN_USER_FEATURE_FLAGS } from '../subscriptionHelpers.js'
 
+import logger from '../logger.js'
+
 const WS = 'aaaaaaaaaaaaaaaaaaaaaaaa'
 const AUTHOR = '999999999999999999999999'
 const id = n => String(n).padStart(24, '0')
@@ -120,5 +122,5 @@ assert.throws(() => assertSandboxIntact(sandbox, copy, [{ source: pairs[0].sourc
 // --- plans never touch the flag
 assert.ok(!Object.keys(PAID_PLAN_USER_FEATURE_FLAGS).some(key => key.includes('allowOwnableContent')))
 
-console.log('own.check.js OK')
+logger.info('own.check.js OK', { eventName: 'OWN_CHECK_JS_OK' })
 process.exit(0)

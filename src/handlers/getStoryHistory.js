@@ -2,6 +2,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { historyCounts } from '../helpers/storyRevisions.js'
 
+import logger from '../helpers/logger.js'
+
 // Version-history list (newest first) + undo/redo counts.
 // ?limit=0 returns counts only — the frontend uses that on editor load so the
 // browser never holds revision payloads in memory.
@@ -54,7 +56,7 @@ const handler = function (req, res) {
       res.send(resultResponse.body)
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'GET_STORY_HISTORY_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

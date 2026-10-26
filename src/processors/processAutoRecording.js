@@ -6,8 +6,10 @@ import flixHelpers from '../helpers/flixHelpers.js'
 import he from 'he'
 import AutoRecordingStatuses from "../constants/AutoRecordingStatuses.js"
 import {
+
     AutoRecordingManager
 } from '../helpers/autoRecordingManager.js'
+import logger from '../helpers/logger.js'
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -77,11 +79,11 @@ async function processAutoRecording(sharedConfig, params, callback) {
         // Delete uploaded openAI images from openai
         await autoRecordingManager.deleteAllUploadedOpenAiImages()
 
-        console.log('processAutoRecording completed - end')
+        logger.info('processAutoRecording completed - end', { eventName: 'PROCESSAUTORECORDING_COMPLETED_END' })
         callback(null, {autoRecordingId, demoSuggestionsArr})
     } catch (err) {
-        console.log('processAutoRecording failed - end')
-        console.log(err)
+        logger.error('processAutoRecording failed - end', { eventName: 'PROCESSAUTORECORDING_FAILED_END_FAILED' })
+        logger.error(err, { eventName: 'PROCESS_AUTO_RECORDING_FAILED' })
 
         let endPromise = Promise.resolve()
 

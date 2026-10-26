@@ -1,6 +1,8 @@
 import { loadOwnableSource } from '../helpers/own/own.js'
 import { newCloneCtx, cloneForClaim } from '../helpers/own/cloneForClaim.js'
 
+import logger from '../helpers/logger.js'
+
 // monq job: processOwnClaim { claimId }. Copies a "Make it yours" source into the claimer's workspace.
 // The source is re-checked here: it may have been unpublished, disabled or its author's flag revoked since the click
 async function runClaim(Models, claimId) {
@@ -27,7 +29,7 @@ async function runClaim(Models, claimId) {
             }
         })
     } catch (err) {
-        console.log('processOwnClaim failed', claimId, err)
+        logger.error('processOwnClaim failed', { eventName: 'PROCESSOWNCLAIM_FAILED', err: err })
         await Models.OwnClaim.updateOne({ _id: claim._id }, { $set: { status: 'failed', error: err.message || 'Copy failed' } })
     }
 }
@@ -39,7 +41,7 @@ function processOwnClaim(sharedConfig, params, callback) {
     return runClaim(Models, params.claimId)
         .then(() => callback(null, { claimId: params.claimId }))
         .catch((err) => {
-            console.log('processOwnClaim error', err)
+            logger.error('processOwnClaim error', { eventName: 'PROCESSOWNCLAIM_ERROR', err: err })
             callback(null, { claimId: params.claimId })
         })
 }

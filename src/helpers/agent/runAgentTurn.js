@@ -12,6 +12,8 @@ import { encodeVars } from './personalization.js'
 import applySessionFields from './sessionFields.js'
 import enqueueJob from '../enqueueJob.js'
 
+import logger from '../logger.js'
+
 // One agent turn: retrieve → prompt → tool loop (model may search more, max
 // MAX_TOOL_ROUNDS Gemini calls) → validate → SSE. `sse(event, data)` writes
 // to the open event-stream.
@@ -188,7 +190,7 @@ async function emitAnswer(sse, agent, answer, mode) {
         sendAudio(await speakAgentText(agent, answer))
       }
     } catch (err) {
-      console.log('agent TTS failed', err)
+      logger.error('agent TTS failed', { eventName: 'AGENT_TTS_FAILED', err: err })
     }
   }
   sendText()
@@ -323,7 +325,7 @@ export default async function runAgentTurn(Models, { agent, session, message, so
         }
       }
       if (!appliedAction) {
-        console.log('agent turn: content_card dropped', action)
+        logger.info('agent turn: content_card dropped', { eventName: 'AGENT_TURN_CONTENT_CARD_DROPPED', data: { detail: action } })
       }
     }
     if (appliedAction) answer = appendDemoNarration(answer, action.narration)
@@ -366,7 +368,7 @@ export default async function runAgentTurn(Models, { agent, session, message, so
   const messageCount = startMessageCount + 2
   if (mode === 'published' && messageCount % SUMMARY_EVERY === 0) {
     enqueueJob('agent-session', 'summarizeAgentSession', { sessionId: String(session._id), final: false })
-      .catch(err => console.log('enqueue summarize failed', err.message))
+      .catch(err => logger.error('enqueue summarize failed', { eventName: 'ENQUEUE_SUMMARIZE_FAILED', err: err.message }))
   }
 
   sse('done', { qualified: !!session.qualified })

@@ -3,6 +3,8 @@ import Templates from './templates/index.js'
 
 import { SESClient, UpdateTemplateCommand } from '@aws-sdk/client-ses'
 import ENV from '../../envServer.js'
+import logger from '../logger.js'
+
 const AWS_VARS = ENV.AWS
 
 const sesClient = new SESClient({
@@ -24,9 +26,9 @@ function updateTemplates() {
     })
 
     sesClient.send(command).then(
-      (data) => console.log(data)
+      (data) => logger.info(data, { eventName: 'UPDATE_TEMPLATES' })
     ).catch(
-      (err) => console.log(err, err.stack)
+      (err) => logger.error(err, { eventName: 'UPDATE_TEMPLATES_FAILED', err: err.stack })
     )
 
   }
@@ -41,10 +43,10 @@ function updateTemplate(template) {
       })
 
       const data = await sesClient.send(command)
-      console.log(data)
+      logger.info(data, { eventName: 'UPDATE_TEMPLATES' })
       resolve(data)
     } catch (err) {
-      console.log(err, err.stack)
+      logger.error(err, { eventName: 'UPDATE_TEMPLATES_FAILED', err: err.stack })
       reject(err)
     }
   })

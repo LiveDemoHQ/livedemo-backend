@@ -10,6 +10,8 @@ import ipRateLimit from '../helpers/agent/ipRateLimit.js'
 import LambdaRateLimiter from 'lambda-rate-limiter'
 import { httpError } from '../helpers/agent/http.js'
 
+import logger from '../helpers/logger.js'
+
 const checkIpLimit = ipRateLimit({
   limit: 10,
   interval: 15 * 60 * 1000,
@@ -44,7 +46,7 @@ const handler = function (req, res) {
       if (userDoc) {
 
         // Not awaited, so response time doesn't reveal whether the account exists
-        sendForgotPasswordEmail(userDoc, Models).catch((error) => console.log('forgotPassword email failed', error))
+        sendForgotPasswordEmail(userDoc, Models).catch((error) => logger.error('forgotPassword email failed', { eventName: 'FORGOTPASSWORD_EMAIL_FAILED', err: error }))
       } else {
         // Return success even if user doesn't exist (security best practice)
         return Promise.resolve()
@@ -69,7 +71,7 @@ const handler = function (req, res) {
       }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_FORGOT_PASSWORD_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

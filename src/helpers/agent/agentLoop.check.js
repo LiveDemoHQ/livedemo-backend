@@ -2,6 +2,8 @@
 import assert from 'assert'
 import { MAX_TOOL_ROUNDS, makeToolExecutors, runToolLoop } from './agentTools.js'
 
+import logger from '../logger.js'
+
 const call = (name, args) => ({ name, args, id: `${name}-id` })
 const reply = calls => ({ functionCalls: calls, candidates: [{ content: { role: 'model', parts: calls.map(c => ({ functionCall: c })) } }] })
 
@@ -92,4 +94,4 @@ const reply = calls => ({ functionCalls: calls, candidates: [{ content: { role: 
   assert.strictEqual(storyQueried, false)
 }
 
-console.log('agentLoop.check OK')
+logger.info('agentLoop.check OK', { eventName: 'AGENTLOOP_CHECK_OK' })

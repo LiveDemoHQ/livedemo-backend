@@ -18,6 +18,8 @@ args.push('--disable-setuid-sandbox');
 import ffmpegPath from 'ffmpeg-static'
 import childProcess from 'child_process'
 
+import logger from '../helpers/logger.js'
+
 // Use /usr/bin/ffmpeg if available, otherwise fall back to ffmpeg-static default
 let getFfmpegPath = async () => {
     const systemFfmpegPath = '/usr/bin/ffmpeg'
@@ -55,7 +57,7 @@ async function mp4ToGif(videoName) {
             // catches execution error (bad file)
             let errorMessage = `Error executing binary: ${resolvedFfmpegPath}`
             let newError = new Error(errorMessage)
-            console.log(errorMessage);
+            logger.info(errorMessage, { eventName: 'PROCESS_STORY_DEMO_VIDEO' });
             reject(newError)
         });
 
@@ -68,14 +70,14 @@ async function mp4ToGif(videoName) {
         });
 
         child.on('close', (code) => {
-            console.log(`Process exited with code: ${code}`);
+            logger.info(`Process exited with code: ${code}`, { eventName: 'PROCESS_STORY_DEMO_VIDEO' });
             if (code === 0) {
-                console.log(`FFmpeg finished successfully`);
+                logger.info(`FFmpeg finished successfully`, { eventName: 'PROCESS_STORY_DEMO_VIDEO' });
                 resolve(tempFileOutputLocation)
             } else {
                 let errorMessage = `FFmpeg encountered an error, check the console output`
                 let newError = new Error(errorMessage)
-                console.log(errorMessage);
+                logger.info(errorMessage, { eventName: 'PROCESS_STORY_DEMO_VIDEO' });
                 throw newError
             }
         })
@@ -110,13 +112,13 @@ async function enhanceVideoQuality(videoName) {
         })
 
         child.stderr.on('data', (data) => {
-            console.log(`[enhanceQuality] ${data.toString()}`)
+            logger.info(`[enhanceQuality] ${data.toString()}`, { eventName: 'PROCESS_STORY_DEMO_VIDEO' })
         })
 
         child.on('close', async (code) => {
             if (code === 0) {
                 await fsp.rename(outputVideo, inputVideo)
-                console.log(`Quality enhanced for ${videoName}.mp4`)
+                logger.info(`Quality enhanced for ${videoName}.mp4`, { eventName: 'PROCESS_STORY_DEMO_VIDEO' })
                 resolve(inputVideo)
             } else {
                 reject(new Error(`ffmpeg quality enhance failed with code ${code}`))
@@ -154,13 +156,13 @@ async function mixBackgroundAudio(videoName, audioUrl) {
         })
 
         child.stderr.on('data', (data) => {
-            console.log(`[mixAudio] ${data.toString()}`)
+            logger.info(`[mixAudio] ${data.toString()}`, { eventName: 'PROCESS_STORY_DEMO_VIDEO' })
         })
 
         child.on('close', async (code) => {
             if (code === 0) {
                 await fsp.rename(outputVideo, inputVideo)
-                console.log(`Audio mixed into ${videoName}.mp4`)
+                logger.info(`Audio mixed into ${videoName}.mp4`, { eventName: 'PROCESS_STORY_DEMO_VIDEO' })
                 resolve(inputVideo)
             } else {
                 reject(new Error(`ffmpeg audio mix failed with code ${code}`))
@@ -215,12 +217,12 @@ async function recordStoryDemo(videoName, pageWidth, pageHeight, pageUrl) {
 
         await recorder.start(tempFileLocation)
 
-        console.log('Processing video for demo - ' + videoName)
+        logger.info('Processing video for demo - ' + videoName, { eventName: 'PROCESS_STORY_DEMO_VIDEO' })
         await waitUntilDemoIsOver(page);
         await recorder.stop();
 
     } catch (e) {
-        console.log(e)
+        logger.error(e, { eventName: 'PROCESS_STORY_DEMO_VIDEO_FAILED' })
     } finally {
         await browser.close();
     }
@@ -256,7 +258,7 @@ async function cleanupTempFiles(videoName) {
         getTempFilePaths(videoName).map((filePath) =>
             fsp.rm(filePath, { force: true }).catch((err) => {
                 if (err.code !== 'ENOENT') {
-                    console.log(`Failed to remove temp file ${filePath}: ${err.message}`)
+                    logger.error(`Failed to remove temp file ${filePath}: ${err.message}`, { eventName: 'PROCESS_STORY_DEMO_VIDEO_FAILED' })
                 }
             })
         )
@@ -292,19 +294,19 @@ async function processStoryDemoVideo(sharedConfig, params, callback) {
             )
         })
         .then(async (videoLocation) => {
-            console.log(videoLocation)
+            logger.info(videoLocation, { eventName: 'PROCESS_STORY_DEMO_VIDEO' })
 
             // await enhanceVideoQuality(videoName)
 
             const bgMusic = storyDemo.custom && storyDemo.custom.backgroundMusic
             if (bgMusic && bgMusic.isActive && bgMusic.backgroundMusicUrl) {
-                console.log(`Mixing background audio: ${bgMusic.backgroundMusicUrl}`)
+                logger.info(`Mixing background audio: ${bgMusic.backgroundMusicUrl}`, { eventName: 'PROCESS_STORY_DEMO_VIDEO' })
                 await mixBackgroundAudio(videoName, bgMusic.backgroundMusicUrl)
             }
 
             return mp4ToGif(videoName)
                 .then((gifLocation) => {
-                    console.log(gifLocation)
+                    logger.info(gifLocation, { eventName: 'PROCESS_STORY_DEMO_VIDEO' })
                 })
         })
         .then(async () => {
@@ -364,7 +366,7 @@ async function processStoryDemoVideo(sharedConfig, params, callback) {
         .then(async (storyContentDoc) => {
 
             if(!userEmail) {
-                console.log('No user email found, skipping email')
+                logger.info('No user email found, skipping email', { eventName: 'NO_USER_EMAIL_FOUND_SKIPPING_EMAIL' })
 
                 return storyContentDoc
             }
@@ -388,8 +390,8 @@ async function processStoryDemoVideo(sharedConfig, params, callback) {
             })
         })
         .then((storyContentDoc) => {
-            console.log('processStoryDemoVideo completed - end')
-            console.log(storyContentDoc)
+            logger.info('processStoryDemoVideo completed - end', { eventName: 'PROCESSSTORYDEMOVIDEO_COMPLETED_END' })
+            logger.info(storyContentDoc, { eventName: 'PROCESS_STORY_DEMO_VIDEO' })
 
             callback(null, {
                 storyDemoId: storyDemoId,
@@ -397,8 +399,8 @@ async function processStoryDemoVideo(sharedConfig, params, callback) {
             })
         })
         .catch((err) => {
-            console.log('processStoryDemoVideo failed - end')
-            console.log(err)
+            logger.error('processStoryDemoVideo failed - end', { eventName: 'PROCESSSTORYDEMOVIDEO_FAILED_END_FAILED' })
+            logger.error(err, { eventName: 'PROCESS_STORY_DEMO_VIDEO_FAILED' })
 
             return cleanupTempFiles(videoName)
                 .then(() => callback(err))

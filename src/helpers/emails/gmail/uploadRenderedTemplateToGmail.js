@@ -6,6 +6,8 @@ import Base64 from 'js-base64'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 
+import logger from '../../logger.js'
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const GMAIL_CONF = ENV.GMAIL
@@ -33,14 +35,14 @@ function uploadToGmail(template) {
         })
         .then(res => {
 
-          console.log(res)
+          logger.info(res, { eventName: 'UPLOAD_RENDERED_TEMPLATE_TO_GMAIL' })
         })
         .catch(err => {
-          console.log(err)
+          logger.error(err, { eventName: 'UPLOAD_RENDERED_TEMPLATE_TO_GMAIL_FAILED' })
         })
     })
     .catch(err => {
-      console.log(err)
+      logger.error(err, { eventName: 'UPLOAD_RENDERED_TEMPLATE_TO_GMAIL_FAILED' })
     })
 }
 

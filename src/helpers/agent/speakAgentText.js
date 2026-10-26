@@ -1,6 +1,8 @@
 import aiHelpers from '../aiHelpers.js'
 import { avatarIsLive, usesAnamVoice } from './anam.js'
 
+import logger from '../logger.js'
+
 const MAX_TTS_CHARS = 5000
 export const AVATAR_PCM_RATE = 16000
 
@@ -22,7 +24,7 @@ export default async function speakAgentText(agent, text) {
     const stream = await aiHelpers.elStreamTextToSpeech(agent.voiceId, spoken, ttsOptions(agent))
     for await (const part of stream) parts.push(part)
   } catch (err) {
-    console.log('agent TTS failed', err)
+    logger.error('agent TTS failed', { eventName: 'AGENT_TTS_FAILED', err: err })
     return null
   }
   const buffer = Buffer.concat(parts)

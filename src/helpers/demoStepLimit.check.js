@@ -4,6 +4,8 @@
  */
 import demoStepLimit from './demoStepLimit.js'
 
+import logger from './logger.js'
+
 const { countRenderSteps } = demoStepLimit
 
 function assert(cond, msg) {
@@ -21,4 +23,4 @@ assert(countRenderSteps([
     { steps: [{}, {}] }
 ]) === 4, '1 + 1 placeholder + 2 = 4')
 
-console.log('demoStepLimit.check: ok')
+logger.info('demoStepLimit.check: ok', { eventName: 'DEMOSTEPLIMIT_CHECK_OK' })

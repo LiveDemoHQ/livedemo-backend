@@ -4,6 +4,8 @@ import authUtils from '../helpers/authUtils.js'
 import helpers from '../helpers/livedemoHelpers.js'
 import {getUserAndTokenByInstanceId} from '../helpers/authHelpers.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -67,7 +69,7 @@ const handler = function (req, res) {
       }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_INSTANCE_AUTHENTICATE_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

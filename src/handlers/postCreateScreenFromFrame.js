@@ -6,6 +6,8 @@ import short from 'short-uuid'
 import axios from 'axios'
 import mongoose from 'mongoose'
 
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types
 
 function badRequest(message) {
@@ -90,7 +92,7 @@ const handler = function (req, res) {
           timeout: 60000,
         })
       } catch (e) {
-        console.log(e)
+        logger.error(e, { eventName: 'POST_CREATE_SCREEN_FROM_FRAME_FAILED' })
         badRequest('Could not fetch frame thumbnail from Mux')
       }
 
@@ -145,7 +147,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify(screenDoc))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_CREATE_SCREEN_FROM_FRAME_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

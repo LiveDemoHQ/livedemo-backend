@@ -1,6 +1,8 @@
 import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 
+import logger from '../helpers/logger.js'
+
 const FIELDS_BY_TYPE = {
   pages: '_id name index imageUrl recordingRole baseScreenId type createdAt updatedAt',
   screenshots: '_id name index imageUrl createdAt updatedAt',
@@ -80,7 +82,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify(libraryObj))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'GET_WORKSPACE_LIBRARY_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

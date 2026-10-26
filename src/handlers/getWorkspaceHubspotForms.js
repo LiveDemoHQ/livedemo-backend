@@ -2,6 +2,8 @@ import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import axios from 'axios'
 import mongoose from 'mongoose';
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types;
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
@@ -89,7 +91,7 @@ const handler = function (req, res) {
           const refreshedToken = await helpers.refreshHubspotToken(hubspotToken, Models)
           accessToken = refreshedToken.accessToken
         } catch (refreshError) {
-          console.log('Error refreshing HubSpot token:', refreshError)
+          logger.error('Error refreshing HubSpot token:', { eventName: 'ERROR_REFRESHING_HUBSPOT_TOKEN_FAILED', data: { detail: refreshError } })
 
           let statusCode = ResponseCodes['401_UNAUTHORIZED']
           let errorMessage = 'Failed to refresh HubSpot token'
@@ -146,7 +148,7 @@ const handler = function (req, res) {
         res.status(resultResponse.statusCode)
         res.send(JSON.stringify(forms))
       } catch (error) {
-        console.log('Error fetching HubSpot forms:', error)
+        logger.error('Error fetching HubSpot forms:', { eventName: 'ERROR_FETCHING_HUBSPOT_FORMS_FAILED', err: error })
 
         const resultResponse = {
           statusCode: ResponseCodes['500_INTERNAL_SERVER_ERROR'],
@@ -167,7 +169,7 @@ const handler = function (req, res) {
       }
     })
     .catch((error) => {
-      console.log('getWorkspaceHubspotForms error:', error)
+      logger.error('getWorkspaceHubspotForms error:', { eventName: 'GETWORKSPACEHUBSPOTFORMS_ERROR', err: error })
 
       let resultResponse
       if (error.resultResponse) {

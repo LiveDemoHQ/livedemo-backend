@@ -6,6 +6,8 @@ import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import ipRateLimit from '../helpers/agent/ipRateLimit.js'
 import { beginAvatarSession, failAvatarSession } from '../helpers/agent/avatarMinutes.js'
 
+import logger from '../helpers/logger.js'
+
 // Each call starts a billed LemonSlice session
 const checkIpLimit = ipRateLimit({ limit: 10, interval: 60 * 60 * 1000, message: 'Too many avatar sessions, try again later' })
 
@@ -35,7 +37,7 @@ const handler = async function (req, res) {
             remainingSeconds: started.access.remainingSeconds
         })
     } catch (error) {
-        if (row) await failAvatarSession(Models, row).catch(err => console.log('[avatarMinutes] close failed', err.message))
+        if (row) await failAvatarSession(Models, row).catch(err => logger.error('[avatarMinutes] close failed', { eventName: 'CLOSE_FAILED', err: err.message }))
         sendError(res, error)
     }
 }

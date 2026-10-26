@@ -7,6 +7,8 @@ import { resolveKeyInfo } from './providerKeys.js'
 import { CORS_HEADERS } from './http.js'
 import { terminateSession } from './lemonslice.js'
 
+import logger from '../logger.js'
+
 export const HEARTBEAT_MS = AvatarMinutes.HEARTBEAT_MS
 export const MAX_DELTA_MS = AvatarMinutes.MAX_DELTA_MS
 export const STALE_MS = AvatarMinutes.STALE_MS
@@ -207,7 +209,7 @@ export async function claimSlot(Models, row, concurrent) {
 
     if (!enforced()) {
 
-        console.log('[avatarMinutes] would be 409', String(row.workspaceId))
+        logger.info('[avatarMinutes] would be 409', { eventName: 'WOULD_BE_409', data: { detail: String(row.workspaceId) } })
         return Models.AvatarUsage.create(row)
     }
 

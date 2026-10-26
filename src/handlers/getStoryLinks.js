@@ -1,6 +1,8 @@
 import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -42,7 +44,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify(allLinkDocs))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'GET_STORY_LINKS_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

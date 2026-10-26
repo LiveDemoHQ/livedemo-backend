@@ -2,6 +2,8 @@ import axios from 'axios'
 import mongoose from 'mongoose'
 import helpers from './livedemoHelpers.js'
 
+import logger from './logger.js'
+
 const { ObjectId } = mongoose.Types
 const API = 'https://api.hubapi.com'
 const NOTE_TO_CONTACT = 202 // HUBSPOT_DEFINED association type id
@@ -19,7 +21,7 @@ export async function getHubspotAccessToken(Models, workspaceId) {
         try {
             return (await helpers.refreshHubspotToken(token, Models)).accessToken
         } catch (err) {
-            console.log('HubSpot token refresh failed', err.message)
+            logger.error('HubSpot token refresh failed', { eventName: 'HUBSPOT_TOKEN_REFRESH_FAILED', err: err.message })
         }
     }
     return token.accessToken

@@ -5,6 +5,8 @@ import assert from 'assert'
 import handler from './postAgentRecordingEvents.js'
 import isAnalyticsExcludedIp from '../helpers/isAnalyticsExcludedIp.js'
 
+import logger from '../helpers/logger.js'
+
 const lean = value => ({ lean: async () => value })
 
 function fakeModels(agentSession, { exists = false, eventsCount = 0 } = {}) {
@@ -81,5 +83,5 @@ assert.strictEqual((await run(published, events, { ip: '9.9.9.9' })).res.statusC
 assert.strictEqual((await run(published, events, { ip: '9.9.9.9', exists: true })).res.statusCode, 200, 'existing recording keeps flushing')
 assert.strictEqual((await run(published, events, { ip: '8.8.8.8' })).res.statusCode, 200, 'other IPs unaffected')
 
-console.log('postAgentRecordingEvents.check OK')
+logger.info('postAgentRecordingEvents.check OK', { eventName: 'POSTAGENTRECORDINGEVENTS_CHECK_OK' })
 process.exit(0)

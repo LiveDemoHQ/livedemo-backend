@@ -10,6 +10,8 @@ import limiter from '../helpers/rateLimiter.js'
 import livedemoHelpers from "../helpers/livedemoHelpers.js";
 
 
+import logger from '../helpers/logger.js'
+
 function deserializeToTextRecursive(parsedFragment, currentString) {
     let value = !!parsedFragment.value ? parsedFragment.value : ''
     if (!parsedFragment.childNodes) {
@@ -158,7 +160,7 @@ const handler = async function (req, res) {
             res.send(resultResponse.body)
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'POST_GENERATE_AIVOICE_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

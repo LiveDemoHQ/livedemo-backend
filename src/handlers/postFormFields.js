@@ -4,6 +4,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import FormFieldTypes from '../constants/FormFieldTypes.js'
 import mongoose from 'mongoose'
 
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types
 
 const handler = function (req, res) {
@@ -83,7 +85,7 @@ const handler = function (req, res) {
       res.send(resultResponse.body)
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_FORM_FIELDS_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

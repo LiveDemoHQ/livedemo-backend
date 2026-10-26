@@ -6,6 +6,8 @@ import VoiceTypes from '../constants/VoiceTypes.js'
 import short from 'short-uuid'
 import ENV from '../envServer.js'
 import mongoose from 'mongoose';
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types;
 
 const handler = async function (req, res) {
@@ -76,7 +78,7 @@ const handler = async function (req, res) {
             res.send(resultResponse.body)
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'DELETE_STEP_AUDIO_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {

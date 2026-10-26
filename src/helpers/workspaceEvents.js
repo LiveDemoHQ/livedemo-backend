@@ -6,6 +6,8 @@ import { assertPublicUrl } from './agent/publicUrl.js'
 import { flattenFields } from './agent/qualification.js'
 import { open } from './secretBox.js'
 
+import logger from './logger.js'
+
 // Outbound events: one monq job per (event, subscription) so a slow or dead
 // endpoint only retries itself. Delivery runs in processAgentSession.js.
 
@@ -167,14 +169,14 @@ export async function emitWorkspaceEvent(Models, workspaceId, event, data) {
 // Never throws: event fan-out must not break the request that triggered it
 export function emitSafe(Models, workspaceId, event, data) {
     return emitWorkspaceEvent(Models, workspaceId, event, data)
-        .catch(err => console.log(`emit ${event} failed`, err.message))
+        .catch(err => logger.error(`emit ${event} failed`, { eventName: 'WORKSPACE_EVENTS_FAILED', err: err.message }))
 }
 
 // Fire-and-forget from public story routes; the workspace comes from the story, never from the URL
 export function emitDemoEvent(Models, storyId, event, { session, lead } = {}) {
     return Models.Story.findById(storyId).select('name workspaceId').lean()
         .then(story => story && emitWorkspaceEvent(Models, story.workspaceId, event, demoPayload({ story, session, lead })))
-        .catch(err => console.log(`emit ${event} failed`, err.message))
+        .catch(err => logger.error(`emit ${event} failed`, { eventName: 'WORKSPACE_EVENTS_FAILED', err: err.message }))
 }
 
 // Returns { status }. Throws on non-2xx so monq retries.

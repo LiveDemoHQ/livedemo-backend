@@ -1,8 +1,10 @@
 import mongoose from 'mongoose'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import {
+
   verifyWebhookSignature,
 } from '../helpers/sequenzy/sequenzyClient.js'
+import logger from '../helpers/logger.js'
 
 const CORS_HEADERS = {
   'Access-Control-Max-Age': 600,
@@ -22,7 +24,7 @@ async function markUserUnsubscribed(Models, data, eventType) {
   const externalId = data?.external_id
   const subscriberId = data?.subscriber_id
 
-  console.log(`[sequenzy] webhook unsubscribe event=${eventType} email=${email || ''} externalId=${externalId || ''} subscriberId=${subscriberId || ''}`)
+  logger.info(`[sequenzy] webhook unsubscribe event=${eventType} email=${email || ''} externalId=${externalId || ''} subscriberId=${subscriberId || ''}`, { eventName: 'POST_WEBHOOKS_SEQUENZY' })
 
   const or = []
   if (externalId && mongoose.Types.ObjectId.isValid(externalId)) {
@@ -31,7 +33,7 @@ async function markUserUnsubscribed(Models, data, eventType) {
   if (email) or.push({ email })
   if (subscriberId) or.push({ 'sequenzy.subscriberId': subscriberId })
   if (!or.length) {
-    console.log(`[sequenzy] webhook unsubscribe skipped — no email/externalId/subscriberId on event=${eventType}`)
+    logger.info(`[sequenzy] webhook unsubscribe skipped — no email/externalId/subscriberId on event=${eventType}`, { eventName: 'POST_WEBHOOKS_SEQUENZY' })
     return null
   }
 
@@ -47,9 +49,9 @@ async function markUserUnsubscribed(Models, data, eventType) {
   )
 
   if (updatedUser) {
-    console.log(`[sequenzy] webhook unsubscribe applied userId=${updatedUser._id} email=${updatedUser.email} event=${eventType}`)
+    logger.info(`[sequenzy] webhook unsubscribe applied userId=${updatedUser._id} email=${updatedUser.email} event=${eventType}`, { eventName: 'POST_WEBHOOKS_SEQUENZY' })
   } else {
-    console.log(`[sequenzy] webhook unsubscribe no matching user event=${eventType} email=${email || ''} externalId=${externalId || ''} subscriberId=${subscriberId || ''}`)
+    logger.info(`[sequenzy] webhook unsubscribe no matching user event=${eventType} email=${email || ''} externalId=${externalId || ''} subscriberId=${subscriberId || ''}`, { eventName: 'POST_WEBHOOKS_SEQUENZY' })
   }
 
   return updatedUser
@@ -92,7 +94,7 @@ const handler = function (req, res) {
 
       const type = event?.type || req.headers['x-sequenzy-event-type']
       const eventId = event?.id || req.headers['x-sequenzy-event-id'] || ''
-      console.log(`[sequenzy] webhook received eventId=${eventId} type=${type || 'unknown'}`)
+      logger.info(`[sequenzy] webhook received eventId=${eventId} type=${type || 'unknown'}`, { eventName: 'POST_WEBHOOKS_SEQUENZY' })
 
       if (UNSUBSCRIBE_EVENT_TYPES.has(type)) {
         await markUserUnsubscribed(Models, event.data || {}, type)
@@ -103,7 +105,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify({ received: true }))
     })
     .catch((error) => {
-      console.log('[sequenzy] webhook error:', error)
+      logger.error('[sequenzy] webhook error:', { eventName: 'WEBHOOK_ERROR', err: error })
 
       const resultResponse = error.resultResponse || {
         statusCode: ResponseCodes['500_INTERNAL_SERVER_ERROR'],

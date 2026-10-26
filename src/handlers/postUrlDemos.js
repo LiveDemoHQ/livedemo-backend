@@ -7,6 +7,8 @@ import postUrlDemosValidator from '../helpers/validators/urlDemos/postUrlDemosVa
 import { cloneUrlDemoWithStoryForUser } from '../helpers/cloneUrlDemoStoriesForUser.js'
 import mongoose from 'mongoose';
 
+import logger from '../helpers/logger.js'
+
 const { ObjectId } = mongoose.Types;
 
 const CORS_HEADERS = {
@@ -39,7 +41,7 @@ function enqueueProcessUrlDemo(urlDemoId, userId, shouldCreateStandard) {
             if (err) {
                 return reject(err)
             }
-            console.log('Enqueued processUrlDemo:', job.data)
+            logger.info('Enqueued processUrlDemo:', { eventName: 'ENQUEUED_PROCESSURLDEMO', data: { detail: job.data } })
             resolve()
         })
     })
@@ -62,7 +64,7 @@ const handler = function (req, res) {
         req.socket?.remoteAddress ||
         'unknown'
 
-    console.log('[postUrlDemos] Requesting with clientIp: ' + clientIp)
+    logger.info('[postUrlDemos] Requesting with clientIp: ' + clientIp, { eventName: 'POST_URL_DEMOS' })
 
     return Promise.resolve()
         .then(() => {
@@ -129,7 +131,7 @@ const handler = function (req, res) {
 
                                 return enqueueProcessUrlDemo(urlDemoDoc._id.toString(), userId, shouldCreateStandard)
                                     .catch((err) => {
-                                        console.error('Failed to enqueue processUrlDemo:', err)
+                                        logger.error('Failed to enqueue processUrlDemo:', { eventName: 'FAILED_TO_ENQUEUE_PROCESSURLDEMO_FAILED', err: err })
                                     })
                                     .then(() => urlDemoDoc)
                             })
@@ -146,7 +148,7 @@ const handler = function (req, res) {
         .catch((error) => {
             if (error.handled) return
 
-            console.error('[postUrlDemos]', error)
+            logger.error('[postUrlDemos]', { eventName: 'POST_URL_DEMOS_FAILED', err: error })
 
             res.set(CORS_HEADERS)
             res.status(ResponseCodes['500_INTERNAL_SERVER_ERROR'])

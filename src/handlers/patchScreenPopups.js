@@ -4,6 +4,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import ENV from '../envServer.js'
 import popupTypes from '../constants/ScreenPopupTypes.js'
 
+import logger from '../helpers/logger.js'
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -127,7 +129,7 @@ const handler = function (req, res) {
       res.send(JSON.stringify(screenDoc.popups))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'PATCH_SCREEN_POPUPS_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {

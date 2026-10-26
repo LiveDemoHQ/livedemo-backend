@@ -12,6 +12,8 @@ import { resolveCta, isInlineCalendarUrl } from './validateActions.js'
 import { normalizeEmbedRules } from './embed.js'
 import { signBody, slackText } from '../workspaceEvents.js'
 
+import logger from '../logger.js'
+
 // --- qualification
 const qualification = normalizeQualification({
     enabled: true,
@@ -90,4 +92,4 @@ assert.strictEqual(normalizeLink('/docs#top', 'https://acme.com'), 'https://acme
 assert.strictEqual(normalizeLink('https://other.com/x', 'https://acme.com'), null)
 assert.strictEqual(normalizeLink('/brochure.pdf', 'https://acme.com'), null)
 
-console.log('pipeline.check OK')
+logger.info('pipeline.check OK', { eventName: 'PIPELINE_CHECK_OK' })

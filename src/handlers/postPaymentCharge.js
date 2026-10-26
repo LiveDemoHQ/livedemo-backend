@@ -21,10 +21,12 @@ import {
   avatarLimitsFor,
 } from '../helpers/subscriptionHelpers.js'
 import {
+
   getOrCreateSubscriptionCustomer,
   linkSubscriptionToCustomer,
   upsertSubscriptionCustomer,
 } from '../helpers/subscriptionCustomerHelpers.js'
+import logger from '../helpers/logger.js'
 
 // Stripe integration - will be initialized when needed
 let stripe = null
@@ -279,7 +281,7 @@ const handler = function (req, res) {
       }))
     })
     .catch((error) => {
-      console.log(error)
+      logger.error(error, { eventName: 'POST_PAYMENT_CHARGE_FAILED' })
 
       let resultResponse
       if (error.resultResponse) {
@@ -541,7 +543,7 @@ async function triggerAfterPayment(chargeId, subscriptionId, Models, conn) {
   // Call the handler directly
   return afterPaymentHandler(mockReq, mockRes)
     .catch((err) => {
-      console.error('Error in afterPayment handler:', err)
+      logger.error('Error in afterPayment handler:', { eventName: 'ERROR_IN_AFTERPAYMENT_HANDLER_FAILED', err: err })
       // Don't throw - allow the charge to complete even if afterPayment fails
       return Promise.resolve()
     })

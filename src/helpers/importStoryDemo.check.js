@@ -3,6 +3,8 @@ import assert from 'assert'
 import { importPayloadIssue } from './importStoryDemo.js'
 import validate from './validators/stories/postStoryImportValidator.js'
 
+import logger from './logger.js'
+
 const full = { type: 2 }
 const base = { screenDoc: { _id: 'a', recordingRole: 'base' }, events: [{ type: 4 }, full] }
 const delta = { screenDoc: { _id: 'b', recordingRole: 'delta', baseScreenId: 'a' }, events: [{ type: 3 }] }
@@ -27,4 +29,4 @@ assert(validate({ story: vStory, screens: [{ ...vBase, screenDoc: { _id: 'nope' 
 assert(validate({ story: vStory, screens: [{ ...vDelta, screenDoc: { _id: id(2), recordingRole: 'delta' } }] }).error)
 assert(validate({ story: vStory, screens: [{ ...vBase, screenDoc: { ...vBase.screenDoc, recordingRole: 'other' } }] }).error)
 assert(validate({ story: vStory, screens: [{ screenDoc: vBase.screenDoc }] }).error)
-console.log('OK')
+logger.info('OK', { eventName: 'OK' })

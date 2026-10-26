@@ -5,6 +5,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import { workspaceApiKey } from '../helpers/agent/providerKeys.js'
 
+import logger from '../helpers/logger.js'
+
 // ponytail: flat per-workspace cap. Upgrade: tie it to the plan like cloned voices.
 export const MAX_CUSTOM_AVATARS = 20
 export const IMAGE_TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' }
@@ -53,7 +55,7 @@ const handler = async function (req, res) {
       createdBy: authUser._id,
     }).save()
 
-    console.log('[lemonslice] custom avatar saved', String(doc._id), 'workspace', workspaceId, variantUrl ? 'reframed' : 'raw upload, reframed at session start')
+    logger.info('[lemonslice] custom avatar saved', { eventName: 'CUSTOM_AVATAR_SAVED', data: { detail: [String(doc._id), 'workspace', workspaceId, variantUrl ? 'reframed' : 'raw upload, reframed at session start'] } })
 
     sendJson(res, {
       id: String(doc._id), displayName: doc.name, imageUrl: doc.imageUrl, videoUrl: '', clipStatus: '', custom: true, reframed: doc.reframed,

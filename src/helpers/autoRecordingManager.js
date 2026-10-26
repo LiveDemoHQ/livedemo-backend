@@ -8,12 +8,14 @@ if (typeof globalThis.File === 'undefined') {
     } catch (e) {
         // Fallback for older Node.js versions or when node:buffer.File is unavailable
         // Optionally you can provide a polyfill or a warning
-        console.warn('File API is not available. File uploads may fail. Please use Node.js 20 or newer.');
+        logger.error('File API is not available. File uploads may fail. Please use Node.js 20 or newer.', { eventName: 'AUTO_RECORDING_MANAGER_FAILED' });
     }
 }
 
 
 import OpenAI from "openai"
+
+import logger from './logger.js'
 
 const model = 'gpt-5.6-terra'
 
@@ -39,7 +41,7 @@ async function processAutoRecording(autoRecordingEvents, aiName) {
  */
 async function uploadBase64ImageToOpenAIFile(imageName, base64Image, purpose = "user_data") {
 
-    console.log(`autoRecordingManager - uploadBase64ImageToOpenAIFile() - started - imageName -> ${imageName}`)
+    logger.info(`autoRecordingManager - uploadBase64ImageToOpenAIFile() - started - imageName -> ${imageName}`, { eventName: 'AUTO_RECORDING_MANAGER' })
 
     // Detect and strip data URL prefix if present
     let matches = base64Image.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/);
@@ -69,11 +71,11 @@ async function uploadBase64ImageToOpenAIFile(imageName, base64Image, purpose = "
             file: file,
             purpose: purpose,
         });
-        console.log(`autoRecordingManager - uploadBase64ImageToOpenAIFile() - finished - imageName -> ${imageName}`)
+        logger.info(`autoRecordingManager - uploadBase64ImageToOpenAIFile() - finished - imageName -> ${imageName}`, { eventName: 'AUTO_RECORDING_MANAGER' })
 
         return response;
     } catch (error) {
-        console.error('Failed to upload base64 image to OpenAI:', error);
+        logger.error('Failed to upload base64 image to OpenAI:', { eventName: 'FAILED_TO_UPLOAD_BASE64_IMAGE_TO_OPENAI_FAILED', err: error });
         throw error;
     }
 }
@@ -89,7 +91,7 @@ class AutoRecordingManager {
         this.aiName = aiName
         this.windowMeasures = windowMeasures
 
-        console.log(`autoRecordingManager - constructor - aiName -> ${aiName}, windowMeasures -> ${windowMeasures}`)
+        logger.info(`autoRecordingManager - constructor - aiName -> ${aiName}, windowMeasures -> ${windowMeasures}`, { eventName: 'AUTO_RECORDING_MANAGER' })
     }
 
     async processEvents(newEvents) {
@@ -99,7 +101,7 @@ class AutoRecordingManager {
 
         let eventsToAdd = newEvents.filter(event => !this.eventsById[event._id])
 
-        console.log(`autoRecordingManager - processEvents() - started - eventsToAdd -> ${eventsToAdd.map(event => event._id).join(', ')}`)
+        logger.info(`autoRecordingManager - processEvents() - started - eventsToAdd -> ${eventsToAdd.map(event => event._id).join(', ')}`, { eventName: 'AUTO_RECORDING_MANAGER' })
         for (let newEvent of eventsToAdd) {
 
             let eventData = newEvent.eventData && newEvent.eventData.data ? JSON.parse(newEvent.eventData.data) : null
@@ -120,7 +122,7 @@ class AutoRecordingManager {
             this.eventsById[newEvent._id] = newEvent
         }
 
-        console.log(`autoRecordingManager - processEvents() - finished - eventsToAdd -> ${eventsToAdd.map(event => event._id).join(', ')}`)
+        logger.info(`autoRecordingManager - processEvents() - finished - eventsToAdd -> ${eventsToAdd.map(event => event._id).join(', ')}`, { eventName: 'AUTO_RECORDING_MANAGER' })
 
         return true
     }
@@ -255,7 +257,7 @@ Return **only JSON** matching this schema:
                 }
             ]
         }
-        console.log(`autoRecordingManager - finalize() - started - createRequestBody:\n ${JSON.stringify(createRequestBody, null, 2)} \n`)
+        logger.info(`autoRecordingManager - finalize() - started - createRequestBody:\n ${JSON.stringify(createRequestBody, null, 2)} \n`, { eventName: 'AUTO_RECORDING_MANAGER' })
 
         const finalResponse = await openai.responses.create(createRequestBody);
 
@@ -263,8 +265,8 @@ Return **only JSON** matching this schema:
             finalResponse &&
             finalResponse.output_text
         ) {
-            console.log('\n=== FINAL EXTRACTION RESULT ===');
-            console.log(` plain text - ${finalResponse.output_text}`)
+            logger.info('\n=== FINAL EXTRACTION RESULT ===', { eventName: 'FINAL_EXTRACTION_RESULT' });
+            logger.info(` plain text - ${finalResponse.output_text}`, { eventName: 'AUTO_RECORDING_MANAGER' })
             if(finalResponse.output_text.startsWith('```json')) {
                 finalResponse.output_text = finalResponse.output_text.slice(7, finalResponse.output_text.length-3)
             }
@@ -274,13 +276,13 @@ Return **only JSON** matching this schema:
             let finalResult = this.mapScreenshotsToSuggestions(flows)
             // console.log(JSON.stringify(finalResult, null, 2));
 
-            console.log(`autoRecordingManager - finalize() - finished`)
+            logger.info(`autoRecordingManager - finalize() - finished`, { eventName: 'AUTO_RECORDING_MANAGER' })
 
             return finalResult
         }
 
-        console.error('Failed to get valid content from OpenAI response');
-        console.error(finalResponse);
+        logger.error('Failed to get valid content from OpenAI response', { eventName: 'FAILED_TO_GET_VALID_CONTENT_FROM_OPENAI_RESPONSE_FAILED' });
+        logger.error(finalResponse, { eventName: 'AUTO_RECORDING_MANAGER_FAILED' });
         return null
     }
 
@@ -349,9 +351,9 @@ Return **only JSON** matching this schema:
         for (const imageId of uniqueImageIds) {
             try {
                 await openai.files.delete(imageId);
-                console.log(`autoRecordingManager - deleteAllUploadedOpenAiImages() - Deleted OpenAI image file: ${imageId}`);
+                logger.info(`autoRecordingManager - deleteAllUploadedOpenAiImages() - Deleted OpenAI image file: ${imageId}`, { eventName: 'AUTO_RECORDING_MANAGER' });
             } catch (err) {
-                console.warn(`autoRecordingManager - deleteAllUploadedOpenAiImages() - Failed to delete OpenAI image file ${imageId}:`, err.message || err);
+                logger.error(`autoRecordingManager - deleteAllUploadedOpenAiImages() - Failed to delete OpenAI image file ${imageId}:`, { eventName: 'AUTO_RECORDING_MANAGER_FAILED', data: { detail: err.message || err } });
             }
         }
     }

@@ -2,6 +2,8 @@ import crypto from 'crypto'
 import axios from 'axios'
 import { assertPublicUrl } from './publicUrl.js'
 
+import logger from '../logger.js'
+
 // Renders pages in headless Chrome (JS runs, so SPAs work), strips boilerplate,
 // keeps headings / lists / tables / alt text as markdown. Reads sitemap.xml
 // first, otherwise follows same-origin links. Never clicks or scrolls.
@@ -152,7 +154,7 @@ export async function renderOne(rawUrl, fallback) {
     try {
         browser = await launch()
     } catch (err) {
-        console.log('siteCrawler: Chrome unavailable, using plain fetch', err.message)
+        logger.error('siteCrawler: Chrome unavailable, using plain fetch', { eventName: 'SITECRAWLER_CHROME_UNAVAILABLE_USING_PLAIN_FETCH_FAILED', err: err.message })
         return fallback(url.toString())
     }
     try {
@@ -189,7 +191,7 @@ export async function crawlSite(rawUrl, { maxPages = 25 } = {}) {
                     })
                 }
             } catch (err) {
-                console.log('siteCrawler: page failed', url, err.message)
+                logger.error('siteCrawler: page failed', { eventName: 'SITECRAWLER_PAGE_FAILED', err: err.message })
             }
         }
     } finally {

@@ -6,6 +6,8 @@ import { sendEmail } from './emails/emailsSender.js'
 import Templates from './emails/templates/index.js'
 import { cleanSessionId, firstWorkspaceId, loadOwnableSource, findExistingClaim, enqueueOwnClaim } from './own/own.js'
 
+import logger from './logger.js'
+
 // Cloned Storylane / Arcade / Navattic / Supademo demos (livedemo-ai-api/clone_demos_tech_design.md).
 // livedemo-ai-api's processMigrateDemo job does the clone; this side stores requests, claims copies and sends the emails
 
@@ -218,7 +220,7 @@ export async function sendMigrateDemoEmails(Models, migrateDemo, send = sendRead
             .catch((err) => {
 
                 failed++
-                console.error(`[migrateDemos] ${migrateDemo._id} email failed`, err.message)
+                logger.error(`[migrateDemos] ${migrateDemo._id} email failed`, { eventName: 'MIGRATE_DEMOS_FAILED', err: err.message })
                 return Models.MigrateDemo.updateOne(
                     { _id: migrateDemo._id, 'requests._id': request._id },
                     { $unset: { 'requests.$.emailSentAt': 1 } }

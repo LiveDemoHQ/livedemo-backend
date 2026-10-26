@@ -12,6 +12,8 @@ import AudioTypes from '../constants/AudioTypes.js'
 import limiter from '../helpers/rateLimiter.js'
 
 
+import logger from '../helpers/logger.js'
+
 const handler = async function (req, res) {
     let {Models, conn} = req.mongo
 
@@ -86,7 +88,7 @@ const handler = async function (req, res) {
             res.send(resultResponse.body)
         })
         .catch((error) => {
-            console.log(error)
+            logger.error(error, { eventName: 'POST_GENERATE_STORY_CONTENT_FAILED' })
 
             let resultResponse
             if (error.resultResponse) {
