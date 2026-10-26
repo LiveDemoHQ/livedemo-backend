@@ -136,6 +136,7 @@ import postPaymentChargeHandler from './handlers/postPaymentCharge.js'
 import postCheckoutSessionHandler from './handlers/postCheckoutSession.js'
 import postVerifyCheckoutSessionHandler from './handlers/postVerifyCheckoutSession.js'
 import postBillingPortalHandler from './handlers/postBillingPortal.js'
+import getFoundingPromoHandler from './handlers/getFoundingPromo.js'
 import postPaymentsWebhookHandler from './handlers/postPaymentsWebhook.js'
 import postWebhooksSequenzyHandler from './handlers/postWebhooksSequenzy.js'
 import postPaymentFreeActivateHandler from './handlers/postPaymentFreeActivate.js'
@@ -485,6 +486,8 @@ app.post('/users/billing-portal', [setupMongo], postBillingPortalHandler)
 app.post('/payments/charge', [setupMongo], postPaymentChargeHandler)
 
 app.post('/payments/checkout-session', [setupMongo], postCheckoutSessionHandler)
+
+app.get('/payments/founding-promo', [setupMongo], getFoundingPromoHandler)
 
 app.post('/payments/verify-checkout-session', [setupMongo], postVerifyCheckoutSessionHandler)
 

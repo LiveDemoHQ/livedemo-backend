@@ -8,6 +8,11 @@ const options = {
 
 const Config = new mongoose.Schema({
     lastWarmDate: { type: Date},
+    // FOUNDING50 campaign — mirrored from Stripe, used if Stripe is unreachable
+    foundingPromoCode: { type: String, default: 'FOUNDING50' },
+    foundingPromoRedeemed: { type: Number, default: 0 },
+    foundingPromoMax: { type: Number, default: 5 },
+    foundingPromoSyncedAt: { type: Date },
   }, options
 )
 
