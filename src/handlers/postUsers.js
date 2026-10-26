@@ -211,30 +211,31 @@ const handler = function (req, res) {
         .then(() => ({ savedUserData, authTokenData }))
     })
     .then(({ savedUserData, authTokenData }) => {
-      const redirectPath = getPostAuthRedirectPath(savedUserData)
-      const resultResponse = {
-        statusCode: ResponseCodes['200_OK'],
-        headers: {
-          'Access-Control-Max-Age': 600,
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'ClientId,Authorization,Content-Type,Accept', // Required for CORS support to work
-          // Required for CORS support to work
-          'Access-Control-Allow-Credentials': true, // Required for cookies, authorization headers with HTTPS
+      return getPostAuthRedirectPath(savedUserData, Models).then((redirectPath) => {
+        const resultResponse = {
+          statusCode: ResponseCodes['200_OK'],
+          headers: {
+            'Access-Control-Max-Age': 600,
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'ClientId,Authorization,Content-Type,Accept', // Required for CORS support to work
+            // Required for CORS support to work
+            'Access-Control-Allow-Credentials': true, // Required for cookies, authorization headers with HTTPS
+          }
         }
-      }
 
-      res.set(resultResponse.headers)
-      res.status(resultResponse.statusCode)
-      res.send(JSON.stringify({
-        id: savedUserData._id.toString(),
-        name: savedUserData.name,
-        email: savedUserData.email,
-        timezone: savedUserData.timezone,
-        featureFlags: savedUserData.featureFlags,
-        emailVerified: savedUserData.emailVerified === true,
-        token: authTokenData.token,
-        redirectPath
-      }))
+        res.set(resultResponse.headers)
+        res.status(resultResponse.statusCode)
+        res.send(JSON.stringify({
+          id: savedUserData._id.toString(),
+          name: savedUserData.name,
+          email: savedUserData.email,
+          timezone: savedUserData.timezone,
+          featureFlags: savedUserData.featureFlags,
+          emailVerified: savedUserData.emailVerified === true,
+          token: authTokenData.token,
+          redirectPath
+        }))
+      })
     })
     .catch((error) => {
       console.log(error)

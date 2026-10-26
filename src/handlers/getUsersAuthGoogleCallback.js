@@ -6,15 +6,11 @@ import { sendEmail } from '../helpers/emails/emailsSender.js'
 import { syncSignupSubscriber } from '../helpers/sequenzy/sequenzyClient.js'
 import Templates from '../helpers/emails/templates/index.js'
 import claimBrowserSessionForUser from '../helpers/claimBrowserSessionForUser.js'
+import { getPostAuthRedirectPath } from '../helpers/emailHelpers.js'
 import { assertNotSsoEnforced } from '../helpers/sso.js'
 import axios from 'axios'
 import mongoose from 'mongoose'
 const { ObjectId } = mongoose.Types
-
-function shouldRedirectToOnboarding(userDoc) {
-    const onboardingGoals = userDoc?.onboarding?.goals
-    return !Array.isArray(onboardingGoals) || onboardingGoals.length === 0
-}
 
 const handler = function (req, res) {
     let { Models, conn } = req.mongo
@@ -225,7 +221,8 @@ const handler = function (req, res) {
         const returnPath = decodedState.returnPath
         await claimBrowserSessionForUser(decodedState.browserSessionId, userDoc, Models)
 
-        const redirectPath = shouldRedirectToOnboarding(userDoc) ? '/onboarding' : returnPath
+        // Prefer in-flight own-claim → editor over the goals wizard; else honor returnPath
+        const redirectPath = await getPostAuthRedirectPath(userDoc, Models, returnPath)
         const encodedPage = encodeURIComponent(redirectPath)
         const redirectUrl = `${ENV.SERVER_URL}/auth/?page=${encodedPage}&token=${authTokenDoc.token}${isNewUser ? '&signup=google' : ''}`
 

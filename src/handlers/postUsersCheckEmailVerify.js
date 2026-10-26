@@ -47,12 +47,13 @@ const handler = function (req, res) {
 
         res.set(resultResponse.headers)
         res.status(resultResponse.statusCode)
-        res.send(JSON.stringify({
-          emailVerified: true,
-          alreadyVerified: true,
-          redirectPath: getPostAuthRedirectPath(authUser),
-        }))
-        return null
+        return getPostAuthRedirectPath(authUser, Models).then((redirectPath) => {
+          res.send(JSON.stringify({
+            emailVerified: true,
+            alreadyVerified: true,
+            redirectPath,
+          }))
+        })
       }
 
       return Models.EmailVerificationCode.findOne({
@@ -122,26 +123,27 @@ const handler = function (req, res) {
         return
       }
 
-      const redirectPath = getPostAuthRedirectPath(updatedUser)
-      const resultResponse = {
-        statusCode: ResponseCodes['200_OK'],
-        headers: {
-          'Access-Control-Max-Age': 600,
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'ClientId,Authorization,Content-Type,Accept',
-          'Access-Control-Allow-Credentials': true,
-        },
-      }
+      return getPostAuthRedirectPath(updatedUser, Models).then((redirectPath) => {
+        const resultResponse = {
+          statusCode: ResponseCodes['200_OK'],
+          headers: {
+            'Access-Control-Max-Age': 600,
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'ClientId,Authorization,Content-Type,Accept',
+            'Access-Control-Allow-Credentials': true,
+          },
+        }
 
-      res.set(resultResponse.headers)
-      res.status(resultResponse.statusCode)
-      res.send(JSON.stringify({
-        emailVerified: true,
-        redirectPath,
-        id: updatedUser._id,
-        email: updatedUser.email,
-        name: updatedUser.name,
-      }))
+        res.set(resultResponse.headers)
+        res.status(resultResponse.statusCode)
+        res.send(JSON.stringify({
+          emailVerified: true,
+          redirectPath,
+          id: updatedUser._id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+        }))
+      })
     })
     .catch((error) => {
       console.log(error)

@@ -6,6 +6,7 @@ import { syncSignupSubscriber } from '../helpers/sequenzy/sequenzyClient.js'
 import Templates from '../helpers/emails/templates/index.js'
 import { assertNotSsoEnforced } from '../helpers/sso.js'
 import claimBrowserSessionForUser from '../helpers/claimBrowserSessionForUser.js'
+import { getPostAuthRedirectPath } from '../helpers/emailHelpers.js'
 import mongoose from 'mongoose'
 const { ObjectId } = mongoose.Types
 
@@ -25,11 +26,6 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'ClientId,Authorization,Content-Type,Accept',
   'Access-Control-Allow-Credentials': true,
-}
-
-function shouldRedirectToOnboarding(userDoc) {
-  const onboardingGoals = userDoc?.onboarding?.goals
-  return !Array.isArray(onboardingGoals) || onboardingGoals.length === 0
 }
 
 const handler = function (req, res) {
@@ -218,7 +214,7 @@ const handler = function (req, res) {
     const userDocForToken = await Models.User.findOne({ _id: userDoc._id })
     const authTokenDoc = await authUtils.createTokenForUser(userDocForToken, Models.AuthToken)
 
-    const redirectPath = shouldRedirectToOnboarding(userDoc) ? '/onboarding' : '/'
+    const redirectPath = await getPostAuthRedirectPath(userDoc, Models, '/')
     const encodedPage = encodeURIComponent(redirectPath)
     const redirectUrl = `${ENV.SERVER_URL}/auth/?page=${encodedPage}&token=${authTokenDoc.token}${isNewUser ? '&signup=google' : ''}`
 

@@ -5,7 +5,7 @@ import ipRateLimit from '../helpers/agent/ipRateLimit.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import internalRoute from '../helpers/internalAuth.js'
 import findPreviewStory from '../helpers/findPreviewStory.js'
-import { isObjectIdString } from '../helpers/own/own.js'
+import { isObjectIdString, firstWorkspaceId } from '../helpers/own/own.js'
 import { ownablePreviewCount } from '../helpers/own/cloneForClaim.js'
 import { importStoryDemo, importPayloadIssue } from '../helpers/importStoryDemo.js'
 import postStoryImportValidator from '../helpers/validators/stories/postStoryImportValidator.js'
@@ -15,6 +15,7 @@ import {
     enqueueProcessMigrateDemo,
     upsertMigrateDemo,
     countRecentRequests,
+    countRecentRequestsByUser,
     claimMigrateDemoRequests,
     sendMigrateDemoEmails
 } from '../helpers/migrateDemos.js'
@@ -23,6 +24,8 @@ import { syncMigrateLead } from '../helpers/sequenzy/sequenzyClient.js'
 // Clone a public Storylane / Arcade / Navattic / Supademo demo (livedemo-ai-api/clone_demos_tech_design.md).
 // Public (landing page):
 // POST /migratedemos                                  { email, url, browserSessionId? } -> { _id, status }
+// Authenticated (web-app onboarding; Bearer token, no email):
+// POST /migratedemos                                  { url, browserSessionId? } -> { _id, status, ownClaimId? }
 // GET  /migratedemos/:migrateDemoId                   status, editor links, storyDoc once completed; never requests
 // Internal (livedemo-ai-api, Authorization: Internal <INTERNAL_API_KEY>):
 // POST /internal/workspaces/:workspaceId/stories/import   import payload + { userId, ownable }
@@ -47,6 +50,22 @@ function providerOf(url) {
     }
 }
 
+async function tryGetAuthUser(req, Models) {
+
+    if (!req.get('Authorization')) {
+
+        return null
+    }
+    try {
+
+        const { authUser } = await helpers.authReq(req, Models)
+        return authUser || null
+    } catch {
+
+        return null
+    }
+}
+
 const postMigrateDemo = wrap(async (req, res) => {
 
     const { Models } = req.mongo
@@ -55,30 +74,61 @@ const postMigrateDemo = wrap(async (req, res) => {
         httpError(ResponseCodes['503_SERVICE_UNAVAILABLE'], 'Demo cloning is not available right now')
     }
     await ipLimit(req)
+    const authHeader = req.get('Authorization')
+    const authUser = await tryGetAuthUser(req, Models)
+    if (authHeader && !authUser) {
+
+        httpError(ResponseCodes['401_UNAUTHORIZED'], 'Sign in again')
+    }
     const { error, value } = postMigrateDemosValidator(req.body || {})
     if (error) {
 
         bad(/email/.test(error.message) ? 'Enter a valid email address' : 'Enter a valid https:// demo link')
     }
     const { email, url, browserSessionId } = value
+    if (!authUser && !email) {
+
+        bad('Enter a valid email address')
+    }
     if (!providerOf(url)) {
 
         bad('Paste a public Storylane, Arcade, Navattic or Supademo demo link')
     }
-    if (await countRecentRequests(Models, email) >= MAX_REQUESTS_PER_EMAIL_PER_DAY) {
+
+    const workspaceId = authUser ? firstWorkspaceId(authUser) : null
+    if (authUser && !workspaceId) {
+
+        bad('Create a workspace first')
+    }
+    if (authUser) {
+
+        if (await countRecentRequestsByUser(Models, authUser._id) >= MAX_REQUESTS_PER_EMAIL_PER_DAY) {
+
+            httpError(ResponseCodes['429_TOO_MANY_REQUESTS'], 'Too many requests today, try again tomorrow')
+        }
+    } else if (await countRecentRequests(Models, email) >= MAX_REQUESTS_PER_EMAIL_PER_DAY) {
 
         httpError(ResponseCodes['429_TOO_MANY_REQUESTS'], 'Too many requests for this email today, try again tomorrow')
     }
 
-    const doc = await upsertMigrateDemo(Models, {
-        url,
-        request: {
+    const request = authUser
+        ? {
+            email: email || undefined,
+            source: 'app',
+            userId: authUser._id,
+            browserSessionId: browserSessionId || undefined,
+            // Stamp now so the clone job's claims route copies into this workspace when done
+            claimUserId: authUser._id,
+            claimWorkspaceId: workspaceId
+        }
+        : {
             email,
             source: 'landing',
             browserSessionId: browserSessionId || undefined
         }
-    })
-    // the job is idempotent: a completed link just emails this requester
+
+    const doc = await upsertMigrateDemo(Models, { url, request })
+    // the job is idempotent: a completed link just emails this requester (landing) / claims (app)
     await enqueueProcessMigrateDemo(doc._id).catch((err) => {
 
         console.error('[migrateDemos] enqueue failed', doc._id, err)
@@ -87,8 +137,23 @@ const postMigrateDemo = wrap(async (req, res) => {
             throw err
         }
     })
-    sendJson(res, { _id: doc._id, status: doc.status })
-    syncMigrateLead(email, Models, { provider: providerOf(url) })
+
+    let ownClaimId = null
+    if (authUser) {
+
+        await claimMigrateDemoRequests(Models, doc._id)
+        const fresh = await Models.MigrateDemo.findById(doc._id).select('requests').lean()
+        const mine = [...((fresh && fresh.requests) || [])].reverse().find((r) => (
+            String(r.claimUserId) === String(authUser._id) && r.ownClaimId
+        ))
+        ownClaimId = mine ? mine.ownClaimId : null
+    }
+
+    sendJson(res, { _id: doc._id, status: doc.status, ownClaimId })
+    if (email || (authUser && authUser.email)) {
+
+        syncMigrateLead(email || authUser.email, Models, { provider: providerOf(url) })
+    }
 })
 
 // No browserSessionId filter: the email link is opened on other devices, and the content is a copy of a public demo

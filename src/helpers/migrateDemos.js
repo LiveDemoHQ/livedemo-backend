@@ -85,6 +85,20 @@ export async function countRecentRequests(Models, email, now = Date.now()) {
     return row ? row.n : 0
 }
 
+// Authenticated web-app requests (no email) — same 24h cap, keyed by userId
+export async function countRecentRequestsByUser(Models, userId, now = Date.now()) {
+
+    const since = new Date(now - 24 * 60 * 60 * 1000)
+    const uid = new ObjectId(String(userId))
+    const [row] = await Models.MigrateDemo.aggregate([
+        { $match: { 'requests.userId': uid } },
+        { $unwind: '$requests' },
+        { $match: { 'requests.userId': uid, 'requests.createdAt': { $gte: since } } },
+        { $count: 'n' }
+    ])
+    return row ? row.n : 0
+}
+
 // Copies the cloned story into the requester's workspace through "Make it yours" (OwnClaim + processOwnClaim).
 // The request is taken atomically, so it's enqueued at most once. -> the OwnClaim id, or null
 export async function claimMigrateDemoRequest(Models, migrateDemo, request, enqueue = enqueueOwnClaim) {
@@ -219,6 +233,7 @@ export default {
     enqueueProcessMigrateDemo,
     upsertMigrateDemo,
     countRecentRequests,
+    countRecentRequestsByUser,
     claimMigrateDemoRequest,
     claimMigrateDemoRequests,
     claimMigrateDemosForUser,

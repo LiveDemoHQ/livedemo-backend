@@ -67,12 +67,77 @@ export function shouldRedirectToOnboarding(userDoc) {
   return !Array.isArray(onboardingGoals) || onboardingGoals.length === 0
 }
 
-export function getPostAuthRedirectPath(userDoc) {
+// Fresh "Make it yours" / UrlDemo copies land in the editor, not the goals wizard
+const JUST_CLAIMED_MS = 15 * 60 * 1000
+
+function firstWorkspaceId(userDoc) {
+  const first = userDoc && userDoc.workspaces && userDoc.workspaces[0]
+  return first && (first._id || first)
+}
+
+async function ownClaimRedirectPath(Models, userId) {
+  if (!Models || !Models.OwnClaim || !userId) return null
+
+  const cloning = await Models.OwnClaim.findOne({ userId, status: 'cloning' })
+    .sort({ createdAt: -1 })
+    .select('_id')
+    .lean()
+  if (cloning) return `/own/claim/${cloning._id}`
+
+  const justDone = await Models.OwnClaim.findOne({
+    userId,
+    status: 'completed',
+    completedAt: { $gte: new Date(Date.now() - JUST_CLAIMED_MS) }
+  })
+    .sort({ completedAt: -1 })
+    .select('_id')
+    .lean()
+  return justDone ? `/own/claim/${justDone._id}` : null
+}
+
+// cloneUrlDemoStoriesForUser runs inline on auth and creates type:'owned' rows
+async function urlDemoRedirectPath(Models, userDoc) {
+  if (!Models || !Models.UrlDemo || !userDoc || !userDoc._id) return null
+  const workspaceId = firstWorkspaceId(userDoc)
+  if (!workspaceId) return null
+
+  const owned = await Models.UrlDemo.findOne({
+    userId: userDoc._id,
+    type: 'owned',
+    status: 'completed',
+    storyId: { $exists: true },
+    createdAt: { $gte: new Date(Date.now() - JUST_CLAIMED_MS) }
+  })
+    .sort({ createdAt: -1 })
+    .select('storyId')
+    .lean()
+  return owned && owned.storyId
+    ? `/workspace/${workspaceId}/storydemo/${owned.storyId}`
+    : null
+}
+
+async function hasClaimedContent(Models, userId) {
+  if (!Models || !userId) return false
+  if (Models.OwnClaim && await Models.OwnClaim.exists({ userId, status: 'completed' })) return true
+  if (Models.UrlDemo && await Models.UrlDemo.exists({ userId, type: 'owned', status: 'completed' })) return true
+  return false
+}
+
+export async function getPostAuthRedirectPath(userDoc, Models, preferredPath = '/') {
   if (shouldRedirectToEmailVerify(userDoc)) {
     return '/email-verify'
   }
+
+  const claimPath = await ownClaimRedirectPath(Models, userDoc && userDoc._id)
+  if (claimPath) return claimPath
+
+  const urlDemoPath = await urlDemoRedirectPath(Models, userDoc)
+  if (urlDemoPath) return urlDemoPath
+
   if (shouldRedirectToOnboarding(userDoc)) {
+    // Already got a demo into this account — skip the goals wizard
+    if (await hasClaimedContent(Models, userDoc && userDoc._id)) return preferredPath || '/'
     return '/onboarding'
   }
-  return '/'
+  return preferredPath || '/'
 }
