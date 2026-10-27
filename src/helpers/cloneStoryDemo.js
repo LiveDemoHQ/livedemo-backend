@@ -215,7 +215,8 @@ async function cloneFlowRecordings(sandbox, newStoryId) {
  * @param {string|ObjectId} userId
  * @param {string|ObjectId} workspaceId
  * @param {object} Models
- * @param {{ nameSuffix?: string, collect?: boolean, deferChecklist?: boolean, clonedFrom?: object }} options
+ * @param {{ name?: string, nameSuffix?: string, collect?: boolean, deferChecklist?: boolean, clonedFrom?: object }} options
+ *   name: explicit clone title (wins over nameSuffix)
  *   collect: return { newStoryId, stepIdMap, flowIdMap } and fail on a broken sandbox copy
  *   deferChecklist: keep the source checklist as is; the caller rewrites it (remapChecklistForClone)
  *   clonedFrom: "Make it yours" claim provenance; also blanks form integrations
@@ -223,6 +224,7 @@ async function cloneFlowRecordings(sandbox, newStoryId) {
  */
 export async function cloneStoryDemo(storyId, userId, workspaceId, Models, options = {}) {
   const {
+    name = null,
     nameSuffix = ' (2)',
     collect = false,
     deferChecklist = false,
@@ -372,10 +374,14 @@ export async function cloneStoryDemo(storyId, userId, workspaceId, Models, optio
     }
   }
 
+  const cloneName = (typeof name === 'string' && name.trim())
+    ? name.trim()
+    : `${storyDoc.name || 'Untitled'}${nameSuffix}`
+
   await new Models.Story({
     ...storyData,
     _id: newStoryId,
-    name: `${storyDoc.name || 'Untitled'}${nameSuffix}`,
+    name: cloneName,
     userId,
     workspaceId,
     // Sandbox extras keep living outside story.screens, like in the source

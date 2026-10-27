@@ -15,7 +15,9 @@ const handler = function (req, res) {
   const { Models } = req.mongo
   const workspaceId = req.params.workspaceId
   const storyId = req.params.storyId
-  const targetWorkspaceId = String(req.body?.workspaceId || workspaceId)
+  const body = req.body || {}
+  const targetWorkspaceId = String(body.workspaceId || workspaceId)
+  const requestedName = typeof body.name === 'string' ? body.name.trim() : ''
 
   return Promise.resolve()
     .then(() => helpers.authReq(req, Models))
@@ -46,7 +48,10 @@ const handler = function (req, res) {
         authUser._id,
         targetWorkspaceId,
         Models,
-        { nameSuffix: targetWorkspaceId === workspaceId ? ' (2)' : '' }
+        {
+          nameSuffix: targetWorkspaceId === workspaceId ? ' (2)' : '',
+          ...(requestedName ? { name: requestedName } : {})
+        }
       )
 
       if (!newStoryId) {
