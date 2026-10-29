@@ -47,7 +47,7 @@ jobs:
         env:
           TAG_SHA: ${{ github.sha }}
         run: |
-          docker build -f ./tools/docker/Dockerfile -t "${{ env.DOCKER_IMAGE_PREFIX }}:latest" .
+          docker build --build-arg SERVICE_VERSION="${TAG_SHA}" -f ./tools/docker/Dockerfile -t "${{ env.DOCKER_IMAGE_PREFIX }}:latest" .
           docker tag "${{ env.DOCKER_IMAGE_PREFIX }}:latest" "${{ env.DOCKER_IMAGE_PREFIX }}:${TAG_SHA}"
           docker push "${{ env.DOCKER_IMAGE_PREFIX }}:${TAG_SHA}"
           docker push "${{ env.DOCKER_IMAGE_PREFIX }}:latest"
@@ -82,7 +82,7 @@ jobs:
         env:
           TAG_SHA: ${{ github.sha }}
         run: |
-          docker build -f ./tools/docker/Dockerfile_monq -t "${{ env.DOCKER_IMAGE_PREFIX }}:monq-latest" .
+          docker build --build-arg SERVICE_VERSION="${TAG_SHA}" -f ./tools/docker/Dockerfile_monq -t "${{ env.DOCKER_IMAGE_PREFIX }}:monq-latest" .
           docker tag "${{ env.DOCKER_IMAGE_PREFIX }}:monq-latest" "${{ env.DOCKER_IMAGE_PREFIX }}:monq-${TAG_SHA}"
           docker push "${{ env.DOCKER_IMAGE_PREFIX }}:monq-${TAG_SHA}"
           docker push "${{ env.DOCKER_IMAGE_PREFIX }}:monq-latest"

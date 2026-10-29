@@ -234,6 +234,7 @@ import agentRecap from './handlers/agentRecap.js'
 import captureAgentRevision from './middlewares/captureAgentRevision.js'
 import agentEditorMode, { agentEditorModeOptional } from './middlewares/agentEditorMode.js'
 import logger from './helpers/logger.js'
+import { observeQueuedJobs } from './helpers/metrics.js'
 import showcases from './handlers/showcases.js'
 import ownClaims from './handlers/ownClaims.js'
 import migrateDemos from './handlers/migrateDemos.js'
@@ -287,6 +288,7 @@ async function setupWorkers() {
     videoWorker.on('error', err => logger.error('[monq] video worker error', { eventName: 'VIDEO_WORKER_ERROR', err: err.message }))
     worker.start()
     videoWorker.start()
+    observeQueuedJobs(conn.db)
     startAgentSchedulers(Models)
 
     logger.info('Story consumer started', { eventName: 'STORY_CONSUMER_STARTED' })
@@ -331,7 +333,7 @@ app.options('*', (req, res) => {
             'Access-Control-Max-Age': 600,
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': '*',
-            'Access-Control-Allow-Headers': 'ClientId,Authorization,Content-Type,Accept,X-Requested-With', // Required for CORS support to work
+            'Access-Control-Allow-Headers': 'ClientId,Authorization,Content-Type,Accept,X-Requested-With,traceparent,tracestate', // Required for CORS support to work; trace headers come from the web-app
             // Required for CORS support to work
             'Access-Control-Allow-Credentials': true, // Required for cookies, authorization headers with HTTPS
         }

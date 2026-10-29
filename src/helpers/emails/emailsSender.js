@@ -2,6 +2,7 @@ import { SESClient, SendTemplatedEmailCommand, SendRawEmailCommand } from '@aws-
 import ENV from '../../envServer.js'
 
 import logger from '../logger.js'
+import { recordEmailSent } from '../metrics.js'
 
 const sesClient = new SESClient({
   region: 'us-east-1',
@@ -48,9 +49,11 @@ export function sendEmail(emailTemplate, templateProps, toAddresses, Models) {
         messageId: data.MessageId
       }).save()
 
+      recordEmailSent(emailTemplate.data.TemplateName, true)
       resolve(emailDoc)
     } catch (err) {
       logger.error(err, { eventName: 'EMAILS_SENDER_FAILED', err: err.stack })
+      recordEmailSent(emailTemplate.data.TemplateName, false)
       reject(err)
     }
 

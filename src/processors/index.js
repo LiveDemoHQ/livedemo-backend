@@ -7,6 +7,7 @@ import processDemoActivityEvents from './processDemoActivityEvents.js'
 import processAgentKnowledge from './processAgentKnowledge.js'
 import processAgentSession from './processAgentSession.js'
 import processOwnClaim from './processOwnClaim.js'
+import { instrumentJob } from '../helpers/metrics.js'
 
 const configsArr = [
   // publishLiveDemo
@@ -44,9 +45,9 @@ export default (sharedConfig) => {
       jobCallbackWatchdogTimeout: MONQ_JOB_CALLBACK_WATCHDOG_TIMEOUT,
       callbacks: configsArr.reduce((accum, config) => {
         config.jobNames.forEach(jobName => {
-          accum[jobName] = (params, callback) => {
+          accum[jobName] = instrumentJob(jobName, (params, callback) => {
             return config.handler(sharedConfig, params, callback)
-          }
+          })
         })
 
         return accum
@@ -66,9 +67,9 @@ export default (sharedConfig) => {
       jobCallbackWatchdogTimeout: MONQ_JOB_CALLBACK_WATCHDOG_TIMEOUT,
       callbacks: videoConfigsArr.reduce((accum, config) => {
         config.jobNames.forEach(jobName => {
-          accum[jobName] = (params, callback) => {
+          accum[jobName] = instrumentJob(jobName, (params, callback) => {
             return config.handler(sharedConfig, params, callback)
-          }
+          })
         })
 
         return accum

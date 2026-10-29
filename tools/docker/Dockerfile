@@ -1,6 +1,9 @@
 FROM node:22-slim
 
 ENV CI=true
+# Commit SHA, reported as the OpenTelemetry service.version (src/otel.js)
+ARG SERVICE_VERSION=unknown
+ENV SERVICE_VERSION=${SERVICE_VERSION}
 # Create app directory
 WORKDIR /home/app
 

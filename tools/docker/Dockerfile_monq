@@ -1,6 +1,9 @@
 FROM docker.io/livedemo/livedemo-backend:monq-base
 
 ENV CI=true
+# Commit SHA, reported as the OpenTelemetry service.version (src/otel.js)
+ARG SERVICE_VERSION=unknown
+ENV SERVICE_VERSION=${SERVICE_VERSION}
 
 #RUN apt-get update && apt-get upgrade -y
 #RUN apt-get install -y ffmpeg libstdc++6 libgconf-2-4 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libgbm-dev libnss3-dev libxss-dev
