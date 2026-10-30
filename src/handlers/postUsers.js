@@ -6,7 +6,6 @@ import { sendEmail } from '../helpers/emails/emailsSender.js'
 import Templates from '../helpers/emails/templates/index.js'
 import claimBrowserSessionForUser from '../helpers/claimBrowserSessionForUser.js'
 import {
-  createAndSendEmailVerificationCode,
   getPostAuthRedirectPath,
 } from '../helpers/emailHelpers.js'
 import { assertNotSsoEnforced } from '../helpers/sso.js'
@@ -214,13 +213,8 @@ const handler = function (req, res) {
     //     return Promise.resolve(newUserData)
     //   }
     // })
-    .then((newUserData) => {
-      return createAndSendEmailVerificationCode(newUserData, Models)
-        .catch((err) => {
-          logger.error('Email verification code send error:', { eventName: 'EMAIL_VERIFICATION_CODE_SEND_ERROR', err: err })
-        })
-        .then(() => newUserData)
-    })
+    // No verification code here: verification is optional and the code is only sent when the user
+    // clicks Send code in Settings (POST /users/send-email-verify)
     .then((newUserData) => {
       // Convert to JSON for token creation
       const savedUserData = newUserData.toJSON ? newUserData.toJSON() : newUserData
