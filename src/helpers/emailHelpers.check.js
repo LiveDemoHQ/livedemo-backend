@@ -25,7 +25,7 @@ const Models = (opts = {}) => ({
                 })
             })
         }),
-        exists: async (q) => !!(q.status === 'completed' && opts.everOwnClaimed)
+        exists: async (q) => !!((q.status === 'completed' || (q.status && q.status.$in && q.status.$in.includes('completed'))) && opts.everOwnClaimed)
     },
     UrlDemo: {
         findOne: () => ({
