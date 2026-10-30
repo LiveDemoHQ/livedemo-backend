@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import { verifyWebhookSignature } from './sequenzyClient.js'
+import { verifyWebhookSignature, isExcludedEmail } from './sequenzyClient.js'
 
 import logger from '../logger.js'
 
@@ -13,4 +13,6 @@ if (verifyWebhookSignature(body, ts, 'v1=deadbeefdeadbeefdeadbeefdeadbeefdeadbee
   throw new Error('invalid signature accepted')
 }
 if (verifyWebhookSignature(body, '0', `v1=${good}`, secret)) throw new Error('wrong timestamp accepted')
+if (!isExcludedEmail('George@LiveDemo.ai') || !isExcludedEmail('a@mail.livedemo.ai')) throw new Error('livedemo.ai not excluded')
+if (isExcludedEmail('a@notlivedemo.ai') || isExcludedEmail('a@livedemo.ai.evil.com') || isExcludedEmail('a@gmail.com')) throw new Error('other domain excluded')
 logger.info('sequenzyClient.selfcheck: ok', { eventName: 'SEQUENZYCLIENT_SELFCHECK_OK' })

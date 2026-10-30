@@ -17,6 +17,14 @@ function getClient() {
   return client
 }
 
+// Our own team's addresses never go into Sequenzy (test accounts, staff signups)
+const EXCLUDED_DOMAIN = 'livedemo.ai'
+
+export function isExcludedEmail(email) {
+  const domain = String(email || '').trim().toLowerCase().split('@').pop()
+  return domain === EXCLUDED_DOMAIN || domain.endsWith(`.${EXCLUDED_DOMAIN}`)
+}
+
 function firstNameFromUser(userDoc) {
   if (userDoc?.googleProfile?.givenName) return userDoc.googleProfile.givenName
   if (!userDoc?.name) return undefined
@@ -30,6 +38,7 @@ function firstNameFromUser(userDoc) {
  */
 export async function syncSignupSubscriber(userDoc, Models, { source } = {}) {
   if (!isEnabled() || !userDoc?.email) return null
+  if (isExcludedEmail(userDoc.email)) return null
   if (userDoc.emailConfig?.isSubscribed === false) return null
 
   const tags = ['new-signup']
@@ -105,6 +114,7 @@ export async function syncSignupSubscriber(userDoc, Models, { source } = {}) {
  */
 export async function syncMigrateLead(email, Models, { provider } = {}) {
   if (!isEnabled() || !email) return null
+  if (isExcludedEmail(email)) return null
   const user = Models?.User ? await Models.User.findOne({ email }).select('emailConfig').lean().catch(() => null) : null
   if (user?.emailConfig?.isSubscribed === false) return null
 
