@@ -122,6 +122,11 @@ async function urlDemoRedirectPath(Models, userDoc) {
 // Onboarding is mandatory until the user has a demo in one of their workspaces
 export async function userHasDemos(Models, userDoc) {
   if (!Models || !Models.Story || !userDoc) return true
+
+  // Cloned, migrated and URL demos count too, including while the copy is still being made
+  if (Models.OwnClaim && await Models.OwnClaim.exists({ userId: userDoc._id, status: { $in: ['cloning', 'completed'] } })) return true
+  if (Models.UrlDemo && await Models.UrlDemo.exists({ userId: userDoc._id, type: 'owned', status: { $ne: 'failed' } })) return true
+
   const workspaceIds = (userDoc.workspaces || []).map((w) => w && (w._id || w)).filter(Boolean)
   if (!workspaceIds.length) return false
   return !!(await Models.Story.exists({ workspaceId: { $in: workspaceIds }, deletedAt: null }))

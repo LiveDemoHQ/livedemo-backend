@@ -61,5 +61,8 @@ assert.equal(
 assert.equal(await getPostAuthRedirectPath(user({ onboarding: { goals: ['sales'] } }), Models(), '/'), '/onboarding')
 assert.equal(await getPostAuthRedirectPath(user(), Models({ hasDemo: true }), '/workspace/x'), '/workspace/x')
 assert.equal(await getPostAuthRedirectPath(user(), Models({ hasDemo: true })), '/')
+// Cloned / migrated / URL demos skip onboarding even before the copy lands in the workspace
+assert.equal(await getPostAuthRedirectPath(user(), Models({ everOwnClaimed: true }), '/'), '/')
+assert.equal(await getPostAuthRedirectPath(user(), Models({ everUrlDemo: true }), '/'), '/')
 
 logger.info('emailHelpers.check.js: ok', { eventName: 'EMAILHELPERS_CHECK_JS_OK' })
