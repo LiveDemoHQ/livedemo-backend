@@ -54,6 +54,8 @@ const UserSchema = new mongoose.Schema({
     deleted: {type: Boolean, default: false},
     timezone: {type: String, default: ''},
     emailVerified: {type: Boolean, default: false},
+    // Set once the user owns a demo, agent, cloned copy or URL demo. Never reset. false = onboarding is enforced
+    activated: {type: Boolean, default: false},
     workspaces: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' }],
     subscriptions: [
       { type: mongoose.Schema.Types.ObjectId, ref: 'Subscription' }

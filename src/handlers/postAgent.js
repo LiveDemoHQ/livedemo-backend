@@ -1,4 +1,5 @@
 import helpers from '../helpers/livedemoHelpers.js'
+import { markUserActivated } from '../helpers/emailHelpers.js'
 import { sendJson, sendError } from '../helpers/agent/http.js'
 
 // POST /workspaces/:workspaceId/agents  { name }
@@ -18,6 +19,8 @@ const handler = async function (req, res) {
       workspaceId,
       userId: authUser.id,
     }).save()
+
+    await markUserActivated(Models, authUser._id)
 
     sendJson(res, { _id: agent._id })
   } catch (error) {

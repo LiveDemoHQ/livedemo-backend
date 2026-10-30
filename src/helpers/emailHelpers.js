@@ -119,11 +119,33 @@ async function urlDemoRedirectPath(Models, userDoc) {
     : null
 }
 
-async function hasClaimedContent(Models, userId) {
-  if (!Models || !userId) return false
-  if (Models.OwnClaim && await Models.OwnClaim.exists({ userId, status: 'completed' })) return true
-  if (Models.UrlDemo && await Models.UrlDemo.exists({ userId, type: 'owned', status: 'completed' })) return true
-  return false
+// Marks the user as activated without re-checking. Cheap enough to call from creation handlers.
+export async function markUserActivated(Models, userId) {
+  if (!Models || !Models.User || !userId) return
+  await Models.User.updateOne({ _id: userId, activated: { $ne: true } }, { $set: { activated: true } })
+}
+
+// "Activated" = the user has a demo, an AI agent, a cloned copy (Make it yours / migrated) or a
+// successful URL demo. It is stored on the user and never reset; until then onboarding is enforced.
+// Persisted lazily, so users created before this field existed are fixed on their next login.
+export async function isUserActivated(Models, userDoc) {
+  if (!Models || !userDoc) return true
+  if (userDoc.activated === true) return true
+
+  const workspaceIds = (userDoc.workspaces || []).map((w) => w && (w._id || w)).filter(Boolean)
+  const userId = userDoc._id
+  const checks = [
+    // Cloned or migrated content counts while the copy is still being made
+    Models.OwnClaim && Models.OwnClaim.exists({ userId, status: { $in: ['cloning', 'completed'] } }),
+    Models.UrlDemo && Models.UrlDemo.exists({ userId, type: 'owned', status: 'completed' }),
+    workspaceIds.length && Models.Story && Models.Story.exists({ workspaceId: { $in: workspaceIds }, deletedAt: null }),
+    workspaceIds.length && Models.AiDemoAgent && Models.AiDemoAgent.exists({ workspaceId: { $in: workspaceIds }, deletedAt: null }),
+  ]
+  const results = await Promise.all(checks.map((check) => Promise.resolve(check)))
+  if (!results.some(Boolean)) return false
+
+  await markUserActivated(Models, userId)
+  return true
 }
 
 export async function getPostAuthRedirectPath(userDoc, Models, preferredPath = '/') {
@@ -137,10 +159,6 @@ export async function getPostAuthRedirectPath(userDoc, Models, preferredPath = '
   const urlDemoPath = await urlDemoRedirectPath(Models, userDoc)
   if (urlDemoPath) return urlDemoPath
 
-  if (shouldRedirectToOnboarding(userDoc)) {
-    // Already got a demo into this account — skip the goals wizard
-    if (await hasClaimedContent(Models, userDoc && userDoc._id)) return preferredPath || '/'
-    return '/onboarding'
-  }
+  if (!(await isUserActivated(Models, userDoc))) return '/onboarding'
   return preferredPath || '/'
 }

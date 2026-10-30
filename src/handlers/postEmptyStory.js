@@ -1,4 +1,5 @@
 import helpers from '../helpers/livedemoHelpers.js'
+import { markUserActivated } from '../helpers/emailHelpers.js'
 import flixHelpers from '../helpers/flixHelpers.js'
 import postStoriesValidator from '../helpers/validators/stories/postEmptyStory.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
@@ -79,6 +80,7 @@ const handler = function (req, res) {
     })
     .then((newStory) => {
       logger.info('Story created', { eventName: 'STORY_CREATED' })
+      markUserActivated(Models, authUserDoc._id).catch(() => {})
 
       const resultResponse = {
         statusCode: ResponseCodes['200_OK'],
