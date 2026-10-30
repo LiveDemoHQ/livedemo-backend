@@ -42,7 +42,7 @@ const Models = (opts = {}) => ({
 assert.equal(shouldRedirectToOnboarding(user()), true)
 assert.equal(shouldRedirectToOnboarding(user({ onboarding: { goals: ['sales'] } })), false)
 
-assert.equal(await getPostAuthRedirectPath(user({ emailVerified: false }), Models()), '/email-verify')
+assert.equal(await getPostAuthRedirectPath(user({ emailVerified: false }), Models()), '/onboarding')
 assert.equal(await getPostAuthRedirectPath(user(), Models()), '/onboarding')
 assert.equal(
     await getPostAuthRedirectPath(user(), Models({ cloning: { _id: 'c1' } })),

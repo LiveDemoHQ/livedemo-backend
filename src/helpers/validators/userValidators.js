@@ -1,5 +1,6 @@
 import validator from 'validator'
 import Errors from '../../constants/Errors.js'
+import { isDisposableEmail, DISPOSABLE_EMAIL_MESSAGE } from '../disposableEmail.js'
 
 /**
  * Validate the sign up form
@@ -12,6 +13,9 @@ function validateSignupForm(payload) {
   if (!payload || typeof payload.email !== 'string' || !validator.isEmail(payload.email)) {
     isFormValid = false
     errors.email = 'Please provide a correct email address.'
+  } else if (isDisposableEmail(payload.email)) {
+    isFormValid = false
+    errors.email = DISPOSABLE_EMAIL_MESSAGE
   }
 
   if (!payload || typeof payload.password !== 'string' || payload.password.trim().length < 8) {

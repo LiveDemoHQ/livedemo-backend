@@ -60,6 +60,7 @@
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.1",
     "css-loader": "^7.1.4",
+    "disposable-email-domains": "^1.0.62",
     "express": "^4.17.2",
     "ffmpeg-static": "^5.2.0",
     "file-loader": "3.0.1",

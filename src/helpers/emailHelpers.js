@@ -60,8 +60,9 @@ export function buildUnsubscribeUrl(unsubscribeToken) {
   return `${serverUrl}/unsubscribe?${params.toString()}`
 }
 
-export function shouldRedirectToEmailVerify(userDoc) {
-  return userDoc?.emailVerified !== true
+// Email verification is optional and never blocks the app; users are only nudged from Settings.
+export function shouldRedirectToEmailVerify() {
+  return false
 }
 
 export function shouldRedirectToOnboarding(userDoc) {

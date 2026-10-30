@@ -11,6 +11,7 @@ import {
 } from '../helpers/emailHelpers.js'
 import { assertNotSsoEnforced } from '../helpers/sso.js'
 import mongoose from 'mongoose'
+import { emailDomainHasNoMail, signupRateLimited } from '../helpers/disposableEmail.js'
 import logger from '../helpers/logger.js'
 
 const { ObjectId } = mongoose.Types
@@ -57,6 +58,31 @@ const handler = function (req, res) {
         let error = new Error('Validation failed')
         error.resultResponse = resultResponse
         throw error
+      }
+    })
+    .then(async () => {
+      const clientIp = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+      const fail = (statusCode, body, eventName) => {
+        logger.info(`postUsers blocked signup - ${eventName}`, { eventName })
+        const error = new Error('Signup blocked')
+        error.resultResponse = {
+          statusCode,
+          headers: {
+            'Access-Control-Max-Age': 600,
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'ClientId,Authorization,Content-Type,Accept',
+            'Access-Control-Allow-Credentials': true,
+          },
+          body: JSON.stringify(body)
+        }
+        throw error
+      }
+
+      if (signupRateLimited(clientIp)) {
+        fail(ResponseCodes['429_TOO_MANY_REQUESTS'] || 429, { success: false, message: 'Too many sign-ups from your network. Please try again later.', errors: {} }, 'SIGNUP_BLOCKED_RATE_LIMIT')
+      }
+      if (await emailDomainHasNoMail(requestBody.email)) {
+        fail(ResponseCodes['400_BAD_REQUEST'], { success: false, message: 'Check the form for errors.', errors: { email: 'This email domain can\'t receive mail. Please check the address.' } }, 'SIGNUP_BLOCKED_NO_MX')
       }
     })
     .then(() => assertNotSsoEnforced(Models, requestBody.email))
