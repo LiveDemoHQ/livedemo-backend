@@ -119,11 +119,12 @@ async function urlDemoRedirectPath(Models, userDoc) {
     : null
 }
 
-async function hasClaimedContent(Models, userId) {
-  if (!Models || !userId) return false
-  if (Models.OwnClaim && await Models.OwnClaim.exists({ userId, status: 'completed' })) return true
-  if (Models.UrlDemo && await Models.UrlDemo.exists({ userId, type: 'owned', status: 'completed' })) return true
-  return false
+// Onboarding is mandatory until the user has a demo in one of their workspaces
+export async function userHasDemos(Models, userDoc) {
+  if (!Models || !Models.Story || !userDoc) return true
+  const workspaceIds = (userDoc.workspaces || []).map((w) => w && (w._id || w)).filter(Boolean)
+  if (!workspaceIds.length) return false
+  return !!(await Models.Story.exists({ workspaceId: { $in: workspaceIds }, deletedAt: null }))
 }
 
 export async function getPostAuthRedirectPath(userDoc, Models, preferredPath = '/') {
@@ -137,10 +138,6 @@ export async function getPostAuthRedirectPath(userDoc, Models, preferredPath = '
   const urlDemoPath = await urlDemoRedirectPath(Models, userDoc)
   if (urlDemoPath) return urlDemoPath
 
-  if (shouldRedirectToOnboarding(userDoc)) {
-    // Already got a demo into this account — skip the goals wizard
-    if (await hasClaimedContent(Models, userDoc && userDoc._id)) return preferredPath || '/'
-    return '/onboarding'
-  }
+  if (!(await userHasDemos(Models, userDoc))) return '/onboarding'
   return preferredPath || '/'
 }

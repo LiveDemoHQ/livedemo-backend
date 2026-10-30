@@ -103,6 +103,7 @@ import patchSubscriptionHandler from './handlers/patchSubscription.js'
 import getSubscriptionCustomerHandler from './handlers/getSubscriptionCustomer.js'
 import patchSubscriptionCustomerHandler from './handlers/patchSubscriptionCustomer.js'
 import getUsersHandler from './handlers/getUsers.js'
+import getUsersOnboardingStatusHandler from './handlers/getUsersOnboardingStatus.js'
 import patchUsersHandler from './handlers/patchUsers.js'
 import postUsersHandler from './handlers/postUsers.js'
 import postPasswordAuthenticateHandler from './handlers/postPasswordAuthenticate.js'
@@ -438,6 +439,8 @@ app.get('/subscription-customer', [setupMongo], getSubscriptionCustomerHandler)
 app.patch('/subscription-customer', [setupMongo], patchSubscriptionCustomerHandler)
 
 app.get('/users', [setupMongo], getUsersHandler)
+
+app.get('/users/onboarding-status', [setupMongo], getUsersOnboardingStatusHandler)
 
 app.post('/users', [setupMongo], postUsersHandler)
 

@@ -36,7 +36,8 @@ const Models = (opts = {}) => ({
             })
         }),
         exists: async () => !!opts.everUrlDemo
-    }
+    },
+    Story: { exists: async () => !!opts.hasDemo }
 })
 
 assert.equal(shouldRedirectToOnboarding(user()), true)
@@ -56,13 +57,9 @@ assert.equal(
     await getPostAuthRedirectPath(user(), Models({ justUrlDemo: { storyId: 's1' } })),
     '/workspace/w1/storydemo/s1'
 )
-assert.equal(
-    await getPostAuthRedirectPath(user(), Models({ everOwnClaimed: true }), '/workspace/x'),
-    '/workspace/x'
-)
-assert.equal(
-    await getPostAuthRedirectPath(user(), Models({ everUrlDemo: true }), '/'),
-    '/'
-)
+// Onboarding is mandatory until the user has a demo
+assert.equal(await getPostAuthRedirectPath(user({ onboarding: { goals: ['sales'] } }), Models(), '/'), '/onboarding')
+assert.equal(await getPostAuthRedirectPath(user(), Models({ hasDemo: true }), '/workspace/x'), '/workspace/x')
+assert.equal(await getPostAuthRedirectPath(user(), Models({ hasDemo: true })), '/')
 
 logger.info('emailHelpers.check.js: ok', { eventName: 'EMAILHELPERS_CHECK_JS_OK' })
