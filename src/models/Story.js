@@ -123,6 +123,8 @@ const Story = new mongoose.Schema({
         tags: { type: [String], default: [] },
         ownable: { type: OwnableSchema, default: undefined },
         clonedFrom: { type: ClonedFromSchema, default: undefined },
+        // The demo cloned into every new workspace at signup. It never counts towards user activation
+        isOnboardingSample: { type: Boolean, default: false },
         links: [
             {type: String, ref: 'Link'}
         ],

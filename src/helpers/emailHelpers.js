@@ -138,7 +138,7 @@ export async function isUserActivated(Models, userDoc) {
     // Cloned or migrated content counts while the copy is still being made
     Models.OwnClaim && Models.OwnClaim.exists({ userId, status: { $in: ['cloning', 'completed'] } }),
     Models.UrlDemo && Models.UrlDemo.exists({ userId, type: 'owned', status: 'completed' }),
-    workspaceIds.length && Models.Story && Models.Story.exists({ workspaceId: { $in: workspaceIds }, deletedAt: null }),
+    workspaceIds.length && Models.Story && Models.Story.exists({ workspaceId: { $in: workspaceIds }, deletedAt: null, isOnboardingSample: { $ne: true } }),
     workspaceIds.length && Models.AiDemoAgent && Models.AiDemoAgent.exists({ workspaceId: { $in: workspaceIds }, deletedAt: null }),
   ]
   const results = await Promise.all(checks.map((check) => Promise.resolve(check)))

@@ -165,6 +165,7 @@ const handler = function (req, res) {
             userId: localUserId,
             workspaceId: localWorkspaceId,
             screens: screenIds,
+            isOnboardingSample: true,
           }).save()
         }
       }

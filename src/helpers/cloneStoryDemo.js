@@ -390,6 +390,7 @@ export async function cloneStoryDemo(storyId, userId, workspaceId, Models, optio
     links: [],
     isPublished: false,
     deletedAt: null,
+    isOnboardingSample: false,
     ...(sandboxRemap ? { sandbox: sandboxRemap.sandbox } : {}),
     ...(clonedFrom ? { clonedFrom } : {}),
   }).save()
