@@ -1,16 +1,16 @@
 import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
-import { userHasDemos } from '../helpers/emailHelpers.js'
+import { isUserActivated } from '../helpers/emailHelpers.js'
 import logger from '../helpers/logger.js'
 
-// GET /users/onboarding-status -> { hasDemos }. The web app keeps users on /onboarding until this is true.
+// GET /users/onboarding-status -> { activated }. The web app keeps users on /onboarding until this is true.
 const handler = function (req, res) {
   const { Models } = req.mongo
 
   return Promise.resolve()
     .then(() => helpers.authReq(req, Models))
-    .then(({ authUser }) => userHasDemos(Models, authUser))
-    .then((hasDemos) => {
+    .then(({ authUser }) => isUserActivated(Models, authUser))
+    .then((activated) => {
       res.set({
         'Access-Control-Max-Age': 600,
         'Access-Control-Allow-Origin': '*',
@@ -18,7 +18,7 @@ const handler = function (req, res) {
         'Access-Control-Allow-Credentials': true,
       })
       res.status(ResponseCodes['200_OK'])
-      res.send(JSON.stringify({ hasDemos }))
+      res.send(JSON.stringify({ activated }))
     })
     .catch((error) => {
       logger.error('getUsersOnboardingStatus failed', { eventName: 'GET_USERS_ONBOARDING_STATUS_FAILED', err: error })
