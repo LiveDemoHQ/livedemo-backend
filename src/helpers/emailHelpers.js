@@ -134,16 +134,19 @@ export async function isUserActivated(Models, userDoc) {
 
   const workspaceIds = (userDoc.workspaces || []).map((w) => w && (w._id || w)).filter(Boolean)
   const userId = userDoc._id
-  const checks = [
+  const checks = {
     // Cloned or migrated content counts while the copy is still being made
-    Models.OwnClaim && Models.OwnClaim.exists({ userId, status: { $in: ['cloning', 'completed'] } }),
-    Models.UrlDemo && Models.UrlDemo.exists({ userId, type: 'owned', status: 'completed' }),
-    workspaceIds.length && Models.Story && Models.Story.exists({ workspaceId: { $in: workspaceIds }, deletedAt: null, isOnboardingSample: { $ne: true } }),
-    workspaceIds.length && Models.AiDemoAgent && Models.AiDemoAgent.exists({ workspaceId: { $in: workspaceIds }, deletedAt: null }),
-  ]
-  const results = await Promise.all(checks.map((check) => Promise.resolve(check)))
-  if (!results.some(Boolean)) return false
+    ownClaim: Models.OwnClaim && Models.OwnClaim.exists({ userId, status: { $in: ['cloning', 'completed'] } }),
+    urlDemo: Models.UrlDemo && Models.UrlDemo.exists({ userId, type: 'owned', status: 'completed' }),
+    story: workspaceIds.length && Models.Story && Models.Story.exists({ workspaceId: { $in: workspaceIds }, deletedAt: null, isOnboardingSample: { $ne: true } }),
+    agent: workspaceIds.length && Models.AiDemoAgent && Models.AiDemoAgent.exists({ workspaceId: { $in: workspaceIds }, deletedAt: null }),
+  }
+  const names = Object.keys(checks)
+  const results = await Promise.all(names.map((name) => Promise.resolve(checks[name])))
+  const reasons = names.filter((name, i) => results[i])
+  if (!reasons.length) return false
 
+  logger.info(`User activated userId=${userId} via ${reasons.join(',')}`, { eventName: 'USER_ACTIVATED' })
   await markUserActivated(Models, userId)
   return true
 }
