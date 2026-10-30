@@ -1,4 +1,5 @@
 import helpers, {default as livedemoHelpers} from '../helpers/livedemoHelpers.js'
+import { isClaimable } from '../helpers/own/own.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import * as sanitezeLib from '@braintree/sanitize-url'
 
@@ -101,7 +102,8 @@ const handler = function (req, res) {
 
             res.set(resultResponse.headers)
             res.status(resultResponse.statusCode)
-            res.send(JSON.stringify(foundStory))
+            const payload = typeof foundStory.toObject === 'function' ? foundStory.toObject() : foundStory
+            res.send(JSON.stringify({...payload, claimable: isClaimable(payload)}))
         })
         .catch((error) => {
             logger.error(error, { eventName: 'GET_PREVIEW_STORY_FAILED' })

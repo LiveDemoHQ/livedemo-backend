@@ -20,6 +20,9 @@ export const OWN_KINDS = {
 }
 
 export const isOwnKind = kind => typeof kind === 'string' && Object.prototype.hasOwnProperty.call(OWN_KINDS, kind)
+// Cheap "show the Make it yours button?" flag for preview payloads, so pages only call
+// /own-claims/eligibility for content that can be claimed. Eligibility still does the full check.
+export const isClaimable = doc => !!doc && doc.isPublished === true && !!doc.ownable && doc.ownable.enabled === true
 export const isObjectIdString = value => HEX24.test(String(value || ''))
 // Query values reach Mongo filters: only plain id strings, never objects ({ $ne: null })
 export const cleanSessionId = value => (typeof value === 'string' && SESSION_ID.test(value) ? value : null)

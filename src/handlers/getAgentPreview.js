@@ -1,4 +1,5 @@
 import helpers from '../helpers/livedemoHelpers.js'
+import { isClaimable } from '../helpers/own/own.js'
 import loadPublicAgent from '../helpers/agent/loadPublicAgent.js'
 import { getAllowedDemos, validateDemoAction } from '../helpers/agent/validateActions.js'
 import { sendJson, sendError } from '../helpers/agent/http.js'
@@ -72,6 +73,7 @@ const handler = async function (req, res) {
         recapEnabled: agent.recapEnabled !== false,
         qualificationEnabled: !!(agent.qualification && agent.qualification.enabled),
         isPublished: agent.isPublished,
+        claimable: isClaimable(agent),
         defaultDemoId,
         embed,
       },
