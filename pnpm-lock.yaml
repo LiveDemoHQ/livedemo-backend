@@ -167,6 +167,9 @@ importers:
       css-loader:
         specifier: ^7.1.4
         version: 7.1.4(webpack@5.105.2)
+      disposable-email-domains:
+        specifier: ^1.0.62
+        version: 1.0.62
       express:
         specifier: ^4.17.2
         version: 4.22.1
@@ -4571,6 +4574,9 @@ packages:
 
   devtools-protocol@0.0.1581282:
     resolution: {integrity: sha512-nv7iKtNZQshSW2hKzYNr46nM/Cfh5SEvE2oV0/SEGgc9XupIY5ggf84Cz8eJIkBce7S3bmTAauFD6aysMpnqsQ==}
+
+  disposable-email-domains@1.0.62:
+    resolution: {integrity: sha512-LBQvhRw7mznQTPoyZbsmYeNOZt1pN5aCsx4BAU/3siVFuiM9f2oyKzUaB8v1jbxFjE3aYqYiMo63kAL4pHgfWQ==}
 
   dnd-core@16.0.1:
     resolution: {integrity: sha512-HK294sl7tbw6F6IeuK16YSBUoorvHpY8RHO+9yFfaJyCDVb6n7PRcezrOEOa2SBCqiYpemh5Jx20ZcjKdFAVng==}
@@ -13278,6 +13284,8 @@ snapshots:
   detect-node@2.1.0: {}
 
   devtools-protocol@0.0.1581282: {}
+
+  disposable-email-domains@1.0.62: {}
 
   dnd-core@16.0.1:
     dependencies:
