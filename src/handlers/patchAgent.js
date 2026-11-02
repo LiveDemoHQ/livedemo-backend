@@ -10,8 +10,10 @@ import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import { normalizeSummarySettings } from '../helpers/agent/summaryEmail.js'
 import { embedPatchUpdates } from '../helpers/agent/embed.js'
 import { normalizeQualification } from '../helpers/agent/qualification.js'
+import { normalizeGoal } from '../helpers/agent/goalFlows.js'
 
 import logger from '../helpers/logger.js'
+import patchAgentValidator from '../helpers/validators/agents/patchAgentValidator.js'
 
 // PATCH /workspaces/:workspaceId/agents/:agentId
 // Persona fields + allowedDemoIds. Wrapped by captureAgentRevision in server.js.
@@ -23,11 +25,12 @@ const PATCHABLE_FIELDS = [
 const handler = async function (req, res) {
   const { Models } = req.mongo
   const { workspaceId, agentId } = req.params
-  const body = req.body || {}
+  let body = req.body || {}
 
   try {
     const { authUser } = await helpers.authReq(req, Models)
     helpers.validateUserHasAccessToWorkspace(authUser, workspaceId)
+    body = helpers.validateBody(body, patchAgentValidator).value
 
     const agent = await loadAgentInWorkspace(Models, workspaceId, agentId)
 
@@ -175,6 +178,14 @@ const handler = async function (req, res) {
     if (body.qualification !== undefined) {
       try {
         updates.qualification = normalizeQualification(body.qualification)
+      } catch (err) {
+        if (!err.isValidation) throw err
+        httpError(ResponseCodes['400_BAD_REQUEST'], err.message)
+      }
+    }
+    if (body.goal !== undefined) {
+      try {
+        updates.goal = normalizeGoal(body.goal)
       } catch (err) {
         if (!err.isValidation) throw err
         httpError(ResponseCodes['400_BAD_REQUEST'], err.message)

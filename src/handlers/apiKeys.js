@@ -5,6 +5,7 @@ import AuthTokenStatuses from '../constants/AuthTokenStatuses.js'
 import AuthTokenTypes from '../constants/AuthTokenTypes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import { hashToken } from '../helpers/authHelpers.js'
+import postApiKeyValidator from '../helpers/validators/users/postApiKeyValidator.js'
 
 // GET    /users/api-keys          list keys + connected OAuth apps (no secrets)
 // POST   /users/api-keys { name } create; the full key is returned once
@@ -53,7 +54,8 @@ const list = wrap(async (req, res) => {
 
 const create = wrap(async (req, res) => {
     const { Models, authUser } = await auth(req)
-    const name = String((req.body && req.body.name) || '').trim().slice(0, 60)
+    const requestBody = helpers.validateBody(req.body || {}, postApiKeyValidator).value
+    const name = String(requestBody.name || '').trim().slice(0, 60)
     if (!name) httpError(ResponseCodes['400_BAD_REQUEST'], 'Give the key a name')
     if (await Models.AuthToken_ApiKey.countDocuments(activeKeys(authUser)) >= MAX_KEYS) {
 

@@ -6,6 +6,7 @@ import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import { workspaceApiKey } from '../helpers/agent/providerKeys.js'
 
 import logger from '../helpers/logger.js'
+import postLemonSliceAvatarValidator from '../helpers/validators/workspaces/postLemonSliceAvatarValidator.js'
 
 // ponytail: flat per-workspace cap. Upgrade: tie it to the plan like cloned voices.
 export const MAX_CUSTOM_AVATARS = 20
@@ -28,7 +29,8 @@ const handler = async function (req, res) {
     if (!file || !IMAGE_TYPES[file.mimetype]) {
       httpError(ResponseCodes['400_BAD_REQUEST'], 'Upload a JPG, PNG or WebP image')
     }
-    const name = String((req.body && req.body.name) || '').trim().slice(0, 60) || 'Custom avatar'
+    const requestBody = helpers.validateBody(req.body || {}, postLemonSliceAvatarValidator).value
+    const name = String(requestBody.name || '').trim().slice(0, 60) || 'Custom avatar'
 
     if (await Models.LemonSliceAvatar.countDocuments({ workspaceId }) >= MAX_CUSTOM_AVATARS) {
       httpError(ResponseCodes['409_CONFLICT'], `A workspace can have up to ${MAX_CUSTOM_AVATARS} custom avatars`)

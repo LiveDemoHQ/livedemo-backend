@@ -2,6 +2,11 @@ import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import { normalizeLink, normalizeFlows, isObjectId, SETTINGS } from '../helpers/sandbox/sandbox.js'
+import patchSandboxValidator from '../helpers/validators/stories/sandbox/patchSandboxValidator.js'
+import postSandboxLinkValidator from '../helpers/validators/stories/sandbox/postSandboxLinkValidator.js'
+import patchSandboxLinkValidator from '../helpers/validators/stories/sandbox/patchSandboxLinkValidator.js'
+import postSandboxMergeScreenValidator from '../helpers/validators/stories/sandbox/postSandboxMergeScreenValidator.js'
+
 
 // Sandbox editor API (see SANDBOX_STORYDEMOS_IMPLEMENTATION.md §4.5). Base path:
 // /workspaces/:workspaceId/stories/:storyId/sandbox
@@ -48,7 +53,7 @@ function screenOf(screens, screenId) {
 
 const patchSandbox = wrap(async (req, res) => {
     const { Models, story, ctx } = await loadSandbox(req)
-    const body = req.body || {}
+    const body = helpers.validateBody(req.body || {}, patchSandboxValidator).value
     const updates = {}
 
     SETTINGS.forEach((key) => {
@@ -124,7 +129,7 @@ const postLink = wrap(async (req, res) => {
     const { Models, screens, ctx } = await loadSandbox(req)
     const screen = screenOf(screens, req.params.screenId)
     if ((screen.sandboxLinks || []).length >= 100) httpError(ResponseCodes['400_BAD_REQUEST'], 'Up to 100 links per screen')
-    const link = normalizeLink(req.body, ctx)
+    const link = normalizeLink(helpers.validateBody(req.body || {}, postSandboxLinkValidator).value, ctx)
     const updated = await Models.Screen_Page.findOneAndUpdate({ _id: screen._id }, { $push: { sandboxLinks: link } }, { new: true }).select('sandboxLinks').lean()
     sendJson(res, updated.sandboxLinks[updated.sandboxLinks.length - 1])
 })
@@ -134,7 +139,7 @@ const patchLink = wrap(async (req, res) => {
     const screen = screenOf(screens, req.params.screenId)
     const existing = (screen.sandboxLinks || []).find(l => String(l._id) === req.params.linkId)
     if (!existing) notFound('Link')
-    const link = { ...normalizeLink(req.body, ctx, existing), _id: existing._id, syncGroupId: existing.syncGroupId }
+    const link = { ...normalizeLink(helpers.validateBody(req.body || {}, patchSandboxLinkValidator).value, ctx, existing), _id: existing._id, syncGroupId: existing.syncGroupId }
     const updated = await Models.Screen_Page.findOneAndUpdate(
         { _id: screen._id },
         { $set: { 'sandboxLinks.$[l]': link } },
@@ -169,7 +174,7 @@ function remapFlows(sandbox, fromId, toId) {
 const mergeScreen = wrap(async (req, res) => {
     const { Models, story, screens } = await loadSandbox(req)
     const from = screenOf(screens, req.params.screenId)
-    const into = screenOf(screens, (req.body || {}).intoScreenId)
+    const into = screenOf(screens, helpers.validateBody(req.body || {}, postSandboxMergeScreenValidator).value.intoScreenId)
     if (String(from._id) === String(into._id) || into.sandboxDuplicateOf) httpError(ResponseCodes['400_BAD_REQUEST'], 'Pick another screen to merge into')
     const fromId = String(from._id)
     const intoId = String(into._id)

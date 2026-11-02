@@ -9,6 +9,8 @@ import claimBrowserSessionForUser from '../helpers/claimBrowserSessionForUser.js
 import { getPostAuthRedirectPath } from '../helpers/emailHelpers.js'
 import mongoose from 'mongoose'
 import logger from '../helpers/logger.js'
+import helpers from '../helpers/livedemoHelpers.js'
+import postUsersAuthGoogleOneTapValidator from '../helpers/validators/users/postUsersAuthGoogleOneTapValidator.js'
 
 const { ObjectId } = mongoose.Types
 
@@ -35,7 +37,7 @@ const handler = function (req, res) {
 
   return Promise.resolve().then(async () => {
     const GoogleCreds = ENV.OAUTH2Credentials?.Google
-    const { credential } = req.body
+    const { credential } = helpers.validateBody(req.body || {}, postUsersAuthGoogleOneTapValidator).value
 
     if (!GoogleCreds) {
       throw new Error('Google OAuth not configured')

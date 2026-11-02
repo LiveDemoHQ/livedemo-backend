@@ -45,6 +45,18 @@ const AgentSession = new mongoose.Schema({
   qualifiedAt: { type: Date },
   meetingBookedAt: { type: Date },
 
+  // Goal-flow bookkeeping, written per turn by runAgentTurn (helpers/agent/goalFlows.js)
+  goal: {
+    flow: { type: String },
+    stage: { type: String },
+    asks: { type: Number, default: 0 },
+    lastAskTurn: { type: Number, default: 0 },
+    declines: { type: Number, default: 0 },
+    lastDeclineTurn: { type: Number, default: 0 },
+    calendarAutoOpenedAt: { type: Date },
+    completedAt: { type: Date }, // booked (book_meeting) or opened the signup (start_trial)
+  },
+
   // {{company}} / {{firstName}} / {{domain}} / {{logo}} values for the demo player
   personalization: { type: mongoose.Schema.Types.Mixed, default: {} },
 

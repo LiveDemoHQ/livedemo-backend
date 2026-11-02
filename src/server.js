@@ -182,6 +182,7 @@ import captureStoryRevision from './middlewares/captureStoryRevision.js'
 
 // AI Demo Agents
 import postAgentHandler from './handlers/postAgent.js'
+import getAgentCatalogHandler from './handlers/getAgentCatalog.js'
 import getAgentsHandler from './handlers/getAgents.js'
 import getAgentByIdHandler from './handlers/getAgentById.js'
 import patchAgentHandler from './handlers/patchAgent.js'
@@ -779,6 +780,7 @@ app.post('/workspaces/:workspaceId/demo-suggestions/:demoSuggestionId/generate-l
 const arev = captureAgentRevision
 
 app.post('/workspaces/:workspaceId/agents', [setupMongo], postAgentHandler)
+app.get('/workspaces/:workspaceId/agent-catalog', [setupMongo], getAgentCatalogHandler)
 app.get('/workspaces/:workspaceId/agents', [setupMongo], getAgentsHandler)
 app.get('/workspaces/:workspaceId/agents/:agentId', [setupMongo], getAgentByIdHandler)
 app.patch('/workspaces/:workspaceId/agents/:agentId', [setupMongo, arev('agent:update')], patchAgentHandler)

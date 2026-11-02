@@ -8,6 +8,9 @@ import { hashToken } from '../helpers/authHelpers.js'
 import { newApiToken } from './apiKeys.js'
 
 import logger from '../helpers/logger.js'
+import postOAuthRegisterValidator from '../helpers/validators/oauth/postOAuthRegisterValidator.js'
+import postOAuthDecisionValidator from '../helpers/validators/oauth/postOAuthDecisionValidator.js'
+import postOAuthTokenValidator from '../helpers/validators/oauth/postOAuthTokenValidator.js'
 
 // OAuth 2.1 authorization server for the MCP connectors (Claude.ai, ChatGPT, ...):
 //   GET  /.well-known/oauth-authorization-server   RFC 8414 metadata
@@ -71,8 +74,19 @@ const metadata = (req, res) => json(res, 200, {
     scopes_supported: [SCOPE]
 })
 
+// Joi gate. OAuth clients expect RFC 6749 errors, so a bad body answers invalid_request.
+function validOAuthBody(req, res, validator) {
+    try {
+        return helpers.validateBody(req.body || {}, validator).value
+    } catch (error) {
+        oauthError(res, 'invalid_request', 'Malformed request body')
+        return null
+    }
+}
+
 const register = (req, res) => {
-    const body = req.body || {}
+    const body = validOAuthBody(req, res, postOAuthRegisterValidator)
+    if (!body) return
     const redirectUris = Array.isArray(body.redirect_uris) ? body.redirect_uris.map(String) : []
     if (!redirectUris.length || redirectUris.length > 10 || !redirectUris.every(isValidRedirectUri)) {
 
@@ -141,7 +155,8 @@ const authorize = (req, res) => {
 
 const decision = (req, res) => {
     const { Models } = req.mongo
-    const params = req.body || {}
+    const params = validOAuthBody(req, res, postOAuthDecisionValidator)
+    if (!params) return
     return checkAuthorizeParams(Models, params)
         .then(({ fatal, error }) => {
             if (fatal) return oauthError(res, 'invalid_client', fatal)
@@ -204,7 +219,8 @@ function issueTokens(Models, { userId, clientId, existing }) {
 
 const token = (req, res) => {
     const { Models } = req.mongo
-    const body = req.body || {}
+    const body = validOAuthBody(req, res, postOAuthTokenValidator)
+    if (!body) return
 
     if (body.grant_type === 'authorization_code') {
 

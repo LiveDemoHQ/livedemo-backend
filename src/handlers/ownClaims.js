@@ -17,6 +17,8 @@ import {
     claimOwnRequestsForUser
 } from '../helpers/own/own.js'
 import { ownablePreviewCount } from '../helpers/own/cloneForClaim.js'
+import putOwnableValidator from '../helpers/validators/ownable/putOwnableValidator.js'
+import postOwnClaimValidator from '../helpers/validators/ownable/postOwnClaimValidator.js'
 
 // "Make it yours" (OWNABLE_DEMOS_TECH_DESIGN.md §4).
 // Author (auth + workspace member):
@@ -68,7 +70,7 @@ async function loadInWorkspace(Models, kind, id, workspaceId) {
 
 const putOwnable = kind => wrap(async (req, res) => {
     const { Models, authUser } = await authMember(req)
-    const body = req.body || {}
+    const body = helpers.validateBody(req.body || {}, putOwnableValidator).value
     if (typeof body.enabled !== 'boolean') bad('enabled must be true or false')
     if (body.ctaLabel !== undefined && (typeof body.ctaLabel !== 'string' || body.ctaLabel.trim().length > MAX_CTA_LABEL)) bad(`ctaLabel must be text up to ${MAX_CTA_LABEL} characters`)
     if (body.includeKnowledge !== undefined && typeof body.includeKnowledge !== 'boolean') bad('includeKnowledge must be true or false')
@@ -146,7 +148,7 @@ function targetWorkspaceId(authUser, requested) {
 const postClaim = wrap(async (req, res) => {
     const { Models } = req.mongo
     await ipLimit(req)
-    const body = req.body || {}
+    const body = helpers.validateBody(req.body || {}, postOwnClaimValidator).value
     const kind = body.sourceKind
     const sourceId = String(body.sourceId || '')
     // The only way to create a claim: a token handed out by a preview page's eligibility call

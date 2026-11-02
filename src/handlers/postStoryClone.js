@@ -3,6 +3,7 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import { cloneStoryDemo } from '../helpers/cloneStoryDemo.js'
 
 import logger from '../helpers/logger.js'
+import postStoryCloneValidator from '../helpers/validators/stories/postStoryCloneValidator.js'
 
 const CORS_HEADERS = {
   'Access-Control-Max-Age': 600,
@@ -22,6 +23,7 @@ const handler = function (req, res) {
   return Promise.resolve()
     .then(() => helpers.authReq(req, Models))
     .then(({ authUser }) => {
+      helpers.validateBody(body, postStoryCloneValidator)
       helpers.validateUserHasAccessToWorkspace(authUser, workspaceId)
       helpers.validateUserHasAccessToWorkspace(authUser, targetWorkspaceId)
       return authUser

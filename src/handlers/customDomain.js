@@ -6,6 +6,7 @@ import WorkspaceTypes from '../constants/WorkspaceTypes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 
 import logger from '../helpers/logger.js'
+import putCustomDomainValidator from '../helpers/validators/workspaces/putCustomDomainValidator.js'
 
 // GET    /workspaces/:workspaceId/custom-domain          status (members)
 // PUT    /workspaces/:workspaceId/custom-domain          { hostname } (admin, Growth) -> Cloudflare custom hostname
@@ -77,7 +78,8 @@ const get = wrap(async (req, res) => {
 
 const put = wrap(async (req, res) => {
     const { Models, workspace } = await load(req)
-    const hostname = String((req.body && req.body.hostname) || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '')
+    const requestBody = helpers.validateBody(req.body || {}, putCustomDomainValidator).value
+    const hostname = String(requestBody.hostname || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '')
     if (!isValidCustomHostname(hostname)) httpError(ResponseCodes['400_BAD_REQUEST'], 'Use a subdomain you own, like demos.acme.com')
     if (await Models.Workspace.exists({ _id: { $ne: workspace._id }, 'customDomain.hostname': hostname })) {
 

@@ -5,6 +5,7 @@ import path from 'path'
 import short from 'short-uuid'
 
 import logger from '../helpers/logger.js'
+import postStepPreviewImageValidator from '../helpers/validators/stories/screens/steps/postStepPreviewImageValidator.js'
 
 const { ObjectId } = mongoose.Types
 
@@ -32,6 +33,7 @@ const handler = async function (req, res) {
         .then(async () => helpers.authReq(req, Models))
         .then(({ authUser }) => {
             authUserDoc = authUser
+            helpers.validateBody(req.body || {}, postStepPreviewImageValidator)
             helpers.validateUserHasAccessToWorkspace(authUserDoc, workspaceId)
         })
         .then(async () => {

@@ -130,14 +130,19 @@ export function isInlineCalendarUrl(url) {
   return CALENDAR_RE.test(String(url || ''))
 }
 
+// Booking is reserved for qualified visitors and this one isn't (yet)
+export function isBookingGated(agent, session) {
+  const q = agent.qualification || {}
+  const hasCriteria = (q.fields || []).some(f => f.required || (f.rule && f.rule.op))
+  return !!(q.enabled && q.gateBooking !== false && hasCriteria && !(session && session.qualified))
+}
+
 // The model may only *ask* for a CTA; the URL and the qualification gate are
 // decided here. Gated + not qualified = trial link (or nothing).
 export function resolveCta(agent, session, requested) {
   if (requested !== 'book_meeting' && requested !== 'start_trial') return null
   const cta = agent.cta || {}
-  const q = agent.qualification || {}
-  const hasCriteria = (q.fields || []).some(f => f.required || (f.rule && f.rule.op))
-  const gated = q.enabled && q.gateBooking !== false && hasCriteria && !(session && session.qualified)
+  const gated = isBookingGated(agent, session)
 
   if (requested === 'book_meeting' && cta.bookMeetingUrl && !gated) {
     return {

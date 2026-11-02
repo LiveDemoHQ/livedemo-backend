@@ -3,6 +3,8 @@ import limiter from '../helpers/rateLimiter.js'
 import { buildGoogleLoginLink } from '../helpers/googleAuthLinkHelpers.js'
 
 import logger from '../helpers/logger.js'
+import helpers from '../helpers/livedemoHelpers.js'
+import postUsersAuthGoogleLinkValidator from '../helpers/validators/users/postUsersAuthGoogleLinkValidator.js'
 
 function corsHeaders() {
   return {
@@ -30,7 +32,7 @@ const handler = function (req, res) {
       )
     })
     .then(() => {
-      const returnTo = req.body?.returnTo ?? req.query?.returnTo
+      const returnTo = helpers.validateBody(req.body || {}, postUsersAuthGoogleLinkValidator).value.returnTo ?? req.query?.returnTo
       const loginLink = buildGoogleLoginLink(returnTo)
 
       if (!loginLink) {

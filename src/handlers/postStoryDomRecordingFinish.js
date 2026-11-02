@@ -7,6 +7,7 @@ import flixHelpers from '../helpers/flixHelpers.js'
 import demoStepLimit from '../helpers/demoStepLimit.js'
 
 import logger from '../helpers/logger.js'
+import postDomRecordingFinishValidator from '../helpers/validators/stories/domRecording/postDomRecordingFinishValidator.js'
 
 const SCREENDOC_ENCODING = 'utf-8'
 
@@ -35,6 +36,7 @@ const handler = function (req, res) {
     .then(() => helpers.authReq(req, Models))
     .then(({ authUser }) => {
       authUserDoc = authUser
+      helpers.validateBody(req.body || {}, postDomRecordingFinishValidator)
       helpers.validateUserHasAccessToWorkspace(authUserDoc, workspaceId)
       return Models.Story.findOne({ _id: storyId, workspaceId, deletedAt: null }).lean()
     })

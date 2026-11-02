@@ -9,6 +9,7 @@ import rateLimit, { clientIp } from '../helpers/agent/rateLimit.js'
 import ENV from '../envServer.js'
 
 import logger from '../helpers/logger.js'
+import postAgentChatValidator from '../helpers/validators/agents/postAgentChatValidator.js'
 
 // user + assistant messages, so ~50 visitor turns
 const MAX_MESSAGES_PER_SESSION = 100
@@ -20,10 +21,11 @@ const MAX_MESSAGES_PER_SESSION = 100
 // (status / text / content_card / suggestions / done / error).
 const handler = async function (req, res) {
   const { Models } = req.mongo
-  const body = req.body || {}
+  let body = req.body || {}
   let headersSent = false
 
   try {
+    body = helpers.validateBody(body, postAgentChatValidator).value
     let agent
     let mode
     if (req.params.workspaceId) {

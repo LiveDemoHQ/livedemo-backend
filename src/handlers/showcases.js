@@ -6,6 +6,12 @@ import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import normalizeShowcase, { videoEmbed } from '../helpers/showcase/normalizeShowcase.js'
 import { loadShowcaseInWorkspace, loadPublicShowcase, resolveItems } from '../helpers/showcase/showcase.js'
+import postShowcaseValidator from '../helpers/validators/workspaces/showcases/postShowcaseValidator.js'
+import postShowcaseSessionValidator from '../helpers/validators/workspaces/showcases/postShowcaseSessionValidator.js'
+import patchShowcaseValidator from '../helpers/validators/workspaces/showcases/patchShowcaseValidator.js'
+import postShowcasePublishValidator from '../helpers/validators/workspaces/showcases/postShowcasePublishValidator.js'
+import postShowcaseEventsValidator from '../helpers/validators/workspaces/showcases/postShowcaseEventsValidator.js'
+
 
 // Showcases: multi-demo hubs (see SHOWCASES_PLAN.md).
 // Editor (auth + workspace member inside every handler):
@@ -40,7 +46,7 @@ async function withResolvedItems(Models, showcase) {
 
 const create = wrap(async (req, res) => {
     const { Models, authUser } = await auth(req)
-    const body = req.body || {}
+    const body = helpers.validateBody(req.body || {}, postShowcaseValidator).value
     const showcase = await new Models.Showcase({
         name: typeof body.name === 'string' && body.name.trim() ? body.name.trim().slice(0, 120) : 'Untitled showcase',
         layout: body.layout === 'playlist' ? 'playlist' : 'gallery',
@@ -84,7 +90,7 @@ const get = wrap(async (req, res) => {
 const patch = wrap(async (req, res) => {
     const { Models, authUser } = await auth(req)
     const showcase = await loadShowcaseInWorkspace(Models, req.params.workspaceId, req.params.showcaseId)
-    const updates = await normalizeShowcase(Models, showcase, authUser, req.body)
+    const updates = await normalizeShowcase(Models, showcase, authUser, helpers.validateBody(req.body || {}, patchShowcaseValidator).value)
     const updated = await Models.Showcase.findOneAndUpdate({ _id: showcase._id }, { $set: updates }, { new: true })
     sendJson(res, await withResolvedItems(Models, updated))
 })
@@ -98,7 +104,7 @@ const remove = wrap(async (req, res) => {
 
 const publish = wrap(async (req, res) => {
     const { Models, authUser } = await auth(req)
-    const isPublished = !!(req.body && req.body.isPublished)
+    const isPublished = !!helpers.validateBody(req.body || {}, postShowcasePublishValidator).value.isPublished
     // A claimed template can land in a workspace without the plan; unpublishing stays allowed
     if (isPublished && !(authUser.featureFlags && authUser.featureFlags.allowShowcases)) {
 
@@ -129,7 +135,7 @@ const createSession = wrap(async (req, res) => {
     // Drafts are only reachable by the team: keep them out of analytics
     if (!showcase.isPublished) return sendJson(res, { sessionId: null })
 
-    const body = req.body || {}
+    const body = helpers.validateBody(req.body || {}, postShowcaseSessionValidator).value
     const clientIp = String(req.headers['x-forwarded-for'] || (ENV.ENV === 'dev' ? '69.200.224.152' : '')).split(',')[0].trim()
     if (await isAnalyticsExcludedIp(clientIp, Models, showcase.workspaceId)) return sendJson(res, { sessionId: null })
 
@@ -174,7 +180,9 @@ const postEvents = wrap(async (req, res) => {
             body = {}
         }
     }
-    const events = (body && Array.isArray(body.events) ? body.events : []).slice(0, 50)
+    // sendBeacon text/plain arrives as a string, parsed above
+    body = helpers.validateBody(body && typeof body === 'object' ? body : {}, postShowcaseEventsValidator).value
+    const events = (Array.isArray(body.events) ? body.events : []).slice(0, 50)
     const items = new Map(showcase.items.map(item => [String(item._id), item]))
     const facets = showcase.facets || []
     const now = Date.now()

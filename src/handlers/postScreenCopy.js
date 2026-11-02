@@ -7,6 +7,7 @@ const { ObjectId } = mongoose.Types;
 import fsp from 'fs/promises'
 
 import logger from '../helpers/logger.js'
+import postScreenCopyValidator from '../helpers/validators/stories/screens/postScreenCopyValidator.js'
 
 const {STORY_REQUESTS_FOLDER} = ENV
 
@@ -30,6 +31,7 @@ const handler = function (req, res) {
     })
         .then(({authUser}) => {
             authUserDoc = authUser
+            helpers.validateBody(req.body || {}, postScreenCopyValidator)
 
 
             helpers.validateUserHasAccessToWorkspace(authUserDoc, workspaceId)

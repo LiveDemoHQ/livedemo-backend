@@ -7,15 +7,17 @@ import { assertPublicUrl } from '../helpers/agent/publicUrl.js'
 import { MAX_PAGES_CAP } from '../helpers/agent/siteCrawler.js'
 
 import logger from '../helpers/logger.js'
+import patchAgentKnowledgeValidator from '../helpers/validators/agents/knowledge/patchAgentKnowledgeValidator.js'
 
 // PATCH /workspaces/:workspaceId/agents/:agentId/knowledge/:sourceId
 // title / rawText / enabled. Content edits re-enqueue indexing.
 const handler = async function (req, res) {
   const { Models } = req.mongo
   const { workspaceId, agentId, sourceId } = req.params
-  const body = req.body || {}
+  let body = req.body || {}
 
   try {
+    body = helpers.validateBody(body, patchAgentKnowledgeValidator).value
     const { authUser } = await helpers.authReq(req, Models)
     helpers.validateUserHasAccessToWorkspace(authUser, workspaceId)
 

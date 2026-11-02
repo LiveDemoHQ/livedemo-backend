@@ -7,6 +7,8 @@ import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import { assertPublicUrl } from '../helpers/agent/publicUrl.js'
 import { seal } from '../helpers/secretBox.js'
 import { EVENTS, SLACK_URL_RE, ANALYTICS_URLS, analyticsPurpose, deliverWebhook } from '../helpers/workspaceEvents.js'
+import postWorkspaceWebhookValidator from '../helpers/validators/workspaces/webhooks/postWorkspaceWebhookValidator.js'
+import patchWorkspaceWebhookValidator from '../helpers/validators/workspaces/webhooks/patchWorkspaceWebhookValidator.js'
 
 // /workspaces/:workspaceId/webhooks — outbound webhooks, Slack incoming webhooks and
 // server-side GA4 / Segment (Growth plan). The webhook signing secret is returned in full
@@ -101,7 +103,7 @@ const list = wrap(async (req, res) => {
 
 const create = wrap(async (req, res) => {
     const Models = await auth(req)
-    const body = req.body || {}
+    const body = helpers.validateBody(req.body || {}, postWorkspaceWebhookValidator).value
     const kind = KINDS.includes(body.kind) ? body.kind : 'webhook'
     const { workspaceId } = req.params
     if (ANALYTICS_URLS[kind]) {
@@ -124,7 +126,7 @@ const create = wrap(async (req, res) => {
 
 const update = wrap(async (req, res) => {
     const Models = await auth(req)
-    const body = req.body || {}
+    const body = helpers.validateBody(req.body || {}, patchWorkspaceWebhookValidator).value
     const hook = await loadHook(Models, req)
     if (body.url !== undefined && !ANALYTICS_URLS[hook.kind]) hook.url = await parseUrl(hook.kind, body.url)
     if (body.events !== undefined) hook.events = parseEvents(body.events)

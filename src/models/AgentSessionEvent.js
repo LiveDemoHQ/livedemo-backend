@@ -28,6 +28,10 @@ const AgentSessionEvent = new mongoose.Schema({
       'calendar_opened',
       'meeting_booked',
       'recap_viewed',
+      'goal_offered', // { cta, reason, autoOpen, turn }
+      'goal_declined', // { turn }
+      'calendar_auto_opened',
+      'calendar_dismissed', // closed the inline calendar without booking
     ],
   },
   timestamp: { type: Number },

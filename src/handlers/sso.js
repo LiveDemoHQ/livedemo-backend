@@ -18,6 +18,10 @@ import {
     ssoEmail
 } from '../helpers/sso.js'
 import logger from '../helpers/logger.js'
+import putSsoValidator from '../helpers/validators/workspaces/sso/putSsoValidator.js'
+import postSsoDomainValidator from '../helpers/validators/workspaces/sso/postSsoDomainValidator.js'
+import postSsoDiscoverValidator from '../helpers/validators/workspaces/sso/postSsoDiscoverValidator.js'
+import postSsoAcsValidator from '../helpers/validators/workspaces/sso/postSsoAcsValidator.js'
 
 // Settings (workspace admin, Growth):
 //   GET    /workspaces/:workspaceId/sso                     config + SP values to paste into the IdP
@@ -79,7 +83,7 @@ const get = wrap(async (req, res) => {
 
 const put = wrap(async (req, res) => {
     const { Models, workspace } = await load(req)
-    const body = req.body || {}
+    const body = helpers.validateBody(req.body || {}, putSsoValidator).value
     const sso = workspace.sso || {}
 
     const idpSsoUrl = String(body.idpSsoUrl ?? sso.idpSsoUrl ?? '').trim()
@@ -113,7 +117,7 @@ const put = wrap(async (req, res) => {
 
 const addDomain = wrap(async (req, res) => {
     const { Models, workspace } = await load(req)
-    const domain = String((req.body && req.body.domain) || '').trim().toLowerCase().replace(/^@/, '')
+    const domain = String(helpers.validateBody(req.body || {}, postSsoDomainValidator).value.domain || '').trim().toLowerCase().replace(/^@/, '')
     if (!DOMAIN_RE.test(domain)) httpError(ResponseCodes['400_BAD_REQUEST'], 'Enter a domain like acme.com')
     if (await Models.Workspace.exists({ 'sso.domains': domain })) {
 
@@ -188,7 +192,7 @@ const metadata = (req, res) => {
 const discover = (req, res) => {
     const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || 'unknown'
     return discoverLimiter.check(10, clientIp)
-        .then(() => findSsoWorkspace(req.mongo.Models, req.body && req.body.email), () => {
+        .then(() => findSsoWorkspace(req.mongo.Models, helpers.validateBody(req.body || {}, postSsoDiscoverValidator).value.email), () => {
             httpError(ResponseCodes['429_TOO_MANY_REQUESTS'], 'Too many requests')
         })
         .then(workspace => sendJson(res, workspace ? { redirectUrl: spValues(workspace._id).loginUrl } : {}))
@@ -215,7 +219,7 @@ const acs = (req, res) => {
     if (!isObjectId(req.params.workspaceId)) return loginFailed(res, 'Unknown SSO workspace')
     return loadSsoWorkspace(Models, req.params.workspaceId)
         .then(async workspace => {
-            const { profile } = await samlFor(Models, workspace).validatePostResponseAsync(req.body || {})
+            const { profile } = await samlFor(Models, workspace).validatePostResponseAsync(helpers.validateBody(req.body || {}, postSsoAcsValidator).value)
             const email = ssoEmail(profile, workspace)
 
             let user = await Models.User.findOne({ email }).collation({ locale: 'en', strength: 2 })

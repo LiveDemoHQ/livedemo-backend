@@ -10,6 +10,7 @@ import {
 import ScreenTypes from '../constants/ScreenTypes.js'
 
 import logger from '../helpers/logger.js'
+import postScreenBaseMergeValidator from '../helpers/validators/stories/screens/postScreenBaseMergeValidator.js'
 
 const { ObjectId } = mongoose.Types
 const SCREENDOC_ENCODING = 'utf-8'
@@ -82,6 +83,7 @@ const handler = function (req, res) {
     })
     .then(({ authUser }) => {
       authUserDoc = authUser
+      helpers.validateBody(req.body || {}, postScreenBaseMergeValidator)
       helpers.validateUserHasAccessToWorkspace(authUserDoc, workspaceId)
     })
     .then(async () => {

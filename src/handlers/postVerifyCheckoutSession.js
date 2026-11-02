@@ -25,6 +25,7 @@ import {
   upsertSubscriptionCustomer,
 } from '../helpers/subscriptionCustomerHelpers.js'
 import logger from '../helpers/logger.js'
+import postVerifyCheckoutSessionValidator from '../helpers/validators/payments/postVerifyCheckoutSessionValidator.js'
 
 const CORS_HEADERS = {
   'Access-Control-Max-Age': 600,
@@ -69,7 +70,7 @@ const handler = async function (req, res) {
 
   try {
     const { authUser: authUserDoc } = await helpers.authReq(req, Models)
-    const { sessionId } = req.body
+    const { sessionId } = helpers.validateBody(req.body || {}, postVerifyCheckoutSessionValidator).value
 
     if (!sessionId) {
       return res.status(ResponseCodes['500_INTERNAL_SERVER_ERROR']).json({
@@ -303,6 +304,11 @@ const handler = async function (req, res) {
       alreadyProcessed: false
     })
   } catch (err) {
+    if (err.resultResponse) {
+      // Joi validation (helpers.validateBody): pass the 400 through
+      res.status(err.resultResponse.statusCode)
+      return res.send(err.resultResponse.body)
+    }
     logger.error('postVerifyCheckoutSession error:', { eventName: 'POSTVERIFYCHECKOUTSESSION_ERROR', err: err })
     res.status(ResponseCodes['500_INTERNAL_SERVER_ERROR']).json({
       error: true,

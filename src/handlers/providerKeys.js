@@ -9,6 +9,7 @@ import {
     publicKeyStatus,
     verifyKey
 } from '../helpers/agent/providerKeys.js'
+import putProviderKeyValidator from '../helpers/validators/workspaces/putProviderKeyValidator.js'
 
 // GET    /workspaces/:workspaceId/provider-keys             status only (members)
 // PUT    /workspaces/:workspaceId/provider-keys/:provider   { apiKey } (workspace admin, Growth plan)
@@ -52,7 +53,8 @@ const put = wrap(async (req, res) => {
     if (!canUseCustomKeys(workspace)) httpError(ResponseCodes['403_FORBIDDEN'], 'Custom API keys are available on the Growth plan')
 
     const { provider } = req.params
-    const apiKey = String((req.body && req.body.apiKey) || '').trim()
+    const requestBody = helpers.validateBody(req.body || {}, putProviderKeyValidator).value
+    const apiKey = String(requestBody.apiKey || '').trim()
     if (!isValidKeyFormat(apiKey)) httpError(ResponseCodes['400_BAD_REQUEST'], 'That does not look like an API key')
     const verified = await verifyKey(provider, apiKey)
     if (verified === false) httpError(ResponseCodes['400_BAD_REQUEST'], `${PROVIDERS[provider].label} rejected this API key`)

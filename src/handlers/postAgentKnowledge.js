@@ -8,6 +8,7 @@ import { assertPublicUrl } from '../helpers/agent/publicUrl.js'
 import { MAX_PAGES_CAP } from '../helpers/agent/siteCrawler.js'
 
 import logger from '../helpers/logger.js'
+import postAgentKnowledgeValidator from '../helpers/validators/agents/knowledge/postAgentKnowledgeValidator.js'
 
 // POST /workspaces/:workspaceId/agents/:agentId/knowledge
 // JSON:      { type: 'text'|'faq'|'url'|'site'|'call', title, rawText | faq: [{q,a}] | url }
@@ -77,9 +78,10 @@ async function extractFileText(file) {
 const handler = async function (req, res) {
   const { Models } = req.mongo
   const { workspaceId, agentId } = req.params
-  const body = req.body || {}
+  let body = req.body || {}
 
   try {
+    body = helpers.validateBody(body, postAgentKnowledgeValidator).value
     const { authUser } = await helpers.authReq(req, Models)
     helpers.validateUserHasAccessToWorkspace(authUser, workspaceId)
 

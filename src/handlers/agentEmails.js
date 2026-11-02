@@ -4,6 +4,8 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import { renderSummaryEmail, unsubscribeUrlFor, buildMime, isValidEmail, PLACEHOLDERS, DEFAULT_SUBJECT, DEFAULT_BODY } from '../helpers/agent/summaryEmail.js'
 import { normalizeEmailSettings, publicEmailSettings, emailSettingsOf, senderFor, deliver } from '../helpers/agent/emailSending.js'
+import postSummaryEmailPreviewValidator from '../helpers/validators/agents/postSummaryEmailPreviewValidator.js'
+import putEmailSettingsValidator from '../helpers/validators/workspaces/putEmailSettingsValidator.js'
 
 // Summary emails sent to agent visitors.
 // GET  /workspaces/:workspaceId/agent-emails?agentId=&sessionId=&leadId=   sent history (auth)
@@ -48,7 +50,7 @@ const preview = wrap(async (req, res) => {
     const Models = await auth(req)
     const agent = await Models.AiDemoAgent.findOne({ _id: req.params.agentId, workspaceId: req.params.workspaceId, deletedAt: null }).lean()
     if (!agent) httpError(ResponseCodes['404_NOT_FOUND'], 'Agent not found')
-    const body = req.body || {}
+    const body = helpers.validateBody(req.body || {}, postSummaryEmailPreviewValidator).value
     const draft = {
         ...agent,
         summaryEmail: {
@@ -90,7 +92,7 @@ const putSettings = wrap(async (req, res) => {
     const workspace = await loadWorkspace(Models, req.params.workspaceId)
     let summaryEmailSending
     try {
-        summaryEmailSending = normalizeEmailSettings(req.body || {}, workspace)
+        summaryEmailSending = normalizeEmailSettings(helpers.validateBody(req.body || {}, putEmailSettingsValidator).value, workspace)
     } catch (err) {
         if (!err.isValidation) throw err
         httpError(ResponseCodes['400_BAD_REQUEST'], err.message)

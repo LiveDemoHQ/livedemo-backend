@@ -4,22 +4,27 @@ import moment from 'moment'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 import enqueueJob from '../helpers/enqueueJob.js'
 import { emitSafe, sessionPayload } from '../helpers/workspaceEvents.js'
+import helpers from '../helpers/livedemoHelpers.js'
+import postAgentAckValidator from '../helpers/validators/agents/postAgentAckValidator.js'
 
 // POST /agents/:agentId/ack  { sessionId, type, data }
 // Client-side facts the server can't infer: demo_opened, step_viewed,
 // suggestion_clicked, cta_clicked, session_ended (hang-up), calendar_opened,
-// meeting_booked (Calendly / Cal.com postMessage from the inline calendar).
+// meeting_booked (Calendly / Cal.com postMessage from the inline calendar),
+// calendar_auto_opened / calendar_dismissed (goal-flow analytics).
 const ACK_TYPES = [
   'demo_opened', 'step_viewed', 'suggestion_clicked', 'cta_clicked',
   'voice_started', 'voice_completed', 'session_ended', 'calendar_opened', 'meeting_booked',
+  'calendar_auto_opened', 'calendar_dismissed',
 ]
 
 const handler = async function (req, res) {
   const { Models } = req.mongo
   const agentId = req.params.agentId
-  const body = req.body || {}
+  let body = req.body || {}
 
   try {
+    body = helpers.validateBody(body, postAgentAckValidator).value
     const agent = await loadPublicAgent(req, Models, agentId)
 
     if (!ACK_TYPES.includes(body.type)) {
@@ -47,6 +52,11 @@ const handler = async function (req, res) {
 
     if (body.type === 'cta_clicked') {
       await Models.AgentSession.updateOne({ _id: session._id }, { $inc: { ctaClickCount: 1 } })
+      // Trial flow is done once the visitor opens the signup (no signal from the customer's app)
+      const flow = agent.goal && agent.goal.flow
+      if (flow === 'start_trial' && body.data && body.data.cta === 'startTrial') {
+        await Models.AgentSession.updateOne({ _id: session._id, 'goal.completedAt': null }, { $set: { 'goal.completedAt': new Date(), 'goal.stage': 'done' } })
+      }
     }
 
     if (body.type === 'demo_opened' || body.type === 'step_viewed') {
@@ -84,7 +94,7 @@ const handler = async function (req, res) {
       const now = new Date()
       const updated = await Models.AgentSession.findOneAndUpdate(
         { _id: session._id, meetingBookedAt: null },
-        { $set: { meetingBookedAt: now, stage: 'booked' } },
+        { $set: { meetingBookedAt: now, stage: 'booked', 'goal.completedAt': now, ...(agent.goal && agent.goal.flow === 'book_meeting' ? { 'goal.stage': 'done' } : {}) } },
         { new: true, lean: true }
       )
       if (updated && session.mode === 'published') {

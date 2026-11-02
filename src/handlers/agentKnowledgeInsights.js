@@ -6,6 +6,7 @@ import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
 
 import logger from '../helpers/logger.js'
+import postKnowledgeGapDraftValidator from '../helpers/validators/agents/knowledge/postKnowledgeGapDraftValidator.js'
 
 // Editor-only knowledge tooling:
 //   GET  /workspaces/:workspaceId/agents/:agentId/knowledge/:sourceId/preview  what the agent actually reads
@@ -158,7 +159,8 @@ const DRAFT_SCHEMA = {
 
 const draftFaq = wrap(async (req, res) => {
     const { Models, agent } = await loadAgent(req)
-    const question = String((req.body && req.body.question) || '').trim().slice(0, 300)
+    const requestBody = helpers.validateBody(req.body || {}, postKnowledgeGapDraftValidator).value
+    const question = String(requestBody.question || '').trim().slice(0, 300)
     if (!question) httpError(ResponseCodes['400_BAD_REQUEST'], 'question is required')
 
     const { knowledge } = await retrieve(Models, { agent, queryText: question })

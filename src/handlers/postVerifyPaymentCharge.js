@@ -15,6 +15,7 @@ import ENV from '../envServer.js'
 import { mapCard } from '../helpers/mapper.js'
 
 import logger from '../helpers/logger.js'
+import postVerifyPaymentChargeValidator from '../helpers/validators/payments/postVerifyPaymentChargeValidator.js'
 
 // Uncomment when Stripe is configured:
 // import Stripe from 'stripe'
@@ -30,6 +31,7 @@ const handler = function (req, res) {
     })
     .then(({ authUser }) => {
       authUserDoc = authUser
+      requestBody = helpers.validateBody(req.body || {}, postVerifyPaymentChargeValidator).value
 
       // Get charge ID from request body
       const chargeId = requestBody.id
@@ -196,7 +198,8 @@ const handler = function (req, res) {
     .catch((error) => {
       logger.error(error, { eventName: 'POST_VERIFY_PAYMENT_CHARGE_FAILED' })
 
-      const resultResponse = {
+      // Joi validation (helpers.validateBody) carries its own 400
+      const resultResponse = error.resultResponse || {
         statusCode: ResponseCodes['500_INTERNAL_SERVER_ERROR'],
         headers: {
           'Access-Control-Max-Age': 600,

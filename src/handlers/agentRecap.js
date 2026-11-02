@@ -10,6 +10,8 @@ import { emailDomain } from '../helpers/agent/personalization.js'
 import { emitSafe, sessionPayload } from '../helpers/workspaceEvents.js'
 
 import logger from '../helpers/logger.js'
+import helpers from '../helpers/livedemoHelpers.js'
+import postRecapViewerValidator from '../helpers/validators/agents/recaps/postRecapViewerValidator.js'
 
 // Public, shareable recap of one agent conversation: GET /recaps/:token (HTML),
 // POST /recaps/:token/viewers { email } (a forwarded viewer identifies themselves).
@@ -161,7 +163,8 @@ const addViewer = async function (req, res) {
         const { session, agent } = await loadRecap(Models, req.params.token)
         if (!session) httpError(ResponseCodes['404_NOT_FOUND'], 'Recap not found')
 
-        const email = String((req.body && req.body.email) || '').trim().toLowerCase().slice(0, 254)
+        const requestBody = helpers.validateBody(req.body || {}, postRecapViewerValidator).value
+        const email = String(requestBody.email || '').trim().toLowerCase().slice(0, 254)
         if (!EMAIL_RE.test(email)) httpError(ResponseCodes['400_BAD_REQUEST'], 'A valid email is required')
 
         const visitorDomain = emailDomain(session.visitorEmail)

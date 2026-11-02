@@ -1,6 +1,9 @@
 import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 import { sendJson, sendError, httpError } from '../helpers/agent/http.js'
+import postWorkspaceTagValidator from '../helpers/validators/workspaces/tags/postWorkspaceTagValidator.js'
+import postWorkspaceTagAssignValidator from '../helpers/validators/workspaces/tags/postWorkspaceTagAssignValidator.js'
+
 
 const KINDS = {
     story: 'Story',
@@ -46,7 +49,7 @@ export async function postWorkspaceTag(req, res) {
     try {
 
         const { workspace } = await loadWorkspace(req)
-        const name = cleanTagName(req.body && req.body.name)
+        const name = cleanTagName(helpers.validateBody(req.body || {}, postWorkspaceTagValidator).value.name)
         if (!name) {
 
             httpError(ResponseCodes['400_BAD_REQUEST'], 'Tag name is required')
@@ -96,7 +99,7 @@ export async function postWorkspaceTagAssign(req, res) {
     try {
 
         const { Models, workspace } = await loadWorkspace(req)
-        const body = req.body || {}
+        const body = helpers.validateBody(req.body || {}, postWorkspaceTagAssignValidator).value
         const modelName = KINDS[body.kind]
         const ids = Array.isArray(body.ids) ? body.ids.filter(Boolean) : []
         const tagId = String(body.tagId || '')

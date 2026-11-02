@@ -5,7 +5,8 @@ import { storyStepList } from './agentKnowledge.js'
 import fastPath from './fastPath.js'
 import speakAgentText, { streamAgentPcm } from './speakAgentText.js'
 import { appendDemoNarration, getAllowedDemos, resolveCta, resolveDemoAction, validateDemoAction } from './validateActions.js'
-import { RECORD_FIELD_DECLARATION, TOOL_DECLARATIONS, makeToolExecutors, runToolLoop } from './agentTools.js'
+import { RECORD_FIELD_DECLARATION, TOOL_DECLARATIONS, makeToolExecutors, runToolLoop, withGoalSignal } from './agentTools.js'
+import { decide, flowFor, goalPromptLines, goalSessionUpdate, turnNumber } from './goalFlows.js'
 import CONVERSATION_STYLE_PROMPT from './conversationStylePrompt.js'
 import { flattenFields, missingFields } from './qualification.js'
 import { encodeVars } from './personalization.js'
@@ -27,7 +28,7 @@ const HISTORY_LIMIT = 8
 // Mid-session summary refresh: the prompt carries session.summary for everything older than HISTORY_LIMIT
 const SUMMARY_EVERY = 8
 
-function buildPrompt({ agent, session, history, message, knowledge, demoCandidates, allowedDemos, defaultDemoSteps = [] }) {
+function buildPrompt({ agent, session, history, message, knowledge, demoCandidates, allowedDemos, defaultDemoSteps = [], turn = 1 }) {
   const lines = []
   const authorPrompt = String(agent.systemPrompt || '').trim()
 
@@ -46,7 +47,10 @@ function buildPrompt({ agent, session, history, message, knowledge, demoCandidat
   }
 
   const cta = agent.cta || {}
-  if (cta.bookMeetingUrl || cta.startTrialUrl) {
+  const goalLines = goalPromptLines(agent, session, turn)
+  if (goalLines.length) {
+    goalLines.forEach(line => lines.push(line))
+  } else if (cta.bookMeetingUrl || cta.startTrialUrl) {
     lines.push('When the visitor asks to talk to someone, see pricing details with sales, or book a call, set respond.cta to book_meeting. When they want to try it themselves, set respond.cta to start_trial. Do not paste links; the button appears for you.')
   }
 
@@ -125,6 +129,22 @@ function buildPrompt({ agent, session, history, message, knowledge, demoCandidat
   return lines.join('\n')
 }
 
+// Session goal counters + goal_offered / goal_declined events. Returns promises for `pending`.
+function recordGoal(Models, { agent, session, decision, ctaAction, autoOpen, turn }) {
+  const update = goalSessionUpdate(agent, session, decision, { turn, shown: !!ctaAction, autoOpened: autoOpen })
+  if (!update) return []
+  const base = { sessionId: session._id, workspaceId: agent.workspaceId, agentId: agent._id, timestamp: moment().valueOf() }
+  const writes = [Models.AgentSession.updateOne({ _id: session._id }, update).exec()]
+  if (decision && decision.declined) {
+    writes.push(Models.AgentSessionEvent.create({ ...base, type: 'goal_declined', data: { turn } }))
+  }
+  if (decision && decision.ask && ctaAction) {
+    writes.push(Models.AgentSessionEvent.create({ ...base, type: 'goal_offered', data: { cta: ctaAction.type, reason: decision.reason, autoOpen, turn } }))
+  }
+  writes.forEach(p => p.catch(() => {}))
+  return writes
+}
+
 // The session write goes into `pending` (awaited at turn end) so it never delays the answer/TTS
 async function emitContentCard(Models, { agent, session, mode, sse, demoId, stepNumber, allowedDemos, pending }) {
   const validated = await validateDemoAction(Models, agent, mode, demoId, stepNumber, allowedDemos)
@@ -199,6 +219,7 @@ async function emitAnswer(sse, agent, answer, mode) {
 export default async function runAgentTurn(Models, { agent, session, message, source, mode, sse }) {
   const now = moment().valueOf()
   const startMessageCount = session.messageCount || 0
+  const turn = turnNumber(session)
 
   // Bookkeeping writes run alongside retrieval + Gemini instead of before them;
   // all are awaited before the turn's own writes and `done`.
@@ -269,10 +290,14 @@ export default async function runAgentTurn(Models, { agent, session, message, so
       demoCandidates: retrieved.demoCandidates,
       allowedDemos,
       defaultDemoSteps,
+      turn,
     })
 
     const demoHits = []
     const qualificationOn = !!(agent.qualification && agent.qualification.enabled)
+    const wasQualified = !!session.qualified
+    const goalOn = flowFor(agent).push
+    const baseTools = qualificationOn ? [...TOOL_DECLARATIONS, RECORD_FIELD_DECLARATION] : TOOL_DECLARATIONS
     const exec = makeToolExecutors(Models, {
       agent,
       allowedDemos,
@@ -294,7 +319,7 @@ export default async function runAgentTurn(Models, { agent, session, message, so
     const parsed = await runToolLoop({
       prompt,
       exec,
-      tools: qualificationOn ? [...TOOL_DECLARATIONS, RECORD_FIELD_DECLARATION] : TOOL_DECLARATIONS,
+      tools: goalOn ? withGoalSignal(baseTools) : baseTools,
       generateStep: aiHelpers.generateAgentStep,
       onStatus: () => sse('status', { text: 'Looking that up…' }),
     })
@@ -332,10 +357,20 @@ export default async function runAgentTurn(Models, { agent, session, message, so
 
     await emitAnswer(sse, agent, answer, mode)
 
-    const ctaAction = resolveCta(agent, session, parsed.cta)
+    // Goal policy decides whether a CTA goes out and whether the calendar opens itself;
+    // resolveCta still owns the URL and the qualification gate.
+    const decision = decide(agent, session, {
+      requested: parsed.cta,
+      goalSignal: parsed.goal_signal,
+      qualifiedNow: !wasQualified && !!session.qualified,
+      turn,
+    })
+    const ctaAction = decision && decision.cta ? resolveCta(agent, session, decision.cta) : null
+    const autoOpen = !!(ctaAction && decision.autoOpen && ctaAction.inline && ctaAction.type === 'book_meeting')
     if (ctaAction) {
-      sse('agent_action', ctaAction)
+      sse('agent_action', { ...ctaAction, autoOpen, reason: decision.reason })
     }
+    pending.push(...recordGoal(Models, { agent, session, decision, ctaAction, autoOpen, turn }))
 
     if (suggestions.length) {
       sse('suggestions', { suggestions })

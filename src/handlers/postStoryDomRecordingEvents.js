@@ -4,6 +4,7 @@ import fsp from 'fs/promises'
 import ENV from '../envServer.js'
 
 import logger from '../helpers/logger.js'
+import postDomRecordingEventsValidator from '../helpers/validators/stories/domRecording/postDomRecordingEventsValidator.js'
 
 const SCREENDOC_ENCODING = 'utf-8'
 
@@ -32,6 +33,7 @@ const handler = function (req, res) {
     .then(() => helpers.authReq(req, Models))
     .then(({ authUser }) => {
       authUserDoc = authUser
+      helpers.validateBody(req.body || {}, postDomRecordingEventsValidator)
       helpers.validateUserHasAccessToWorkspace(authUserDoc, workspaceId)
       return Models.Story.findOne({ _id: storyId, workspaceId, deletedAt: null }).lean()
     })

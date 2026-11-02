@@ -5,6 +5,7 @@ import ENV from '../envServer.js'
 import { syncUserStripeCustomerId } from '../helpers/paymentHelpers.js'
 
 import logger from '../helpers/logger.js'
+import postCheckoutSessionValidator from '../helpers/validators/payments/postCheckoutSessionValidator.js'
 
 let stripe = null
 
@@ -30,7 +31,7 @@ const handler = async function (req, res) {
 
   try {
     const { authUser: authUserDoc } = await helpers.authReq(req, Models)
-    const { productId, workspaceId, freeTrial } = req.body
+    const { productId, workspaceId, freeTrial } = helpers.validateBody(req.body || {}, postCheckoutSessionValidator).value
     const parsedQuantity = parseInt(req.body.quantity, 10)
     const quantity = Number.isFinite(parsedQuantity)
       ? Math.min(100, Math.max(1, parsedQuantity))
@@ -119,6 +120,11 @@ const handler = async function (req, res) {
       url: session.url
     })
   } catch (err) {
+    if (err.resultResponse) {
+      // Joi validation (helpers.validateBody): pass the 400 through
+      res.status(err.resultResponse.statusCode)
+      return res.send(err.resultResponse.body)
+    }
     logger.error('postCheckoutSession error:', { eventName: 'POSTCHECKOUTSESSION_ERROR', err: err })
     res.status(ResponseCodes['500_INTERNAL_SERVER_ERROR']).json({
       error: true,

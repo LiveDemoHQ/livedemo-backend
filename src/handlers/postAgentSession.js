@@ -12,6 +12,7 @@ import { emitSafe, recapUrl, sessionPayload } from '../helpers/workspaceEvents.j
 import isAnalyticsExcludedIp from '../helpers/isAnalyticsExcludedIp.js'
 
 import logger from '../helpers/logger.js'
+import postAgentSessionValidator from '../helpers/validators/agents/postAgentSessionValidator.js'
 
 const CHANNELS = ['link', 'oembed', 'embed']
 const TRIGGERS = ['bubble', 'pill', 'pill_mic', 'preview', 'chip', 'button', 'api', 'smartbar', 'auto']
@@ -55,12 +56,13 @@ function parsePersonalization(raw, visitorName, visitorEmail) {
 const handler = async function (req, res) {
   const { Models } = req.mongo
   const agentId = req.params.agentId
-  const body = req.body || {}
+  let body = req.body || {}
 
   let clientIp = req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'] : (ENV.ENV === 'dev' ? '69.200.224.152' : '')
   clientIp = clientIp.split(',')[0]
 
   try {
+    body = helpers.validateBody(body, postAgentSessionValidator).value
     const agent = await loadPublicAgent(req, Models, agentId)
 
     // 'editor' mode only via the authenticated twin route (req.agentMode)

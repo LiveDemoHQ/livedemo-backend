@@ -55,6 +55,22 @@ const AiDemoAgent = new mongoose.Schema({
     inlineCalendar: { type: Boolean, default: true },
   },
 
+  // The outcome the agent steers toward. Normalized by helpers/agent/goalFlows.js.
+  // Old agents have no goal: every reader treats a missing goal as flow 'none'.
+  goal: {
+    flow: { type: String, enum: ['none', 'book_meeting', 'start_trial', 'educate'], default: 'none' },
+    intensity: { type: String, enum: ['soft', 'balanced', 'assertive'], default: 'balanced' },
+    // null = the intensity preset (goalFlows.PRESETS)
+    afterTurns: { type: Number, default: null }, // earliest visitor message a proactive offer is allowed
+    maxAsks: { type: Number, default: null }, // proactive offers per session
+    cooldownTurns: { type: Number, default: null }, // messages between offers
+    onHighIntent: { type: Boolean, default: true }, // pricing / timeline / team size ...
+    onQualified: { type: Boolean, default: true }, // right after the visitor qualifies
+    autoOpenCalendar: { type: Boolean, default: true }, // inline Calendly / Cal.com opens without a click
+    instructions: { type: String, default: '' },
+    stageInstructions: { type: mongoose.Schema.Types.Mixed, default: {} }, // { [stageKey]: text }
+  },
+
   // Questions the agent asks during the chat. Normalized by helpers/agent/qualification.js
   qualification: {
     enabled: { type: Boolean, default: false },

@@ -56,13 +56,31 @@ export const TOOL_DECLARATIONS = [
         cta: {
           type: 'string',
           enum: ['book_meeting', 'start_trial'],
-          description: 'Only when the visitor asks to talk to sales / book a call (book_meeting) or to try the product (start_trial). The server decides which link is actually shown.',
+          description: 'Show the book-a-call (book_meeting) or try-it (start_trial) button. Follow the YOUR GOAL rules when the prompt has them; otherwise only when the visitor asks. The server decides which link is actually shown.',
         },
       },
       required: ['answer'],
     },
   },
 ]
+
+// Agents with a pushing goal flow get respond.goal_signal (helpers/agent/goalFlows.js)
+export function withGoalSignal(tools) {
+  return tools.map(tool => (tool.name !== 'respond' ? tool : {
+    ...tool,
+    parametersJsonSchema: {
+      ...tool.parametersJsonSchema,
+      properties: {
+        ...tool.parametersJsonSchema.properties,
+        goal_signal: {
+          type: 'string',
+          enum: ['none', 'high_intent', 'accepted', 'declined'],
+          description: 'The visitor\'s stance toward the goal in their LAST message, per the YOUR GOAL rules.',
+        },
+      },
+    },
+  }))
+}
 
 // Only offered when qualification is on (runAgentTurn adds it to `tools`)
 export const RECORD_FIELD_DECLARATION = {
