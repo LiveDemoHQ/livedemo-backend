@@ -13,7 +13,7 @@ const handler = async function (req, res) {
     helpers.validateUserHasAccessToWorkspace(authUser, req.params.workspaceId)
 
     sendJson(res, {
-      templates: AGENT_TEM  PLATES.map(({ config, ...t }) => ({ ...t, flow: config.goal.flow, intensity: config.goal.intensity })),
+      templates: AGENT_TEMPLATES.map(({ config, ...t }) => ({ ...t, flow: config.goal.flow, intensity: config.goal.intensity })),
       ...flowCatalog(),
     })
   } catch (error) {
