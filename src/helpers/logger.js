@@ -54,23 +54,55 @@ const winstonLogger = winston.createLogger({
     }
 })
 
+// Error message/stack are non-enumerable, so JSON.stringify(err) is {}.
+function serializeError(err) {
+
+    const status = err.status ?? err.statusCode ?? err.response?.status
+    const fields = {
+        name: err.name,
+        message: err.message
+    }
+
+    if (err.code != null) {
+
+        fields.code = err.code
+    }
+
+    if (status != null) {
+
+        fields.status = status
+    }
+
+    return fields
+}
+
 function withCallSiteStack(meta) {
 
     const callSiteStack = new Error().stack
 
-    if (meta == null) {
+    if (meta == null || typeof meta !== 'object') {
 
         return { stack: callSiteStack }
     }
 
-    if (typeof meta !== 'object') {
+    let errorStack
+    const serialized = {}
 
-        return { stack: callSiteStack }
+    for (const [key, value] of Object.entries(meta)) {
+
+        if (value instanceof Error) {
+
+            serialized[key] = serializeError(value)
+            errorStack = errorStack || value.stack
+        } else {
+
+            serialized[key] = value
+        }
     }
 
     return {
-        ...meta,
-        stack: meta.stack || callSiteStack
+        ...serialized,
+        stack: meta.stack || errorStack || callSiteStack
     }
 }
 

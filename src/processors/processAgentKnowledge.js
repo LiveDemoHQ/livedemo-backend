@@ -153,7 +153,15 @@ async function indexOneSource(Models, agent, source) {
       { $set: { status: 'ready', chunkCount: docs.length, ...(source.type === 'url' ? { lastCrawledAt: new Date() } : {}) } }
     )
   } catch (err) {
-    logger.error('indexAgentKnowledge source failed', { eventName: 'INDEXAGENTKNOWLEDGE_SOURCE_FAILED', err: err })
+    logger.error('indexAgentKnowledge source failed', {
+      eventName: 'INDEXAGENTKNOWLEDGE_SOURCE_FAILED',
+      err: err,
+      data: {
+        agentId: String(agent._id),
+        sourceId: String(source._id),
+        type: source.type
+      }
+    })
     await Models.AgentKnowledgeSource.updateOne(
       { _id: source._id },
       { $set: { status: 'error', errorMessage: err.message || 'Indexing failed' } }

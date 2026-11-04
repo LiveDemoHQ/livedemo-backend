@@ -50,6 +50,26 @@ try {
 assert.ok(errorOut.includes('"stack"'), 'error log must include stack')
 assert.ok(errorOut.includes('Error'), 'stack must look like Error().stack')
 
+let hiddenErr = ''
+process.stderr.write = (chunk) => {
+
+    hiddenErr += String(chunk)
+    return true
+}
+try {
+
+    logger.error('index failed', {
+        eventName: 'INDEXAGENTKNOWLEDGE_SOURCE_FAILED',
+        err: new Error('No pages could be read from this site')
+    })
+} finally {
+
+    process.stderr.write = origWrite
+}
+assert.ok(hiddenErr.includes('No pages could be read from this site'), 'Error message must survive JSON')
+assert.ok(!hiddenErr.includes('"err": {}'), 'err must not serialize as an empty object')
+assert.ok(hiddenErr.includes('logger.check.js'), 'stack must be the thrown error, not the logger call site')
+
 let oneLineOut = ''
 const origStdout = process.stdout.write
 process.stdout.write = (chunk) => {
