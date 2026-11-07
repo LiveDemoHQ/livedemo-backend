@@ -6,7 +6,8 @@ const UrlDemo = new mongoose.Schema(
         browserSessionId: { type: String },
         type: { type: String, default: 'standard' }, // enum: ['standard', 'browsed', 'owned']
         storyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Story' },
-        status: { type: String, default: 'processing'}, //, enum: ['processing', 'completed'] 
+        status: { type: String, default: 'processing' }, // processing | completed | failed
+        error: { type: String },
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     },
     {

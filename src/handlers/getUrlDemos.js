@@ -34,10 +34,11 @@ const handler = function (req, res) {
             }
 
             const elapsed = Date.now() - startTime
+            const isFailed = urlDemo.status === 'failed'
             const isCompleted = urlDemo.status === 'completed' && urlDemo.storyId
             const timedOut = elapsed >= TIMEOUT_MS
 
-            if (!isCompleted && !timedOut) {
+            if (!isCompleted && !isFailed && !timedOut) {
                 return new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
                     .then(() => pollUntilCompleted(startTime))
             }
