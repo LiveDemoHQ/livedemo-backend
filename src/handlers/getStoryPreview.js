@@ -406,6 +406,7 @@ const handler = function (req, res) {
 
 connect-src 'self'
   https://cdn.jsdelivr.net
+  https://cloudflareinsights.com
   https://*.mux.com
   http://*.hscollectedforms.net
   https://*.hscollectedforms.net
@@ -417,10 +418,10 @@ connect-src 'self'
                 '  ws://localhost.mine:3005' : ''} ; 
 
 script-src 'self' 'unsafe-eval' 'unsafe-inline'
-  http://localhost.mine:8080
-  https://www.google.com
+  ${ENV.ENV === 'dev' ? 'http://localhost.mine:8080\n  ' : ''}https://www.google.com
   https://www.gstatic.com
   https://cdn.jsdelivr.net
+  https://static.cloudflareinsights.com
   ${ENV.INJECT_BUNDLE_HOST} 
   ${ENV.STORIES_API}
   http://*.hscollectedforms.net

@@ -84,7 +84,7 @@ export default async function getSandboxPreview(req, res, storyId) {
     const csp = [
         `default-src 'self' 'unsafe-eval' 'unsafe-inline' blob: ${ENV.STORIES_API} ${ENV.LIVEDEMO_CDN_URL} https://cdn.jsdelivr.net`,
         `connect-src 'self' ${ENV.INJECT_BUNDLE_HOST} ${ENV.STORIES_API}${ENV.ENV === 'dev' ? ' ws://localhost.mine:8080 ws://localhost.mine:3005' : ''}`,
-        `script-src 'self' 'unsafe-eval' 'unsafe-inline' http://localhost.mine:8080 ${ENV.INJECT_BUNDLE_HOST} ${ENV.STORIES_API} blob:`,
+        `script-src 'self' 'unsafe-eval' 'unsafe-inline'${ENV.ENV === 'dev' ? ' http://localhost.mine:8080' : ''} ${ENV.INJECT_BUNDLE_HOST} ${ENV.STORIES_API} blob:`,
         "img-src 'self' data: blob: *",
         "style-src 'self' 'unsafe-inline' blob: https:",
         "font-src 'self' https: data:",

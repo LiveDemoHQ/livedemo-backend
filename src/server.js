@@ -188,6 +188,7 @@ import getAgentByIdHandler from './handlers/getAgentById.js'
 import patchAgentHandler from './handlers/patchAgent.js'
 import postAgentEmbedPreviewImageHandler, { PREVIEW_TYPES } from './handlers/postAgentEmbedPreviewImage.js'
 import deleteAgentHandler from './handlers/deleteAgent.js'
+import postAgentCopyHandler from './handlers/postAgentCopy.js'
 import postAgentPublishHandler from './handlers/postAgentPublish.js'
 import postAgentKnowledgeHandler from './handlers/postAgentKnowledge.js'
 import getAgentKnowledgeHandler from './handlers/getAgentKnowledge.js'
@@ -785,6 +786,7 @@ app.get('/workspaces/:workspaceId/agents', [setupMongo], getAgentsHandler)
 app.get('/workspaces/:workspaceId/agents/:agentId', [setupMongo], getAgentByIdHandler)
 app.patch('/workspaces/:workspaceId/agents/:agentId', [setupMongo, arev('agent:update')], patchAgentHandler)
 app.delete('/workspaces/:workspaceId/agents/:agentId', [setupMongo], deleteAgentHandler)
+app.post('/workspaces/:workspaceId/agents/:agentId/copy', [setupMongo], postAgentCopyHandler)
 app.post('/workspaces/:workspaceId/agents/:agentId/publish', [setupMongo], postAgentPublishHandler)
 app.get('/workspaces/:workspaceId/anam-avatars', [setupMongo], getAnamAvatarsHandler)
 app.get('/workspaces/:workspaceId/anam-voices', [setupMongo], getAnamVoicesHandler)

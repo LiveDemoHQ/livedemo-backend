@@ -4,6 +4,7 @@
 import assert from 'assert'
 
 import postAgentValidator from './agents/postAgentValidator.js'
+import postAgentCopyValidator from './agents/postAgentCopyValidator.js'
 import patchAgentValidator from './agents/patchAgentValidator.js'
 import postAgentPublishValidator from './agents/postAgentPublishValidator.js'
 import postAgentChatValidator from './agents/postAgentChatValidator.js'
@@ -70,6 +71,10 @@ function bad(name, validate, body) {
 ok('postAgent', postAgentValidator, { name: 'Untitled agent' })
 ok('postAgent', postAgentValidator, { templateId: 'meeting_booker' })
 bad('postAgent', postAgentValidator, { name: 'x', owner: 'someone' })
+ok('postAgentCopy', postAgentCopyValidator, {})
+ok('postAgentCopy', postAgentCopyValidator, { name: 'Closer (2)' })
+bad('postAgentCopy', postAgentCopyValidator, { name: 'x'.repeat(201) })
+bad('postAgentCopy', postAgentCopyValidator, { workspaceId: ID })
 
 // PersonaTab form, GoalTab (qualification fields carry keyLocked), SummarySettings, DemosTab, ShareDropdown
 ok('patchAgent persona', patchAgentValidator, {

@@ -72,6 +72,8 @@ const disabled = await renderEmbed({ enabled: false, allowedDomains: [] }, 'http
 assert.strictEqual(disabled.status, 403, 'embed disabled must 403')
 
 const locked = await renderEmbed({ enabled: true, allowedDomains: ['acme.com', '*.acme.io'], showBranding: true }, 'https://acme.com')
+assert.ok(locked.headers['Content-Security-Policy'].includes('https://static.cloudflareinsights.com'), 'cloudflare insights script host missing')
+assert.ok(locked.headers['Content-Security-Policy'].includes('https://cloudflareinsights.com'), 'cloudflare insights connect host missing')
 assert.ok(locked.headers['Content-Security-Policy'].includes('frame-ancestors'), 'frame-ancestors missing')
 assert.ok(locked.headers['Content-Security-Policy'].includes('https://acme.com https://*.acme.io;'), 'allowedDomains not in frame-ancestors')
 assert.strictEqual(locked.cfg.embed.host, 'https://acme.com')

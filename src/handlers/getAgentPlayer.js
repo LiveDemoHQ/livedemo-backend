@@ -141,8 +141,8 @@ const handler = async function (req, res) {
 
     const CSP =
       `default-src 'self' 'unsafe-eval' 'unsafe-inline' blob: ${ENV.STORIES_API} ${ENV.LIVEDEMO_CDN_URL} https://fonts.googleapis.com; ` +
-      `connect-src 'self' ${ENV.INJECT_BUNDLE_HOST} ${ENV.STORIES_API} ${THIRD_PARTY_CONNECT_SRC}${devHosts}; ` +
-      `script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: ${ENV.INJECT_BUNDLE_HOST} ${ENV.STORIES_API}${ENV.ENV === 'dev' ? ' http://localhost.mine:8081' : ''}; ` +
+      `connect-src 'self' ${ENV.INJECT_BUNDLE_HOST} ${ENV.STORIES_API} https://cloudflareinsights.com ${THIRD_PARTY_CONNECT_SRC}${devHosts}; ` +
+      `script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://static.cloudflareinsights.com ${ENV.INJECT_BUNDLE_HOST} ${ENV.STORIES_API}${ENV.ENV === 'dev' ? ' http://localhost.mine:8081' : ''}; ` +
       `img-src 'self' data: *; ` +
       `font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com ${ENV.LIVEDEMO_CDN_URL} ${ENV.INJECT_BUNDLE_HOST}${ENV.ENV === 'dev' ? ' http://localhost.mine:8081 http://localhost:*' : ''}; ` +
       `frame-src 'self' blob: ${ENV.STORIES_API} https://calendly.com https://*.calendly.com https://cal.com https://*.cal.com; ` +
