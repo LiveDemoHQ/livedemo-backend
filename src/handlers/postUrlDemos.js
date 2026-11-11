@@ -5,6 +5,7 @@ import LambdaRateLimiter from 'lambda-rate-limiter'
 import helpers from '../helpers/livedemoHelpers.js'
 import postUrlDemosValidator from '../helpers/validators/urlDemos/postUrlDemosValidator.js'
 import { cloneUrlDemoWithStoryForUser } from '../helpers/cloneUrlDemoStoriesForUser.js'
+import newestWorkspaceIdForUser from '../helpers/newestWorkspaceIdForUser.js'
 import mongoose from 'mongoose';
 
 import logger from '../helpers/logger.js'
@@ -79,13 +80,15 @@ const handler = function (req, res) {
         .then(() => tryGetAuthUser(req, Models))
         .then((userDoc) => {
             const validated = helpers.validateBody(req.body, postUrlDemosValidator)
-            return { url: validated.value.url, userDoc, userId: userDoc?._id?.toString() || null }
+            return { url: validated.value.url, demoType: validated.value.demoType, userDoc, userId: userDoc?._id?.toString() || null }
         })
-        .then(({ url, userDoc, userId }) => {
+        .then(({ url, demoType, userDoc, userId }) => {
 
             const { browserSessionId } = req.body
+            // Rows saved before demoType existed have no value and count as story demos
+            const demoTypeFilter = demoType === 'agent' ? 'agent' : { $ne: 'agent' }
 
-            return Models.UrlDemo.findOne({ url, type: 'standard' })
+            return Models.UrlDemo.findOne({ url, type: 'standard', demoType: demoTypeFilter })
                 .lean()
                 .then((standardUrlDemoDoc) => {
 
@@ -105,19 +108,43 @@ const handler = function (req, res) {
                         return standardUrlDemoDoc
                     } else if (standardUrlDemoDoc && userId) {
 
-                        return Models.UrlDemo.findOne({ url, type: 'owned', userId })
+                        return Models.UrlDemo.findOne({ url, type: 'owned', userId, demoType: demoTypeFilter, status: 'completed' })
+                            .sort({ createdAt: -1 })
+                            .then((ownedUrlDemoDoc) => {
+                                if (!ownedUrlDemoDoc || demoType !== 'agent') {
+                                    return ownedUrlDemoDoc
+                                }
+
+                                // The user deleted their copy: drop the stale row and copy the standard agent again
+                                return Models.AiDemoAgent.exists({ _id: ownedUrlDemoDoc.agentId, deletedAt: null })
+                                    .then((agentExists) => {
+                                        if (agentExists) {
+                                            return ownedUrlDemoDoc
+                                        }
+
+                                        return Models.UrlDemo.deleteOne({ _id: ownedUrlDemoDoc._id }).then(() => null)
+                                    })
+                            })
                             .then((foundUrlDemoDoc) => {
                                 if (foundUrlDemoDoc) {
                                     return foundUrlDemoDoc
                                 } else {
 
-                                    const firstWorkspace = userDoc?.workspaces?.[0]
-                                    const workspaceId = firstWorkspace?._id || firstWorkspace
-                                    if (!workspaceId) {
-                                        throw new Error('No workspace found for user')
-                                    }
+                                    return newestWorkspaceIdForUser(Models, userDoc)
+                                        .then((workspaceId) => {
+                                            if (!workspaceId) {
+                                                throw new Error('No workspace found for user')
+                                            }
 
-                                    return cloneUrlDemoWithStoryForUser(standardUrlDemoDoc, userId, workspaceId, browserSessionId || '', Models)
+                                            return cloneUrlDemoWithStoryForUser(standardUrlDemoDoc, userId, workspaceId, browserSessionId || '', Models)
+                                        })
+                                        .then((clonedUrlDemoDoc) => {
+                                            if (!clonedUrlDemoDoc && demoType === 'agent') {
+                                                throw new Error('Standard agent could not be copied')
+                                            }
+
+                                            return clonedUrlDemoDoc
+                                        })
                                 }
                             })
 
@@ -125,7 +152,13 @@ const handler = function (req, res) {
                         const type = !!userId ? 'owned' : 'browsed'
                         const shouldCreateStandard = type === 'owned'
 
-                        return new Models.UrlDemo({ url, type, browserSessionId: browserSessionId || '' })
+                        return new Models.UrlDemo({
+                            url,
+                            type,
+                            browserSessionId: browserSessionId || '',
+                            demoType,
+                            ...(userId && { userId })
+                        })
                             .save()
                             .then((urlDemoDoc) => {
 

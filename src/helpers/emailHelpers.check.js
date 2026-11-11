@@ -37,8 +37,12 @@ const Models = (opts = {}) => ({
         }),
         exists: async () => !!opts.everUrlDemo
     },
-    Story: { exists: async () => !!opts.hasDemo },
-    AiDemoAgent: { exists: async () => !!opts.hasAgent },
+    Story: {
+        exists: async () => !!opts.hasDemo,
+        findOne: () => ({ select: () => ({ lean: async () => opts.urlDemoStory || null }) })
+    },
+    // exists({ _id }) is urlDemoRedirectPath's "copy still there" lookup; the other one is isUserActivated
+    AiDemoAgent: { exists: async (q) => (q._id ? !!opts.urlDemoAgent : !!opts.hasAgent) },
     User: { updateOne: async () => { if (opts.onActivated) opts.onActivated() } }
 })
 
@@ -56,8 +60,30 @@ assert.equal(
     '/own/claim/c2'
 )
 assert.equal(
-    await getPostAuthRedirectPath(user(), Models({ justUrlDemo: { storyId: 's1' } })),
-    '/workspace/w1/storydemo/s1'
+    await getPostAuthRedirectPath(user(), Models({ justUrlDemo: { storyId: 's1' }, urlDemoStory: { workspaceId: 'w2' } })),
+    '/workspace/w2/storydemo/s1'
+)
+// An agent row opens its preview page, not the agent editor
+assert.equal(
+    await getPostAuthRedirectPath(
+        user(),
+        Models({
+            justUrlDemo: {
+                _id: 'd1',
+                storyId: 's1',
+                agentId: 'a1',
+                demoType: 'agent',
+                browserSessionId: 'b 1'
+            },
+            urlDemoAgent: true
+        })
+    ),
+    '/preview?urlDemoId=d1&browserSessionId=b%201&demoType=agent'
+)
+// A deleted agent copy does not redirect
+assert.equal(
+    await getPostAuthRedirectPath(user(), Models({ justUrlDemo: { storyId: 's1', agentId: 'a1', demoType: 'agent' } })),
+    '/onboarding'
 )
 // Onboarding is mandatory until the user has a demo
 assert.equal(await getPostAuthRedirectPath(user({ onboarding: { goals: ['sales'] } }), Models(), '/'), '/onboarding')

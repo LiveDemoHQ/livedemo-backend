@@ -73,11 +73,6 @@ export function shouldRedirectToOnboarding(userDoc) {
 // Fresh "Make it yours" / UrlDemo copies land in the editor, not the goals wizard
 const JUST_CLAIMED_MS = 15 * 60 * 1000
 
-function firstWorkspaceId(userDoc) {
-  const first = userDoc && userDoc.workspaces && userDoc.workspaces[0]
-  return first && (first._id || first)
-}
-
 async function ownClaimRedirectPath(Models, userId) {
   if (!Models || !Models.OwnClaim || !userId) return null
 
@@ -101,8 +96,6 @@ async function ownClaimRedirectPath(Models, userId) {
 // cloneUrlDemoStoriesForUser runs inline on auth and creates type:'owned' rows
 async function urlDemoRedirectPath(Models, userDoc) {
   if (!Models || !Models.UrlDemo || !userDoc || !userDoc._id) return null
-  const workspaceId = firstWorkspaceId(userDoc)
-  if (!workspaceId) return null
 
   const owned = await Models.UrlDemo.findOne({
     userId: userDoc._id,
@@ -112,10 +105,25 @@ async function urlDemoRedirectPath(Models, userDoc) {
     createdAt: { $gte: new Date(Date.now() - JUST_CLAIMED_MS) }
   })
     .sort({ createdAt: -1 })
-    .select('storyId')
+    .select('storyId agentId demoType browserSessionId')
     .lean()
-  return owned && owned.storyId
-    ? `/workspace/${workspaceId}/storydemo/${owned.storyId}`
+  if (!owned || !owned.storyId) return null
+
+  // The workspace comes from the copy itself: clones land in the newest workspace, not workspaces[0]
+  if (owned.demoType === 'agent') {
+    if (!Models.AiDemoAgent || !owned.agentId) return null
+
+    // Agents open on the preview page, never straight in the editor: its Edit button leads there
+    const agentExists = await Models.AiDemoAgent.exists({ _id: owned.agentId, deletedAt: null })
+    return agentExists
+      ? `/preview?urlDemoId=${owned._id}&browserSessionId=${encodeURIComponent(owned.browserSessionId || '')}&demoType=agent`
+      : null
+  }
+
+  if (!Models.Story) return null
+  const story = await Models.Story.findOne({ _id: owned.storyId, deletedAt: null }).select('workspaceId').lean()
+  return story && story.workspaceId
+    ? `/workspace/${story.workspaceId}/storydemo/${owned.storyId}`
     : null
 }
 

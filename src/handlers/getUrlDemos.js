@@ -57,6 +57,18 @@ const handler = function (req, res) {
                 return res.send(JSON.stringify(urlDemo))
             }
 
+            if (urlDemo.demoType === 'agent') {
+
+                return Models.AiDemoAgent.findOne({ _id: urlDemo.agentId, deletedAt: null })
+                    .select('_id workspaceId name isPublished')
+                    .lean()
+                    .then((agentDoc) => {
+                        res.set(CORS_HEADERS)
+                        res.status(ResponseCodes['200_OK'])
+                        return res.send(JSON.stringify({ ...urlDemo, agentDoc }))
+                    })
+            }
+
             return findPreviewStory(Models, urlDemo.storyId).then((storyDoc) => {
                 res.set(CORS_HEADERS)
                 res.status(ResponseCodes['200_OK'])

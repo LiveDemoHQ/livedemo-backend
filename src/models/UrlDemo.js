@@ -6,6 +6,8 @@ const UrlDemo = new mongoose.Schema(
         browserSessionId: { type: String },
         type: { type: String, default: 'standard' }, // enum: ['standard', 'browsed', 'owned']
         storyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Story' },
+        demoType: { type: String, enum: ['storydemo', 'agent'], default: 'storydemo' },
+        agentId: { type: mongoose.Schema.Types.ObjectId, ref: 'AiDemoAgent' },
         status: { type: String, default: 'processing' }, // processing | completed | failed
         error: { type: String },
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

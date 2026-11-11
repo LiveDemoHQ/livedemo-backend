@@ -1,4 +1,7 @@
 import mongoose from 'mongoose'
+import { newCloneCtx, cloneAgentForUser, finishStoryGraph, rollbackClaim } from './own/cloneForClaim.js'
+import newestWorkspaceIdForUser from './newestWorkspaceIdForUser.js'
+import logger from './logger.js'
 
 const { ObjectId } = mongoose.Types
 
@@ -91,8 +94,51 @@ export async function cloneStoryForUser(storyId, userId, workspaceId, Models) {
   return newStoryId
 }
 
+const CLONE_DEPS = { newCloneCtx, cloneAgentForUser, finishStoryGraph, rollbackClaim }
+
+// Copy of a UrlDemo agent into the user's workspace: the agent, its demo story and its knowledge.
+// deps is only replaced by the check file
+export async function cloneUrlDemoAgentForUser(sourceUrlDemo, userId, workspaceId, browserSessionId, Models, deps = CLONE_DEPS) {
+  const sourceAgent = await Models.AiDemoAgent.findOne({ _id: sourceUrlDemo.agentId, deletedAt: null })
+    .select('workspaceId cta')
+    .lean()
+  if (!sourceAgent) return null
+
+  const ctx = deps.newCloneCtx({
+    Models,
+    userId,
+    workspaceId,
+    sourceWorkspaceId: sourceAgent.workspaceId
+  })
+  try {
+    const newAgentId = await deps.cloneAgentForUser(sourceAgent._id, ctx, { includeKnowledge: true })
+    const newStoryId = ctx.storyIdMap.get(String(sourceUrlDemo.storyId))
+    if (!newAgentId || !newStoryId) throw new Error('UrlDemo agent copy is incomplete')
+
+    await deps.finishStoryGraph(ctx)
+    // cloneAgentForUser clears the CTA links and unpublishes ("Make it yours" rules). These links are ours, not
+    // an author's, and UrlDemo agents are published from the start so the preview page can iframe the player
+    await Models.AiDemoAgent.updateOne({ _id: newAgentId }, { $set: { cta: sourceAgent.cta, isPublished: true } })
+
+    return await new Models.UrlDemo({
+      url: sourceUrlDemo.url,
+      browserSessionId: browserSessionId || sourceUrlDemo.browserSessionId,
+      type: 'owned',
+      demoType: 'agent',
+      storyId: newStoryId,
+      agentId: newAgentId,
+      status: 'completed',
+      userId
+    }).save()
+  } catch (err) {
+    await deps.rollbackClaim(ctx).catch(rollbackErr => logger.error('[cloneUrlDemoAgentForUser] rollback failed', { eventName: 'CLONE_URL_DEMO_AGENT_ROLLBACK_FAILED', err: rollbackErr }))
+    throw err
+  }
+}
+
 export async function cloneUrlDemoWithStoryForUser(sourceUrlDemo, userId, workspaceId, browserSessionId, Models) {
   if (!sourceUrlDemo?.storyId) return null
+  if (sourceUrlDemo.demoType === 'agent') return cloneUrlDemoAgentForUser(sourceUrlDemo, userId, workspaceId, browserSessionId, Models)
 
   const newStoryId = await cloneStoryForUser(sourceUrlDemo.storyId, userId, workspaceId, Models)
   if (!newStoryId) return null
@@ -114,7 +160,7 @@ export async function cloneUrlDemoWithStoryForUser(sourceUrlDemo, userId, worksp
 export async function cloneUrlDemoStoriesForUser(browserSessionId, userDoc, Models) {
   if (!browserSessionId || !userDoc) return
 
-  const workspaceId = userDoc.workspaces?.[0]
+  const workspaceId = await newestWorkspaceIdForUser(Models, userDoc)
   if (!workspaceId) return
 
   const urlDemos = await Models.UrlDemo.find({
@@ -128,19 +174,30 @@ export async function cloneUrlDemoStoriesForUser(browserSessionId, userDoc, Mode
   if (!urlDemos.length) return
 
   for (const urlDemo of urlDemos) {
-    const clonedUrlDemo = await cloneUrlDemoWithStoryForUser(
-      urlDemo,
-      userDoc._id,
-      workspaceId,
-      urlDemo.browserSessionId,
-      Models
-    )
-
-    if (clonedUrlDemo) {
-      await Models.UrlDemo.updateOne(
-        { _id: urlDemo._id },
-        { $set: { storyId: clonedUrlDemo.storyId, userId: userDoc._id } }
+    // One row that cannot be copied must not stop the others
+    try {
+      const clonedUrlDemo = await cloneUrlDemoWithStoryForUser(
+        urlDemo,
+        userDoc._id,
+        workspaceId,
+        urlDemo.browserSessionId,
+        Models
       )
+
+      if (clonedUrlDemo) {
+        await Models.UrlDemo.updateOne(
+          { _id: urlDemo._id },
+          {
+            $set: {
+              storyId: clonedUrlDemo.storyId,
+              userId: userDoc._id,
+              ...(clonedUrlDemo.agentId && { agentId: clonedUrlDemo.agentId })
+            }
+          }
+        )
+      }
+    } catch (err) {
+      logger.error('[cloneUrlDemoStoriesForUser] clone failed', { eventName: 'CLONE_URL_DEMO_FOR_USER_FAILED', err, data: { urlDemoId: String(urlDemo._id) } })
     }
   }
 }
