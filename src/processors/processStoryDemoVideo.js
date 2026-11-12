@@ -391,7 +391,15 @@ async function processStoryDemoVideo(sharedConfig, params, callback) {
         })
         .then((storyContentDoc) => {
             logger.info('processStoryDemoVideo completed - end', { eventName: 'PROCESSSTORYDEMOVIDEO_COMPLETED_END' })
-            logger.info(storyContentDoc, { eventName: 'PROCESS_STORY_DEMO_VIDEO' })
+            logger.info('processStoryDemoVideo story ready', {
+                eventName: 'PROCESS_STORY_DEMO_VIDEO',
+                data: {
+                    storyId: String(storyDemoId),
+                    contentId: String(storyContentDoc._id),
+                    videoUrl: storyContentDoc.videoUrl,
+                    gifUrl: storyContentDoc.gifUrl
+                }
+            })
 
             callback(null, {
                 storyDemoId: storyDemoId,
