@@ -1,7 +1,10 @@
+import mongoose from 'mongoose'
 import helpers from '../helpers/livedemoHelpers.js'
 import ResponseCodes from '../constants/ResponseCodes.js'
 
 import logger from '../helpers/logger.js'
+
+const { ObjectId } = mongoose.Types
 
 const FIELDS_BY_TYPE = {
   pages: '_id name index imageUrl recordingRole baseScreenId type createdAt updatedAt',
@@ -11,6 +14,19 @@ const FIELDS_BY_TYPE = {
 
 function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function toObjectId(value) {
+  const str = String(value || '')
+  if (!ObjectId.isValid(str)) return null
+  return new ObjectId(str)
+}
+
+function fieldProjection(fields) {
+  return fields.split(' ').reduce((project, field) => {
+    if (field) project[field] = 1
+    return project
+  }, {})
 }
 
 const handler = function (req, res) {
@@ -53,22 +69,32 @@ const handler = function (req, res) {
       const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100)
 
       // Pages: all Screen_Pages in the workspace (incl. rrweb base/delta). Screenshots/videos: ids kept on the workspace.
+      const ids = ((foundWorkspace.library || {})[type] || []).map(toObjectId).filter(Boolean)
       const filter = type === 'pages'
-        ? { workspaceId, type: 'Screen_Page' }
-        : { _id: { $in: (foundWorkspace.library || {})[type] || [] } }
+        ? { workspaceId: toObjectId(workspaceId) || workspaceId, type: 'Screen_Page' }
+        : { _id: { $in: ids } }
 
       // ponytail: case-insensitive name regex, no text index. Fine while a workspace
       // library stays in the hundreds; add a text index if this shows up in slow logs.
       const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 80) : ''
       if (q) filter.name = { $regex: escapeRegex(q), $options: 'i' }
 
+      // Newest first, using the same date the card shows: updatedAt, else createdAt, else the id time.
       const [items, total] = await Promise.all([
-        Models.Screen.find(filter)
-          .select(FIELDS_BY_TYPE[type])
-          .sort({ updatedAt: -1, _id: -1 })
-          .skip((page - 1) * limit)
-          .limit(limit)
-          .lean(),
+        Models.Screen.aggregate([
+          { $match: filter },
+          {
+            $addFields: {
+              recentAt: {
+                $ifNull: ['$updatedAt', { $ifNull: ['$createdAt', { $toDate: '$_id' }] }]
+              }
+            }
+          },
+          { $sort: { recentAt: -1, _id: -1 } },
+          { $skip: (page - 1) * limit },
+          { $limit: limit },
+          { $project: fieldProjection(FIELDS_BY_TYPE[type]) }
+        ]),
         Models.Screen.countDocuments(filter)
       ])
 
