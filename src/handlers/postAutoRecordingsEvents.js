@@ -69,7 +69,9 @@ const handler = function (req, res) {
                         $set: {
                             "sessionData.duration": duration,
                             "sessionData.endTimestamp": endTimestamp,
-                            "sessionData.eventsClickCount": autoRecordingDoc.sessionData.eventsClickCount + eventClicksCount,
+                        },
+                        $inc: {
+                            "sessionData.eventsClickCount": eventClicksCount,
                         }
                     }, {
                         new: true,

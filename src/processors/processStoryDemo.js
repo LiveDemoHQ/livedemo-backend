@@ -4,6 +4,11 @@ import StoryStatuses from '../constants/StoryStatuses.js'
 import ScreenTypes from '../constants/ScreenTypes.js'
 import StoryTypes from '../constants/StoryTypes.js'
 import flixHelpers from '../helpers/flixHelpers.js'
+import {
+    desktopVideoPath,
+    readDesktopScreenshots,
+    removeDesktopStoryDir,
+} from '../helpers/desktopStoryFiles.js'
 import he from 'he'
 
 import logger from '../helpers/logger.js'
@@ -145,34 +150,48 @@ async function processStoryDemo(sharedConfig, params, callback) {
 
             // renderEvents = flixHelpers.getRenderEvents(capturedEvents, videoStartMs, videoEndMs, screenshots)
 
-            return flixHelpers.uploadMuxVideo(requestBody.videoBase64)
-                .then((videoUploadRes) => {
+            return Promise.resolve()
+                .then(async () => {
+                    if (requestBody.videoBase64) {
+
+                        return requestBody.videoBase64
+                    }
+
+                    return fsp.readFile(desktopVideoPath(ENV_VARS.STORY_REQUESTS_FOLDER, storyId))
+                })
+                .then((video) => flixHelpers.uploadMuxVideo(video))
+                .then(async (videoUploadRes) => {
 
                     // console.log(videoUploadRes)
                     videoAssetId = videoUploadRes.id
 
                     let videoDurationInSeconds = videoUploadRes.tracks[0].duration ?? videoUploadRes.duration
                     videoEndMs = videoStartMs + (videoDurationInSeconds * 1000)
-                    // let differenceBetweenNewAndOldVideoEndMs = newVideoEndMs - videoEndMs
-                    // if(differenceBetweenNewAndOldVideoEndMs !== 0) {
-                    //     videoEndMs = newVideoEndMs
-                    //
-                    //     for(let i = 0; i < capturedEvents.length; i++) {
-                    //         let event = capturedEvents[i]
-                    //         event.timeMs = event.timeMs + differenceBetweenNewAndOldVideoEndMs
-                    //     }
-                    // }
-                    const screenshotEntries = Object.entries(requestBody.screenshots)
-                    const firstScreenshotKey = screenshotEntries.length > 0 ? screenshotEntries[0][0] : null
+                    const screenshotEntries = Object.entries(requestBody.screenshots || {})
 
-                    return Promise.all(screenshotEntries.map(function ([key, value]) {
-                        return flixHelpers.uploadImage(value, storyId + '/' + key)
+                    if (screenshotEntries.length) {
+
+                        return Promise.all(screenshotEntries.map(function ([key, value]) {
+                            return flixHelpers.uploadImage(value, storyId + '/' + key)
+                                .then(res => {
+                                    let imgObj = {}
+                                    imgObj.name = key
+                                    imgObj.imageUrl = res.Location
+
+                                    return imgObj
+                                })
+                        }))
+                    }
+
+                    const shots = await readDesktopScreenshots(ENV_VARS.STORY_REQUESTS_FOLDER, storyId)
+
+                    return Promise.all(shots.map(function (shot) {
+                        return flixHelpers.uploadImageBuffer(shot.buffer, storyId + '/' + shot.key, 'image/png', 'png')
                             .then(res => {
-                                let imgObj = {}
-                                imgObj.name = key
-                                imgObj.imageUrl = res.Location
-
-                                return imgObj
+                                return {
+                                    name: shot.key,
+                                    imageUrl: res.Location
+                                }
                             })
                     }))
                 })
@@ -238,16 +257,18 @@ async function processStoryDemo(sharedConfig, params, callback) {
                                             event.startTime,
                                             event.endTime
                                         ),
+                                        recordedStartMs: event.startTime,
+                                        recordedEndMs: event.endTime,
                                         steps: [],
                                     })
                                 }
 
-                                if ((event.type === 'image' && screenshots[event.imageId]) &&
-                                    (event.frameX !== 0 && event.frameY !== 0)
-                                ) {
+                                const hasPoint = event.frameX != null && event.frameY != null
+
+                                if (event.type === 'image' && screenshots[event.imageId] && (event.imageId === 'final' || hasPoint)) {
                                     let steps = []
 
-                                    if (event.frameX) {
+                                    if (hasPoint) {
 
                                         let contentText = event.targetText ? `<p>Click on ${event.targetText}</p>` : `<p>Click here</p>`
 
@@ -262,8 +283,7 @@ async function processStoryDemo(sharedConfig, params, callback) {
                                                 content: contentText,
                                             },
                                             elementData: {
-                                                // targetHTML: event.targetHTML,
-                                                targetHTML: he.encode(event.targetHTML),
+                                                targetHTML: he.encode(event.targetHTML || ''),
                                                 targetElementType: event.targetElementType,
                                                 targetText: event.targetText
                                             }
@@ -321,7 +341,9 @@ async function processStoryDemo(sharedConfig, params, callback) {
                                     'library.videos': { $each: videoResults }
                                 }
                             })
-                                .then(() => {
+                                .then(async () => {
+                                    await removeDesktopStoryDir(ENV_VARS.STORY_REQUESTS_FOLDER, storyId)
+
                                     return newStoryDoc
                                 })
                         })

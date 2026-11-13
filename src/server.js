@@ -11,6 +11,7 @@ import postStoryDomRecordingEventsHandler from './handlers/postStoryDomRecording
 import postStoryDomRecordingFinishHandler from './handlers/postStoryDomRecordingFinish.js'
 import postStoriesHandler from './handlers/postStories.js'
 import postDesktopStoriesHandler from './handlers/postDesktopStories.js'
+import putDesktopStoryFile from './handlers/putDesktopStoryFile.js'
 import postEmptyStoryHandler from './handlers/postEmptyStory.js'
 import postInProgressStoryHandler from './handlers/postInProgressStory.js'
 import patchStoryHandler from './handlers/patchStory.js'
@@ -381,6 +382,7 @@ function corsMiddleware(req, res, next) {
 
 app.post('/stories', [setupMongo, corsMiddleware], postStoriesHandler)
 app.post('/desktopStories', [setupMongo, corsMiddleware], postDesktopStoriesHandler)
+app.put('/stories/:storyId/desktop-files/:name', [setupMongo, express.raw({ type: 'application/octet-stream', limit: '80mb' })], putDesktopStoryFile)
 app.post('/emptyStory', [setupMongo, corsMiddleware], postEmptyStoryHandler)
 app.post('/inProgressStory', [setupMongo, corsMiddleware], postInProgressStoryHandler)
 app.patch('/workspaces/:workspaceId/stories/:storyId', [setupMongo, rev('story', 'story:update')], patchStoryHandler)

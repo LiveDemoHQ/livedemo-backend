@@ -9,6 +9,10 @@ const FIELDS_BY_TYPE = {
   videos: '_id name index asset.playback_ids createdAt updatedAt'
 }
 
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 const handler = function (req, res) {
   let { Models, conn } = req.mongo
 
@@ -52,6 +56,11 @@ const handler = function (req, res) {
       const filter = type === 'pages'
         ? { workspaceId, type: 'Screen_Page' }
         : { _id: { $in: (foundWorkspace.library || {})[type] || [] } }
+
+      // ponytail: case-insensitive name regex, no text index. Fine while a workspace
+      // library stays in the hundreds; add a text index if this shows up in slow logs.
+      const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 80) : ''
+      if (q) filter.name = { $regex: escapeRegex(q), $options: 'i' }
 
       const [items, total] = await Promise.all([
         Models.Screen.find(filter)

@@ -14,6 +14,8 @@ const ScreenVideo = new mongoose.Schema({
     startTime: {type: Number, default: 0},
     endTime: {type: Number, default: 0},
     cursorPositions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'CursorPositions' }],
+    recordedStartMs: { type: Number },
+    recordedEndMs: { type: Number },
     zoomSpans: [
       ZoomSpanVideoSchema
     ],

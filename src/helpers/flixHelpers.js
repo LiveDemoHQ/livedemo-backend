@@ -1,4 +1,4 @@
-import moment from 'moment'
+import { secondsBetween } from './renderMillis.js'
 
 import fsp from 'fs/promises'
 import axios from 'axios'
@@ -545,11 +545,7 @@ function getRenderEvents(capturedEvents, videoStartMs, videoEndMs, screenshots) 
   let endTime = videoEndMs
 
   let startMillis = 0
-  let videoEndMillis = parseFloat(
-    Math.abs(
-      moment.duration(moment(startTime).diff(moment(endTime))).asMilliseconds() / 1000.0
-    ).toPrecision(4)
-  )
+  let videoEndMillis = secondsBetween(endTime, startTime)
   let endMillis = 0
 
   let clickEvents = capturedEvents.filter(event => {
@@ -562,11 +558,7 @@ function getRenderEvents(capturedEvents, videoStartMs, videoEndMs, screenshots) 
     let event = clickEvents[i]
 
     endTime = event.timeMs
-    endMillis = parseFloat(
-      Math.abs(
-        moment.duration(moment(event.timeMs).diff(moment(videoStartMs))).asMilliseconds() / 1000.0
-      ).toPrecision(4)
-    )
+    endMillis = secondsBetween(event.timeMs, videoStartMs)
 
     let testTime = event.timeMs - videoStartMs
 

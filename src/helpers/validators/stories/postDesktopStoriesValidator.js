@@ -8,7 +8,7 @@ function validateBody(body) {
   let schema = Joi.object().keys({
     name: Joi.string().required(),
     capturedEvents: Joi.array(),
-    videoBase64: Joi.string().required(),
+    videoBase64: Joi.string().optional().allow(''),
     screenshots: Joi.object(),
     windowMeasures: Joi.object(),
     videoStartMs: Joi.number().required(),
